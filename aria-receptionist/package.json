@@ -1,15 +1,14 @@
 {
-  "name": "ai-receptionist",
+  "name": "callmate",
   "version": "1.0.0",
-  "description": "AI phone receptionist powered by Vapi + Claude + ElevenLabs",
+  "description": "CallMate — AI Receptionist SaaS",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "setup": "node setup-vapi.js"
+    "start": "node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
