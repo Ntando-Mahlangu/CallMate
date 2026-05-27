@@ -1,7 +1,7 @@
 {
-  "name": "callmate",
+  "name": "missedcall",
   "version": "1.0.0",
-  "description": "CallMate — AI Receptionist SaaS",
+  "description": "MissedCall.io — AI Receptionist SaaS",
   "type": "module",
   "main": "server.js",
   "scripts": {
