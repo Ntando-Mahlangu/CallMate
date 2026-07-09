@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Better Auth core models ────────────────────────────────────────────────
+// Shape matches what @better-auth/cli generate produces for the Prisma
+// adapter (email/password + Google OAuth + session management).
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Membership[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id         String @id @default(uuid())
+  accountId  String
+  providerId String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+// ── Outrun domain models ───────────────────────────────────────────────────
+// docs/outrun/12-database-architecture-scalability.md,
+// docs/outrun/14-billing-subscriptions-teams-enterprise.md
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  GROWTH
+  UNLIMITED
+}
+
+enum GrowthStage {
+  IDEA
+  STARTUP
+  GROWING
+  ESTABLISHED
+  AGENCY
+  ENTERPRISE
+}
+
+// One Organization per business workspace. Fields populated by Business
+// Discovery onboarding (docs/outrun/03) are nullable here because they are
+// captured in a later build phase, not because they're optional in the
+// finished product.
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  website   String?
+  industry  String?
+  country   String?
+  growthStage GrowthStage?
+  brandVoice  String?
+  planTier    PlanTier @default(FREE)
+
+  growthScore Int? // 0-100, set once a Growth Blueprint exists
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  memberships Membership[]
+
+  @@map("organization")
+}
+
+// Joins a User to an Organization with a role (docs/outrun/14 permissions).
+model Membership {
+  id     String         @id @default(uuid())
+  role   MembershipRole @default(OWNER)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, organizationId])
+  @@map("membership")
+}
