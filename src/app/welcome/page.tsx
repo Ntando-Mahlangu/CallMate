@@ -20,7 +20,7 @@ export default async function WelcomePage() {
   });
 
   if (membership?.organization.growthBlueprints.length) {
-    redirect("/blueprint");
+    redirect("/dashboard");
   }
 
   const firstName = session.user.name.split(" ")[0];

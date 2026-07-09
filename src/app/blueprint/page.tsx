@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { ImpactBadge, Badge } from "@/components/ui/badge";
 import { ScoreGauge } from "@/components/growth-blueprint/score-gauge";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 export default async function BlueprintPage() {
@@ -292,6 +295,12 @@ export default async function BlueprintPage() {
             {blueprint.confidenceNotes}
           </p>
         </Card>
+
+        <div className="flex justify-center pb-8">
+          <Link href="/dashboard" className={cn(buttonVariants({ size: "lg" }))}>
+            Continue to Dashboard
+          </Link>
+        </div>
       </div>
     </main>
   );
