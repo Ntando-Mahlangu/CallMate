@@ -119,6 +119,13 @@ model Organization {
 
   growthScore Int? // 0-100, set once a Growth Blueprint exists
 
+  // Billing (docs/outrun/14). Set only by verified Paddle webhooks
+  // (src/app/api/billing/webhook/route.ts) — never by the client, so plan
+  // access can't be forged from the frontend (Article XII).
+  paddleCustomerId     String?
+  paddleSubscriptionId String?
+  subscriptionStatus   String?
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?

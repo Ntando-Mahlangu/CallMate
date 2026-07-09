@@ -7,6 +7,7 @@ const PROTECTED_PREFIXES = [
   "/onboarding",
   "/blueprint",
   "/prospects",
+  "/billing",
 ];
 
 // Fast redirect based on cookie presence only. The actual session is
@@ -36,5 +37,6 @@ export const config = {
     "/onboarding/:path*",
     "/blueprint/:path*",
     "/prospects/:path*",
+    "/billing/:path*",
   ],
 };

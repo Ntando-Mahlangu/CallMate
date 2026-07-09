@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Mission Control" },
   { href: "/blueprint", label: "Growth Blueprint" },
   { href: "/prospects", label: "Prospects" },
+  { href: "/billing", label: "Billing" },
 ];
 
 export function SidebarNav() {
