@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const PROTECTED_PREFIXES = ["/welcome", "/dashboard"];
+const PROTECTED_PREFIXES = ["/welcome", "/dashboard", "/onboarding", "/blueprint"];
 
 // Fast redirect based on cookie presence only. The actual session is
 // re-verified server-side via auth.api.getSession() on every protected
@@ -24,5 +24,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/welcome/:path*", "/dashboard/:path*"],
+  matcher: [
+    "/welcome/:path*",
+    "/dashboard/:path*",
+    "/onboarding/:path*",
+    "/blueprint/:path*",
+  ],
 };

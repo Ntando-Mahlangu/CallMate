@@ -12,13 +12,13 @@ datasource db {
 // adapter (email/password + Google OAuth + session management).
 
 model User {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   sessions    Session[]
   accounts    Account[]
@@ -108,30 +108,85 @@ enum GrowthStage {
 // captured in a later build phase, not because they're optional in the
 // finished product.
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  website   String?
-  industry  String?
-  country   String?
+  id          String       @id @default(uuid())
+  name        String
+  website     String?
+  industry    String?
+  country     String?
   growthStage GrowthStage?
   brandVoice  String?
-  planTier    PlanTier @default(FREE)
+  planTier    PlanTier     @default(FREE)
 
   growthScore Int? // 0-100, set once a Growth Blueprint exists
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  memberships Membership[]
+  memberships      Membership[]
+  businessProfile  BusinessProfile?
+  growthBlueprints GrowthBlueprint[]
 
   @@map("organization")
 }
 
+// Captured by the Business Discovery onboarding conversation
+// (docs/outrun/03). One per Organization; the AI Growth Blueprint reads
+// entirely from this plus website analysis — never invents facts beyond it.
+model BusinessProfile {
+  id String @id @default(uuid())
+
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  description         String
+  idealCustomer       String
+  sellingLocations    String[]
+  acquisitionChannels String[]
+  growthChallenge     String
+  avgCustomerValue    Int?
+  mainGoal            String
+  competitors         String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_profile")
+}
+
+// One row per generated/regenerated Blueprint — versioned, never overwritten
+// (docs/outrun/05 "VERSION HISTORY"). Structured sub-sections are stored as
+// JSON because their shape is validated by the Zod schema in
+// src/lib/growth-blueprint/schema.ts at generation time, not by Postgres.
+model GrowthBlueprint {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  version        Int
+
+  growthScore          Int
+  executiveSummary     String
+  strengths            Json
+  weaknesses           Json
+  biggestBottleneck    Json
+  opportunities        Json
+  growthStrategy       Json
+  idealCustomerProfile Json
+  roadmap              Json
+  scoreCategories      Json
+  confidenceNotes      String
+
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, version])
+  @@map("growth_blueprint")
+}
+
 // Joins a User to an Organization with a role (docs/outrun/14 permissions).
 model Membership {
-  id     String         @id @default(uuid())
-  role   MembershipRole @default(OWNER)
+  id   String         @id @default(uuid())
+  role MembershipRole @default(OWNER)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
