@@ -126,6 +126,7 @@ model Organization {
   memberships      Membership[]
   businessProfile  BusinessProfile?
   growthBlueprints GrowthBlueprint[]
+  companies        Company[]
 
   @@map("organization")
 }
@@ -181,6 +182,63 @@ model GrowthBlueprint {
 
   @@unique([organizationId, version])
   @@map("growth_blueprint")
+}
+
+// A prospect surfaced by lead search (docs/outrun/06). `source`/`sourceId`
+// identify which provider and which of its records this came from, so the
+// same real-world business is never duplicated within a workspace
+// ("DUPLICATE DETECTION"). fitScore/confidenceScore are set immediately at
+// search time by a cheap heuristic (src/lib/prospects/scoring.ts); `research`
+// is filled in later, only on demand, by an AI call — expensive analysis is
+// never run on results the user hasn't asked about.
+model Company {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  source   String
+  sourceId String
+
+  name             String
+  category         String?
+  website          String?
+  phone            String?
+  formattedAddress String?
+  rating           Float?
+  reviewCount      Int?
+
+  fitScore        Int?
+  confidenceScore Int?
+  research        Json?
+
+  isSaved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  outreachMessages OutreachMessage[]
+
+  @@unique([organizationId, source, sourceId])
+  @@map("company")
+}
+
+// One generated email per company (docs/outrun/07). No campaign/send
+// concept yet — that's a later build phase; this is the standalone
+// "Generate Outreach" action from a company's research profile.
+model OutreachMessage {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  subject          String
+  body             String
+  openingRationale String
+
+  createdAt DateTime @default(now())
+
+  @@map("outreach_message")
 }
 
 // Joins a User to an Organization with a role (docs/outrun/14 permissions).

@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Mission Control" },
   { href: "/blueprint", label: "Growth Blueprint" },
+  { href: "/prospects", label: "Prospects" },
 ];
 
 export function SidebarNav() {
@@ -19,7 +20,7 @@ export function SidebarNav() {
   return (
     <nav className="space-y-1">
       {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}
