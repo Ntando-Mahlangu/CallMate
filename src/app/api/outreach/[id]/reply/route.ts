@@ -1,0 +1,37 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getCurrentSession } from "@/lib/session";
+import { getCurrentOrganization } from "@/lib/org";
+import { setOutreachReplyStatus } from "@/lib/outreach/send";
+import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
+
+const GENERIC_ERROR = "We couldn't update that right now. Please try again in a moment.";
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getCurrentSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  }
+
+  const organization = await getCurrentOrganization(session.user.id);
+  if (!organization) {
+    return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
+  }
+
+  const { id } = await params;
+  const { gotReply } = await request.json();
+  if (typeof gotReply !== "boolean") {
+    return NextResponse.json({ error: "Missing reply status." }, { status: 400 });
+  }
+
+  try {
+    const message = await setOutreachReplyStatus(organization.id, id, gotReply);
+    return NextResponse.json({ message });
+  } catch (error) {
+    if (error instanceof UserFacingError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    captureError("outreach.reply.route", error, { organizationId: organization.id, messageId: id });
+    return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
+  }
+}

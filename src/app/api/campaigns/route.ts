@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, objective, companyIds } = await request.json();
+  const { name, objective, companyIds, abTest } = await request.json();
   if (typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "Give your campaign a name." }, { status: 400 });
   }
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       name: name.trim(),
       objective: objective.trim(),
       companyIds,
+      abTest: abTest === true,
     });
     return NextResponse.json(result);
   } catch (error) {

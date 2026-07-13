@@ -108,3 +108,27 @@ export async function sendCampaignOutreach(organizationId: string, campaignId: s
 
   return { sent, failed, skippedNoEmail, messages };
 }
+
+/**
+ * Manually records whether a prospect replied (docs/outrun/07 "A/B
+ * TESTING" comparison). There's no inbound-email integration to detect
+ * this automatically, so it's a plain user-reported toggle — never
+ * inferred from anything else.
+ */
+export async function setOutreachReplyStatus(
+  organizationId: string,
+  messageId: string,
+  gotReply: boolean,
+) {
+  const message = await prisma.outreachMessage.findFirst({
+    where: { id: messageId, company: { organizationId } },
+  });
+  if (!message) {
+    throw new UserFacingError("That message could not be found.");
+  }
+
+  return prisma.outreachMessage.update({
+    where: { id: message.id },
+    data: { gotReply },
+  });
+}

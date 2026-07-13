@@ -21,6 +21,14 @@ Rules you must follow (non-negotiable):
 - Explain, in openingRationale, why you chose that specific opening line
   — referencing the concrete research fact it is based on.`;
 
+// docs/outrun/07 "A/B TESTING" — two distinct angles a campaign can split
+// its audience across, so results are genuinely comparable rather than
+// just two random rewrites of the same idea.
+const VARIANT_INSTRUCTIONS: Record<"A" | "B", string> = {
+  A: "For this version, open by directly naming their most likely pain point from the research — matter-of-fact and empathetic — before introducing the sender.",
+  B: "For this version, open by naming a specific growth opportunity or possibility for their business from the research — framed positively — before introducing the sender.",
+};
+
 function buildUserMessage(input: {
   companyName: string;
   research: CompanyResearchData;
@@ -48,6 +56,7 @@ export async function generateOutreach(
   companyId: string,
   organizationId: string,
   campaignId?: string,
+  variant?: "A" | "B",
 ) {
   const company = await prisma.company.findFirst({
     where: { id: companyId, organizationId },
@@ -69,7 +78,7 @@ export async function generateOutreach(
 
   const ai = getAIProvider();
   const data = await ai.generateObject<OutreachData>({
-    system: SYSTEM_PROMPT,
+    system: variant ? `${SYSTEM_PROMPT}\n\n${VARIANT_INSTRUCTIONS[variant]}` : SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
@@ -93,6 +102,7 @@ export async function generateOutreach(
       subject: data.subject,
       body: data.body,
       openingRationale: data.openingRationale,
+      variantLabel: variant ?? null,
     },
   });
 

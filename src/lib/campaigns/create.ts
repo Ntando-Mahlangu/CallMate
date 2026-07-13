@@ -9,7 +9,7 @@ import { captureError } from "@/lib/observability";
 
 export async function createCampaign(
   organizationId: string,
-  input: { name: string; objective: string; companyIds: string[] },
+  input: { name: string; objective: string; companyIds: string[]; abTest?: boolean },
 ) {
   const organization = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
@@ -56,7 +56,10 @@ export async function createCampaign(
   let generatedCount = 0;
   let limitReached = false;
 
-  for (const company of companies) {
+  // docs/outrun/07 "A/B TESTING" — split the audience roughly 50/50 across
+  // two opening/CTA angles so results are comparable, rather than
+  // generating one variant for everyone.
+  for (const [i, company] of companies.entries()) {
     try {
       await checkAndRecordUsage(organizationId, UsageEventType.OUTREACH_GENERATION);
     } catch (error) {
@@ -68,7 +71,8 @@ export async function createCampaign(
     }
 
     try {
-      await generateOutreach(company.id, organizationId, campaign.id);
+      const variant = input.abTest ? (i % 2 === 0 ? "A" : "B") : undefined;
+      await generateOutreach(company.id, organizationId, campaign.id, variant);
       generatedCount += 1;
     } catch (error) {
       captureError("campaigns.create.outreach", error, { organizationId, companyId: company.id });

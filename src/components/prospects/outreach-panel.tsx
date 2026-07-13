@@ -28,6 +28,7 @@ export function OutreachPanel({
   const [savedContactEmail, setSavedContactEmail] = useState(initialContactEmail ?? "");
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
 
   async function generate() {
     setError(null);
@@ -79,6 +80,25 @@ export function OutreachPanel({
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setSendingId(null);
+    }
+  }
+
+  async function toggleReply(messageId: string, current: boolean) {
+    setError(null);
+    setReplyBusyId(messageId);
+    try {
+      const res = await fetch(`/api/outreach/${messageId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gotReply: !current }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, ...body.message } : m)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setReplyBusyId(null);
     }
   }
 
@@ -150,7 +170,7 @@ export function OutreachPanel({
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">
               Why this opener: {message.openingRationale}
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2">
               <Button
                 size="sm"
                 variant="secondary"
@@ -170,6 +190,16 @@ export function OutreachPanel({
                       ? "Retry Send"
                       : "Send"}
               </Button>
+              {message.sendStatus === "SENT" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleReply(message.id, message.gotReply)}
+                  disabled={replyBusyId === message.id}
+                >
+                  {message.gotReply ? "✓ Marked as replied" : "Mark as replied"}
+                </Button>
+              )}
             </div>
           </Card>
         ))}

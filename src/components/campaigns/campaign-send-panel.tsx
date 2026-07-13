@@ -10,6 +10,8 @@ import { FormError } from "@/components/ui/form-error";
 
 type MessageWithCompany = OutreachMessage & { company: Company };
 
+const MIN_SENT_FOR_COMPARISON = 6;
+
 export function CampaignSendPanel({
   campaignId,
   initialMessages,
@@ -22,6 +24,7 @@ export function CampaignSendPanel({
   const [messages, setMessages] = useState(initialMessages);
   const [error, setError] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
   const [isSendingAll, setIsSendingAll] = useState(false);
   const [lastSummary, setLastSummary] = useState<{
     sent: number;
@@ -33,6 +36,7 @@ export function CampaignSendPanel({
     (m) => m.sendStatus !== "SENT" && m.company.contactEmail,
   ).length;
   const missingEmailCount = messages.filter((m) => !m.company.contactEmail).length;
+  const hasVariants = messages.some((m) => m.variantLabel);
 
   async function sendOne(messageId: string) {
     setError(null);
@@ -70,101 +74,206 @@ export function CampaignSendPanel({
     }
   }
 
+  async function toggleReply(messageId: string, current: boolean) {
+    setError(null);
+    setReplyBusyId(messageId);
+    try {
+      const res = await fetch(`/api/outreach/${messageId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gotReply: !current }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, ...body.message } : m)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setReplyBusyId(null);
+    }
+  }
+
   return (
-    <Card>
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
-          Outreach ({messages.length})
-        </h2>
-        <Button
-          size="sm"
-          onClick={sendAll}
-          disabled={isSendingAll || !emailConfigured || sendableCount === 0}
-        >
-          {isSendingAll ? "Sending…" : `Send All (${sendableCount})`}
-        </Button>
-      </div>
+    <>
+      {hasVariants && <VariantComparison messages={messages} />}
 
-      {!emailConfigured && (
-        <p className="mt-2 text-xs text-[var(--color-warning)]">
-          Email sending isn&apos;t configured for this workspace yet — messages can be reviewed
-          and copied manually until it is.
-        </p>
-      )}
-      {emailConfigured && missingEmailCount > 0 && (
-        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-          {missingEmailCount} prospect{missingEmailCount === 1 ? " has" : "s have"} no contact
-          email yet — add one on their prospect page to include them in sending.
-        </p>
-      )}
-      {lastSummary && (
-        <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
-          Sent {lastSummary.sent}, failed {lastSummary.failed}, skipped {lastSummary.skippedNoEmail}{" "}
-          (no email on file).
-        </p>
-      )}
-
-      <div className="mt-4">
-        <FormError message={error} />
-      </div>
-
-      <div className="mt-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
+      <Card>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
+            Outreach ({messages.length})
+          </h2>
+          <Button
+            size="sm"
+            onClick={sendAll}
+            disabled={isSendingAll || !emailConfigured || sendableCount === 0}
           >
-            <div className="flex items-center justify-between gap-3">
-              <Link
-                href={`/prospects/${message.companyId}`}
-                className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-              >
-                {message.company.name}
-              </Link>
-              <SendStatusBadge
-                status={message.sendStatus}
-                sentAt={message.sentAt}
-                hasEmail={Boolean(message.company.contactEmail)}
-              />
-            </div>
-            <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-              Subject
-            </p>
-            <p className="text-sm font-medium text-[var(--color-text-primary)]">
-              {message.subject}
-            </p>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-              {message.body}
-            </p>
-            <div className="mt-3">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => sendOne(message.id)}
-                disabled={
-                  sendingId === message.id ||
-                  message.sendStatus === "SENT" ||
-                  !message.company.contactEmail ||
-                  !emailConfigured
-                }
-              >
-                {sendingId === message.id
-                  ? "Sending…"
-                  : message.sendStatus === "SENT"
-                    ? "Sent"
-                    : message.sendStatus === "FAILED"
-                      ? "Retry Send"
-                      : "Send"}
-              </Button>
-            </div>
-          </div>
-        ))}
-        {messages.length === 0 && (
-          <p className="text-sm text-[var(--color-text-muted)]">
-            No outreach was generated for this campaign.
+            {isSendingAll ? "Sending…" : `Send All (${sendableCount})`}
+          </Button>
+        </div>
+
+        {!emailConfigured && (
+          <p className="mt-2 text-xs text-[var(--color-warning)]">
+            Email sending isn&apos;t configured for this workspace yet — messages can be reviewed
+            and copied manually until it is.
           </p>
         )}
+        {emailConfigured && missingEmailCount > 0 && (
+          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+            {missingEmailCount} prospect{missingEmailCount === 1 ? " has" : "s have"} no contact
+            email yet — add one on their prospect page to include them in sending.
+          </p>
+        )}
+        {lastSummary && (
+          <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+            Sent {lastSummary.sent}, failed {lastSummary.failed}, skipped{" "}
+            {lastSummary.skippedNoEmail} (no email on file).
+          </p>
+        )}
+
+        <div className="mt-4">
+          <FormError message={error} />
+        </div>
+
+        <div className="mt-4 space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/prospects/${message.companyId}`}
+                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+                  >
+                    {message.company.name}
+                  </Link>
+                  {message.variantLabel && (
+                    <Badge tone="accent">Variant {message.variantLabel}</Badge>
+                  )}
+                </div>
+                <SendStatusBadge
+                  status={message.sendStatus}
+                  sentAt={message.sentAt}
+                  hasEmail={Boolean(message.company.contactEmail)}
+                />
+              </div>
+              <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                Subject
+              </p>
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                {message.subject}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+                {message.body}
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => sendOne(message.id)}
+                  disabled={
+                    sendingId === message.id ||
+                    message.sendStatus === "SENT" ||
+                    !message.company.contactEmail ||
+                    !emailConfigured
+                  }
+                >
+                  {sendingId === message.id
+                    ? "Sending…"
+                    : message.sendStatus === "SENT"
+                      ? "Sent"
+                      : message.sendStatus === "FAILED"
+                        ? "Retry Send"
+                        : "Send"}
+                </Button>
+                {message.sendStatus === "SENT" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => toggleReply(message.id, message.gotReply)}
+                    disabled={replyBusyId === message.id}
+                  >
+                    {message.gotReply ? "✓ Marked as replied" : "Mark as replied"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+          {messages.length === 0 && (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              No outreach was generated for this campaign.
+            </p>
+          )}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function computeVariantStats(messages: MessageWithCompany[], label: "A" | "B") {
+  const variantMessages = messages.filter((m) => m.variantLabel === label);
+  const sent = variantMessages.filter((m) => m.sendStatus === "SENT");
+  const replies = sent.filter((m) => m.gotReply).length;
+  return {
+    label,
+    total: variantMessages.length,
+    sent: sent.length,
+    replies,
+    replyRate: sent.length > 0 ? replies / sent.length : null,
+  };
+}
+
+function VariantComparison({ messages }: { messages: MessageWithCompany[] }) {
+  const a = computeVariantStats(messages, "A");
+  const b = computeVariantStats(messages, "B");
+  const variants = [a, b];
+
+  const totalSent = a.sent + b.sent;
+  const enoughData = totalSent >= MIN_SENT_FOR_COMPARISON;
+  const leading =
+    enoughData && a.replyRate !== null && b.replyRate !== null && a.replyRate !== b.replyRate
+      ? (a.replyRate > b.replyRate ? a : b).label
+      : null;
+
+  return (
+    <Card>
+      <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
+        A/B Comparison
+      </h2>
+      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+        Reply rate is based on messages you&apos;ve manually marked as replied — Outrun doesn&apos;t
+        have inbox access, so this only reflects what you tell it.
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {variants.map((v) => (
+          <div
+            key={v.label}
+            className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                Variant {v.label}
+              </p>
+              {leading === v.label && <Badge tone="high">Leading</Badge>}
+            </div>
+            <p className="mt-2 text-2xl font-light text-[var(--color-text-primary)]">
+              {v.replyRate !== null ? `${Math.round(v.replyRate * 100)}%` : "—"}
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {v.replies} repl{v.replies === 1 ? "y" : "ies"} out of {v.sent} sent ({v.total} total)
+            </p>
+          </div>
+        ))}
       </div>
+
+      {!enoughData && (
+        <p className="mt-3 text-xs text-[var(--color-text-muted)]">
+          Send at least {MIN_SENT_FOR_COMPARISON} messages across both variants before drawing
+          conclusions — right now the sample is too small to mean much.
+        </p>
+      )}
     </Card>
   );
 }

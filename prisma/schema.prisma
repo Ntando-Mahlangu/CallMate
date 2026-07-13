@@ -283,6 +283,13 @@ model OutreachMessage {
   body             String
   openingRationale String
 
+  // A/B testing (docs/outrun/07 "A/B TESTING"): set only when a campaign
+  // generates more than one opening/CTA angle. There's no inbound-email
+  // integration to detect opens/replies automatically, so gotReply is a
+  // manual, user-reported signal — never inferred or fabricated.
+  variantLabel String?
+  gotReply     Boolean @default(false)
+
   sendStatus SendStatus @default(NOT_SENT)
   sentAt     DateTime?
 

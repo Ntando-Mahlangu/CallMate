@@ -35,6 +35,7 @@ export function NewCampaignForm({ companies }: { companies: CompanyOption[] }) {
   const [objective, setObjective] = useState("");
   const [objectiveOther, setObjectiveOther] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [abTest, setAbTest] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +61,7 @@ export function NewCampaignForm({ companies }: { companies: CompanyOption[] }) {
           name: name.trim(),
           objective: objective === "Other" ? objectiveOther : objective,
           companyIds: selected,
+          abTest,
         }),
       });
       const body = await res.json();
@@ -151,6 +153,28 @@ export function NewCampaignForm({ companies }: { companies: CompanyOption[] }) {
             </label>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={abTest}
+            onChange={(e) => setAbTest(e.target.checked)}
+            className="mt-1 size-4 accent-[var(--color-accent)]"
+          />
+          <div>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              Test two message angles (A/B)
+            </p>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              Splits the audience roughly in half between a pain-point-first opening and an
+              opportunity-first opening, so you can compare which lands better. There&apos;s no
+              inbox integration yet, so replies are tracked by marking them yourself on the
+              campaign page — not automatically detected.
+            </p>
+          </div>
+        </label>
       </Card>
 
       <FormError message={error} />
