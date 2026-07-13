@@ -135,6 +135,7 @@ model Organization {
   growthBlueprints GrowthBlueprint[]
   companies        Company[]
   usageEvents      UsageEvent[]
+  campaigns        Campaign[]
 
   @@map("organization")
 }
@@ -254,14 +255,17 @@ model Company {
   @@map("company")
 }
 
-// One generated email per company (docs/outrun/07). No campaign/send
-// concept yet — that's a later build phase; this is the standalone
-// "Generate Outreach" action from a company's research profile.
+// One generated email per company (docs/outrun/07). Standalone messages
+// (generated from a single company's research profile) have no campaign;
+// batch-generated messages from a Campaign are linked via campaignId.
 model OutreachMessage {
   id String @id @default(uuid())
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   subject          String
   body             String
@@ -270,6 +274,39 @@ model OutreachMessage {
   createdAt DateTime @default(now())
 
   @@map("outreach_message")
+}
+
+enum CampaignStatus {
+  DRAFT
+  READY
+  PAUSED
+  COMPLETED
+}
+
+// Batches outreach generation across a chosen audience (docs/outrun/07
+// Campaign Builder). No send mechanics yet — that needs a separate email
+// provider integration (Gmail/SMTP, docs/outrun/11) that hasn't been
+// decided. A campaign reaching READY means messages are generated and
+// reviewed, not that anything was actually delivered.
+model Campaign {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  objective String
+  status    CampaignStatus @default(DRAFT)
+
+  strategyRationale  String?
+  strategyConfidence String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages OutreachMessage[]
+
+  @@map("campaign")
 }
 
 // Joins a User to an Organization with a role (docs/outrun/14 permissions).

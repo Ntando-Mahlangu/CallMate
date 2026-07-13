@@ -7,6 +7,7 @@ const PROTECTED_PREFIXES = [
   "/onboarding",
   "/blueprint",
   "/prospects",
+  "/campaigns",
   "/billing",
 ];
 
@@ -37,6 +38,7 @@ export const config = {
     "/onboarding/:path*",
     "/blueprint/:path*",
     "/prospects/:path*",
+    "/campaigns/:path*",
     "/billing/:path*",
   ],
 };

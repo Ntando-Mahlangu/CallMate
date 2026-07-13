@@ -43,7 +43,11 @@ function buildUserMessage(input: {
   ].join("\n");
 }
 
-export async function generateOutreach(companyId: string, organizationId: string) {
+export async function generateOutreach(
+  companyId: string,
+  organizationId: string,
+  campaignId?: string,
+) {
   const company = await prisma.company.findFirst({
     where: { id: companyId, organizationId },
   });
@@ -84,6 +88,7 @@ export async function generateOutreach(companyId: string, organizationId: string
   return prisma.outreachMessage.create({
     data: {
       companyId: company.id,
+      campaignId,
       subject: data.subject,
       body: data.body,
       openingRationale: data.openingRationale,
