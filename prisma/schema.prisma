@@ -241,6 +241,7 @@ model Company {
   category         String?
   website          String?
   phone            String?
+  contactEmail     String?
   formattedAddress String?
   rating           Float?
   reviewCount      Int?
@@ -260,6 +261,12 @@ model Company {
   @@map("company")
 }
 
+enum SendStatus {
+  NOT_SENT
+  SENT
+  FAILED
+}
+
 // One generated email per company (docs/outrun/07). Standalone messages
 // (generated from a single company's research profile) have no campaign;
 // batch-generated messages from a Campaign are linked via campaignId.
@@ -276,6 +283,9 @@ model OutreachMessage {
   body             String
   openingRationale String
 
+  sendStatus SendStatus @default(NOT_SENT)
+  sentAt     DateTime?
+
   createdAt DateTime @default(now())
 
   @@map("outreach_message")
@@ -289,10 +299,9 @@ enum CampaignStatus {
 }
 
 // Batches outreach generation across a chosen audience (docs/outrun/07
-// Campaign Builder). No send mechanics yet — that needs a separate email
-// provider integration (Gmail/SMTP, docs/outrun/11) that hasn't been
-// decided. A campaign reaching READY means messages are generated and
-// reviewed, not that anything was actually delivered.
+// Campaign Builder). A campaign reaching READY means messages are
+// generated and reviewed; sending (src/lib/outreach/send.ts) is a
+// separate, explicit action per message via the shared sendEmail() seam.
 model Campaign {
   id String @id @default(uuid())
 
@@ -337,6 +346,7 @@ enum EventType {
   COMPANY_SEARCHED
   COMPANY_RESEARCHED
   OUTREACH_GENERATED
+  OUTREACH_SENT
   CAMPAIGN_CREATED
   SEO_ANALYZED
   SEO_CONTENT_GENERATED

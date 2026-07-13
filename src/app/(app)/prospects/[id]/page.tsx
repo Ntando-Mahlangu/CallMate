@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
+import { isEmailSendingConfigured } from "@/lib/email";
 import { Card } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/prospects/score-badge";
 import { ResearchPanel } from "@/components/prospects/research-panel";
@@ -75,6 +76,8 @@ export default async function ProspectDetailPage({
           companyId={company.id}
           hasResearch={Boolean(company.research)}
           initialMessages={company.outreachMessages}
+          initialContactEmail={company.contactEmail}
+          emailConfigured={isEmailSendingConfigured()}
         />
       </Card>
     </div>

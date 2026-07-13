@@ -3,21 +3,31 @@
 import { useState } from "react";
 import type { OutreachMessage } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/ui/form-error";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export function OutreachPanel({
   companyId,
   hasResearch,
   initialMessages,
+  initialContactEmail,
+  emailConfigured,
 }: {
   companyId: string;
   hasResearch: boolean;
   initialMessages: OutreachMessage[];
+  initialContactEmail: string | null;
+  emailConfigured: boolean;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [contactEmail, setContactEmail] = useState(initialContactEmail ?? "");
+  const [savedContactEmail, setSavedContactEmail] = useState(initialContactEmail ?? "");
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   async function generate() {
     setError(null);
@@ -34,6 +44,44 @@ export function OutreachPanel({
     }
   }
 
+  async function saveContactEmail() {
+    setError(null);
+    setIsSavingEmail(true);
+    try {
+      const res = await fetch(`/api/prospects/${companyId}/contact-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: contactEmail }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      setSavedContactEmail(body.contactEmail ?? "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setIsSavingEmail(false);
+    }
+  }
+
+  async function send(messageId: string) {
+    setError(null);
+    setSendingId(messageId);
+    try {
+      const res = await fetch(`/api/outreach/${messageId}/send`, { method: "POST" });
+      const body = await res.json();
+      // The route always includes current message state, even on failure,
+      // since sendOutreachMessage marks FAILED in the DB before throwing.
+      if (body.message) {
+        setMessages((prev) => prev.map((m) => (m.id === messageId ? body.message : m)));
+      }
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setSendingId(null);
+    }
+  }
+
   if (!hasResearch) {
     return (
       <p className="text-sm text-[var(--color-text-muted)]">
@@ -46,6 +94,38 @@ export function OutreachPanel({
   return (
     <div className="space-y-4">
       <FormError message={error} />
+
+      <div>
+        <label className="text-sm font-medium text-[var(--color-text-secondary)]">
+          Contact email
+        </label>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+          Outrun doesn&apos;t have a source for prospect emails yet — add one to send outreach.
+        </p>
+        <div className="mt-2 flex gap-3">
+          <Input
+            type="email"
+            placeholder="owner@business.com"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+          />
+          <Button
+            variant="secondary"
+            onClick={saveContactEmail}
+            disabled={isSavingEmail || contactEmail === savedContactEmail}
+          >
+            {isSavingEmail ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </div>
+
+      {!emailConfigured && (
+        <p className="text-xs text-[var(--color-warning)]">
+          Email sending isn&apos;t configured for this workspace yet — messages can be generated
+          and copied manually until it is.
+        </p>
+      )}
+
       <Button onClick={generate} disabled={isGenerating}>
         {isGenerating ? "Writing…" : messages.length ? "Generate Another Version" : "Generate Outreach"}
       </Button>
@@ -53,21 +133,61 @@ export function OutreachPanel({
       <div className="space-y-4">
         {messages.map((message) => (
           <Card key={message.id} className="bg-[var(--color-bg-secondary)]">
-            <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-              Subject
-            </p>
-            <p className="mb-3 text-sm font-medium text-[var(--color-text-primary)]">
-              {message.subject}
-            </p>
-            <p className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Subject
+                </p>
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {message.subject}
+                </p>
+              </div>
+              <SendStatusBadge status={message.sendStatus} sentAt={message.sentAt} />
+            </div>
+            <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
               {message.body}
             </p>
             <p className="mt-3 text-xs text-[var(--color-text-muted)]">
               Why this opener: {message.openingRationale}
             </p>
+            <div className="mt-4">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => send(message.id)}
+                disabled={
+                  sendingId === message.id ||
+                  message.sendStatus === "SENT" ||
+                  !savedContactEmail ||
+                  !emailConfigured
+                }
+              >
+                {sendingId === message.id
+                  ? "Sending…"
+                  : message.sendStatus === "SENT"
+                    ? "Sent"
+                    : message.sendStatus === "FAILED"
+                      ? "Retry Send"
+                      : "Send"}
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
     </div>
   );
+}
+
+function SendStatusBadge({ status, sentAt }: { status: string; sentAt: Date | null }) {
+  if (status === "SENT") {
+    return (
+      <Badge tone="high">
+        Sent{sentAt ? ` ${new Date(sentAt).toLocaleDateString()}` : ""}
+      </Badge>
+    );
+  }
+  if (status === "FAILED") {
+    return <Badge tone="low">Failed to send</Badge>;
+  }
+  return null;
 }

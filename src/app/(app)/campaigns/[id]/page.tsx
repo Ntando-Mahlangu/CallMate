@@ -3,8 +3,10 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
+import { isEmailSendingConfigured } from "@/lib/email";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CampaignSendPanel } from "@/components/campaigns/campaign-send-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -73,55 +75,11 @@ export default async function CampaignDetailPage({
         </Card>
       )}
 
-      {campaign.status === "READY" && (
-        <Card className="border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            <span className="font-medium text-[var(--color-text-primary)]">
-              Outreach is generated and ready to review.
-            </span>{" "}
-            Sending isn&apos;t connected yet — copy these messages manually for
-            now, or connect an email provider to send them automatically once
-            that&apos;s available.
-          </p>
-        </Card>
-      )}
-
-      <Card>
-        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
-          Outreach ({campaign.messages.length})
-        </h2>
-        <div className="space-y-4">
-          {campaign.messages.map((message) => (
-            <div
-              key={message.id}
-              className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
-            >
-              <div className="flex items-center justify-between">
-                <Link
-                  href={`/prospects/${message.companyId}`}
-                  className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-                >
-                  {message.company.name}
-                </Link>
-              </div>
-              <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                Subject
-              </p>
-              <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                {message.subject}
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-                {message.body}
-              </p>
-            </div>
-          ))}
-          {campaign.messages.length === 0 && (
-            <p className="text-sm text-[var(--color-text-muted)]">
-              No outreach was generated for this campaign.
-            </p>
-          )}
-        </div>
-      </Card>
+      <CampaignSendPanel
+        campaignId={campaign.id}
+        initialMessages={campaign.messages}
+        emailConfigured={isEmailSendingConfigured()}
+      />
     </div>
   );
 }
