@@ -1,12 +1,14 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
-import { getCurrentOrganization } from "@/lib/org";
+import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { isEmailSendingConfigured } from "@/lib/email";
+import { canManageCampaigns } from "@/lib/teams/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CampaignSendPanel } from "@/components/campaigns/campaign-send-panel";
+import { AutonomousSendPanel } from "@/components/campaigns/autonomous-send-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -25,6 +27,9 @@ export default async function CampaignDetailPage({
 
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
+
+  const membership = await getMembershipFor(session.user.id, organization.id);
+  if (!membership) redirect("/sign-in");
 
   const { id } = await params;
   const campaign = await prisma.campaign.findFirst({
@@ -73,6 +78,17 @@ export default async function CampaignDetailPage({
             {campaign.strategyRationale}
           </p>
         </Card>
+      )}
+
+      {campaign.status === "READY" && (
+        <AutonomousSendPanel
+          campaignId={campaign.id}
+          enabled={campaign.autonomousSendEnabled}
+          dailyLimit={campaign.autonomousDailyLimit}
+          lastRunAt={campaign.lastAutonomousSendAt}
+          canManage={canManageCampaigns(membership.role)}
+          emailConfigured={isEmailSendingConfigured()}
+        />
       )}
 
       <CampaignSendPanel

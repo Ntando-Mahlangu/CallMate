@@ -322,6 +322,18 @@ model Campaign {
   strategyRationale  String?
   strategyConfidence String?
 
+  // Autonomous Growth Mode (docs/outrun/07), scoped deliberately narrow:
+  // only auto-sends messages already generated within this reviewed,
+  // launched campaign — never generates or launches a campaign on its
+  // own. Owner/Admin-gated, opt-in, user-configurable daily cap.
+  // lastAutonomousSendAt is surfaced in the UI so the owner can tell
+  // whether a scheduled job is actually running this, rather than
+  // assuming it is just because the toggle is on.
+  autonomousSendEnabled   Boolean   @default(false)
+  autonomousDailyLimit    Int       @default(10)
+  autonomousSendEnabledAt DateTime?
+  lastAutonomousSendAt    DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -360,6 +372,7 @@ enum EventType {
   TEAM_MEMBER_INVITED
   TEAM_MEMBER_JOINED
   WHATIF_SIMULATED
+  AUTONOMOUS_SEND_RUN
 }
 
 // The Business Brain's growth timeline (docs/outrun/08 "GROWTH MEMORY" /

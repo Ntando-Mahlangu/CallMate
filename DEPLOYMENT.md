@@ -107,3 +107,32 @@ Render errors that escape every component boundary are caught by
 `src/app/global-error.tsx`, which shows a friendly fallback screen (never
 a stack trace) and reports through the same pipeline via
 `/api/observability/client-error`.
+
+## 9. Autonomous Growth Mode
+
+An Owner/Admin can flip a per-campaign toggle so newly-generated outreach
+sends automatically instead of waiting for a manual Send click — capped
+by a daily limit they set. It's deliberately narrow: it only sends within
+a campaign someone already reviewed and launched; it never generates or
+launches a campaign on its own.
+
+This needs a scheduler hitting `GET /api/cron/autonomous-send` — without
+one configured, the toggle can be turned on but nothing will actually
+send over time (the campaign page shows "last checked" so this is visible
+rather than silently assumed). Two ways to wire it up:
+
+- **Vercel**: `vercel.json` already defines a cron pointed at that route.
+  Set the `CRON_SECRET` environment variable in your Vercel project —
+  Vercel automatically attaches it as `Authorization: Bearer $CRON_SECRET`
+  on every cron-triggered request, which the route checks. Note Vercel's
+  Hobby plan only allows once-daily cron schedules; the 30-minute interval
+  in `vercel.json` needs a paid plan.
+- **Any other host**: `.github/workflows/autonomous-send.yml` runs every
+  30 minutes and calls the same endpoint. Set the `APP_URL` and
+  `CRON_SECRET` repository secrets in GitHub (Settings → Secrets and
+  variables → Actions) — without both, the workflow logs a message and
+  exits without calling anything.
+
+Without `CRON_SECRET` set at all, the endpoint refuses every request
+(`501`) rather than running unauthenticated — there is no way to trigger
+real sends without deliberately configuring this.
