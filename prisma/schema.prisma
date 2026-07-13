@@ -352,6 +352,7 @@ enum EventType {
   SEO_CONTENT_GENERATED
   TEAM_MEMBER_INVITED
   TEAM_MEMBER_JOINED
+  WHATIF_SIMULATED
 }
 
 // The Business Brain's growth timeline (docs/outrun/08 "GROWTH MEMORY" /

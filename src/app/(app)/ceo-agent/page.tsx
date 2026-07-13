@@ -4,6 +4,7 @@ import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { ChatPanel } from "@/components/ceo-agent/chat-panel";
 import { RiskPanel } from "@/components/ceo-agent/risk-panel";
+import { WhatIfPanel } from "@/components/ceo-agent/whatif-panel";
 import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
 
 export default async function CeoAgentPage() {
@@ -33,6 +34,8 @@ export default async function CeoAgentPage() {
       </div>
 
       <RiskPanel signals={signals} />
+
+      <WhatIfPanel />
 
       <ChatPanel
         initialMessages={history.map((m) => ({ role: m.role, content: m.content }))}
