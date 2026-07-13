@@ -138,6 +138,8 @@ model Organization {
   campaigns        Campaign[]
   events           Event[]
   chatMessages     ChatMessage[]
+  seoAnalyses      SeoAnalysis[]
+  seoContentPieces SeoContentPiece[]
 
   @@map("organization")
 }
@@ -381,4 +383,47 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@map("chat_message")
+}
+
+// One row per crawl+analysis run (docs/outrun/09), versioned like the
+// Growth Blueprint. Only stores what was actually observed in the crawled
+// HTML plus AI-derived scores/recommendations from it — no Core Web
+// Vitals, backlinks, or rank data, since none of those integrations exist.
+model SeoAnalysis {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  version        Int
+
+  healthScore        Int
+  executiveSummary   String
+  categories         Json
+  quickWins          Json
+  keywordSuggestions Json
+  contentIdeas       Json
+
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, version])
+  @@map("seo_analysis")
+}
+
+// One generated content draft (docs/outrun/09 "AI CONTENT GENERATOR") —
+// a standalone draft the user copies out to their own CMS; Outrun never
+// publishes anything on their behalf (Article XVIII, user control).
+model SeoContentPiece {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  targetKeyword   String
+  title           String
+  metaDescription String
+  body            String
+
+  createdAt DateTime @default(now())
+
+  @@map("seo_content_piece")
 }
