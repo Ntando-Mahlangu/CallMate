@@ -4,6 +4,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { removeMember, updateMemberRole } from "@/lib/teams/invite";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 
 const ROLES: MembershipRole[] = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"];
 const GENERIC_ERROR = "We couldn't update that team member right now. Please try again in a moment.";
@@ -32,7 +33,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Remove team member failed:", error);
+    captureError("team.members.remove", error, { organizationId: organization.id, membershipId: id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }
@@ -65,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Update team member role failed:", error);
+    captureError("team.members.update-role", error, { organizationId: organization.id, membershipId: id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

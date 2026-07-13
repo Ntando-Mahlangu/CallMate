@@ -78,3 +78,27 @@ this endpoint.
 - Set `NEXT_PUBLIC_PADDLE_ENVIRONMENT=production` and use a live (not
   sandbox) Paddle price ID.
 - Confirm `BETTER_AUTH_SECRET` was freshly generated for this environment.
+
+## 7. Continuous integration
+
+`.github/workflows/ci.yml` runs on every push and pull request: it spins
+up a throwaway Postgres service, applies the migration history with
+`prisma migrate deploy`, then runs lint, typecheck, and a full `next
+build`. There's no automated test suite yet (see DEPLOYMENT.md's sibling
+task list) — the pipeline only runs checks that actually exist today
+rather than a placeholder test step.
+
+## 8. Observability
+
+Every server-side catch block calls `captureError()`
+(`src/lib/observability.ts`) instead of a bare `console.error`. It always
+emits a structured JSON log line — readable by any host's log
+aggregation (Vercel, Railway, Fly...) with no extra setup. Set
+`SENTRY_DSN` to additionally forward errors to Sentry (or any
+Sentry-ingest-compatible service): this uses Sentry's plain HTTP envelope
+endpoint directly, no SDK dependency, so it degrades to console-only
+logging exactly like `sendEmail()` degrades without `RESEND_API_KEY`.
+Render errors that escape every component boundary are caught by
+`src/app/global-error.tsx`, which shows a friendly fallback screen (never
+a stack trace) and reports through the same pipeline via
+`/api/observability/client-error`.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { askCeoAgent } from "@/lib/ceo-agent/chat";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
   "The CEO Agent couldn't respond right now. Please try again in a moment.";
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const reply = await askCeoAgent(organization.id, message.trim());
     return NextResponse.json({ reply });
   } catch (error) {
-    console.error("CEO Agent chat failed:", error);
+    captureError("ceo-agent.chat", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

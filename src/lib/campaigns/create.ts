@@ -5,6 +5,7 @@ import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { generateOutreach } from "@/lib/prospects/outreach";
 import { generateCampaignStrategy } from "./strategy";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { captureError } from "@/lib/observability";
 
 export async function createCampaign(
   organizationId: string,
@@ -70,7 +71,7 @@ export async function createCampaign(
       await generateOutreach(company.id, organizationId, campaign.id);
       generatedCount += 1;
     } catch (error) {
-      console.error(`Outreach generation failed for company ${company.id}:`, error);
+      captureError("campaigns.create.outreach", error, { organizationId, companyId: company.id });
     }
   }
 

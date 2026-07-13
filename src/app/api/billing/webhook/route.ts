@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPaddleClient } from "@/lib/billing/paddle-client";
 import { handlePaddleEvent } from "@/lib/billing/webhook-handler";
+import { captureError } from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("paddle-signature");
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     await handlePaddleEvent(event);
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Paddle webhook processing failed:", error);
+    captureError("billing.webhook", error);
     return NextResponse.json({ error: "Invalid webhook." }, { status: 400 });
   }
 }

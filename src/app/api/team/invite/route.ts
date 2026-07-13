@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { createInvitation } from "@/lib/teams/invite";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 import type { MembershipRole } from "@prisma/client";
 
 const ROLES: MembershipRole[] = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"];
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Team invitation failed:", error);
+    captureError("team.invite", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

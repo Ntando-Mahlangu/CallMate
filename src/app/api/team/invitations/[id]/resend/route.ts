@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { resendInvitation } from "@/lib/teams/invite";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR = "We couldn't resend that invitation right now. Please try again in a moment.";
 
@@ -30,7 +31,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Resend invitation failed:", error);
+    captureError("team.invitations.resend", error, { organizationId: organization.id, invitationId: id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

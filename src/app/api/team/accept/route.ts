@@ -4,6 +4,7 @@ import { getCurrentSession } from "@/lib/session";
 import { acceptInvitation } from "@/lib/teams/invite";
 import { ACTIVE_ORG_COOKIE } from "@/lib/org";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR = "We couldn't accept that invitation right now. Please try again in a moment.";
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Accept invitation failed:", error);
+    captureError("team.accept", error, { userId: session.user.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

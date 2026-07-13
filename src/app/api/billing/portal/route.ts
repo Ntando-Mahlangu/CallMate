@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { getPaddleClient } from "@/lib/billing/paddle-client";
+import { captureError } from "@/lib/observability";
 
 export async function POST() {
   const session = await getCurrentSession();
@@ -25,7 +26,7 @@ export async function POST() {
     );
     return NextResponse.json({ url: portalSession.urls.general.overview });
   } catch (error) {
-    console.error("Failed to create Paddle customer portal session:", error);
+    captureError("billing.portal", error, { organizationId: organization.id });
     return NextResponse.json(
       { error: "We couldn't open billing management right now. Please try again in a moment." },
       { status: 502 },

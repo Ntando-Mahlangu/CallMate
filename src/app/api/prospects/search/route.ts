@@ -9,6 +9,7 @@ import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { UserFacingError } from "@/lib/errors";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
   "We couldn't complete that search right now. Please try again in a moment.";
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Company search failed:", error);
+    captureError("prospects.search", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

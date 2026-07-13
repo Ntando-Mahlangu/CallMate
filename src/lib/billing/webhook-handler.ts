@@ -1,5 +1,6 @@
 import { EventName, type EventEntity } from "@paddle/paddle-node-sdk";
 import { prisma } from "@/lib/prisma";
+import { captureError } from "@/lib/observability";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
@@ -34,8 +35,10 @@ export async function handlePaddleEvent(event: EventEntity) {
     case EventName.SubscriptionCanceled: {
       const organizationId = await resolveOrganizationId(event.data);
       if (!organizationId) {
-        console.error(
-          `Paddle webhook ${event.eventType}: could not resolve an organization for subscription ${event.data.id}`,
+        captureError(
+          "billing.webhook.unresolved-org",
+          new Error(`Could not resolve an organization for subscription ${event.data.id}`),
+          { eventType: event.eventType },
         );
         return;
       }

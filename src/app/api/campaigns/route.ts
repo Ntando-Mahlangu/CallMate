@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { createCampaign } from "@/lib/campaigns/create";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
   "We couldn't build this campaign right now. Please try again in a moment.";
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("Campaign creation failed:", error);
+    captureError("campaigns.create", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

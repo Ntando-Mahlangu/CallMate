@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { analyzeSEO } from "@/lib/seo/analyze";
 import { UserFacingError } from "@/lib/errors";
+import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
   "We couldn't analyze your website right now. Please try again in a moment.";
@@ -25,7 +26,7 @@ export async function POST() {
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
-    console.error("SEO analysis failed:", error);
+    captureError("seo.analyze", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }
