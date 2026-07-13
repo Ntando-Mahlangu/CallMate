@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
+import { getCurrentOrganization, getUserMemberships } from "@/lib/org";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/sign-out-button";
+import { WorkspaceSwitcher } from "@/components/team/workspace-switcher";
 
 export default async function DashboardLayout({
   children,
@@ -11,15 +13,28 @@ export default async function DashboardLayout({
   const session = await getCurrentSession();
   if (!session) redirect("/sign-in");
 
+  const [organization, memberships] = await Promise.all([
+    getCurrentOrganization(session.user.id),
+    getUserMemberships(session.user.id),
+  ]);
+
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
       <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] px-6">
         <span className="text-lg font-medium tracking-tight text-[var(--color-text-primary)]">
           Outrun
         </span>
-        <span className="text-sm text-[var(--color-text-secondary)]">
-          {session.user.name}
-        </span>
+        <div className="flex items-center gap-4">
+          {organization && memberships.length > 1 && (
+            <WorkspaceSwitcher
+              workspaces={memberships.map((m) => m.organization)}
+              activeOrgId={organization.id}
+            />
+          )}
+          <span className="text-sm text-[var(--color-text-secondary)]">
+            {session.user.name}
+          </span>
+        </div>
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">

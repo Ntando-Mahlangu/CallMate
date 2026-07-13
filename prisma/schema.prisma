@@ -140,6 +140,7 @@ model Organization {
   chatMessages     ChatMessage[]
   seoAnalyses      SeoAnalysis[]
   seoContentPieces SeoContentPiece[]
+  invitations      Invitation[]
 
   @@map("organization")
 }
@@ -426,4 +427,37 @@ model SeoContentPiece {
   createdAt DateTime @default(now())
 
   @@map("seo_content_piece")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+// Team invitations (docs/outrun/14 "TEAM WORKSPACES" / "INVITATIONS"). Team
+// seats aren't gated by plan tier: Growth/Unlimited (the plans the spec
+// scopes "Team Collaboration" to) have no Paddle price yet, so — matching
+// the same call already made for usage limits in src/lib/billing/usage.ts —
+// this ships unlimited to every plan rather than locked behind a plan
+// nobody can buy.
+model Invitation {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  email  String
+  role   MembershipRole @default(MEMBER)
+  token  String         @unique
+  status InvitationStatus @default(PENDING)
+
+  invitedByUserId String
+  expiresAt       DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invitation")
 }

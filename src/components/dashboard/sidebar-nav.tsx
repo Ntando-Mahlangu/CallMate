@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/seo", label: "SEO" },
   { href: "/ceo-agent", label: "Ask the CEO" },
   { href: "/memory", label: "AI Memory" },
+  { href: "/settings/team", label: "Team" },
   { href: "/billing", label: "Billing" },
 ];
 
