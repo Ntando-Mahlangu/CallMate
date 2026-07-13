@@ -64,6 +64,11 @@ https://<your-domain>/api/billing/webhook
 Subscribe it to every `subscription.*` event. Copy the signing secret it
 gives you into `PADDLE_WEBHOOK_SECRET`.
 
+Every real subscription state change (activated, payment failed, canceled)
+emails the workspace owner via `src/lib/billing/notifications.ts` — this
+needs `RESEND_API_KEY` set to actually deliver; without it, notifications
+log to the server console like every other email in this app.
+
 ## 5. Health check
 
 `GET /api/health` returns `200 {"status":"ok"}` when the app can reach the

@@ -1,6 +1,8 @@
 import { EventName, type EventEntity } from "@paddle/paddle-node-sdk";
+import type { PlanTier } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
+import { notifyBillingEvent } from "./notifications";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
@@ -43,16 +45,40 @@ export async function handlePaddleEvent(event: EventEntity) {
         return;
       }
 
+      const previous = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { planTier: true, subscriptionStatus: true },
+      });
+
       const status = event.data.status;
+      const newPlanTier: PlanTier = ACTIVE_STATUSES.has(status) ? "STARTER" : "FREE";
+
       await prisma.organization.update({
         where: { id: organizationId },
         data: {
           paddleCustomerId: event.data.customerId,
           paddleSubscriptionId: event.data.id,
           subscriptionStatus: status,
-          planTier: ACTIVE_STATUSES.has(status) ? "STARTER" : "FREE",
+          planTier: newPlanTier,
         },
       });
+
+      // docs/outrun/14 "BILLING NOTIFICATIONS" — only on a real state
+      // transition, so a duplicate/replayed webhook with the same status
+      // doesn't send a second email. A status change among active variants
+      // on the same tier (e.g. trialing -> active) isn't meaningful enough
+      // to notify about on its own.
+      if (previous && status !== previous.subscriptionStatus) {
+        if (status === "canceled") {
+          await notifyBillingEvent(organizationId, { type: "canceled" });
+        } else if (status === "past_due") {
+          await notifyBillingEvent(organizationId, { type: "payment_failed" });
+        } else if (status === "paused") {
+          await notifyBillingEvent(organizationId, { type: "paused" });
+        } else if (ACTIVE_STATUSES.has(status) && previous.planTier !== newPlanTier) {
+          await notifyBillingEvent(organizationId, { type: "activated", planTier: newPlanTier });
+        }
+      }
       return;
     }
     default:
