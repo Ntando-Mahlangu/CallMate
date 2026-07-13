@@ -134,8 +134,32 @@ model Organization {
   businessProfile  BusinessProfile?
   growthBlueprints GrowthBlueprint[]
   companies        Company[]
+  usageEvents      UsageEvent[]
 
   @@map("organization")
+}
+
+enum UsageEventType {
+  COMPANY_SEARCH
+  COMPANY_RESEARCH
+  OUTREACH_GENERATION
+  BLUEPRINT_GENERATION
+}
+
+// One row per billable action taken (docs/outrun/14 "USAGE METERS"). Counted
+// lifetime-per-workspace against src/lib/billing/usage.ts limits — Free plan
+// allotments don't renew monthly, matching the "unlock more with Starter"
+// framing in docs/outrun/03, not a "resets next month" model.
+model UsageEvent {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           UsageEventType
+
+  createdAt DateTime @default(now())
+
+  @@map("usage_event")
 }
 
 // Captured by the Business Discovery onboarding conversation

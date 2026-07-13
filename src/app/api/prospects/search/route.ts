@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { UsageEventType } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { getCompanyDataProvider } from "@/lib/leads";
 import { scoreCompany } from "@/lib/leads/scoring";
+import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { UserFacingError } from "@/lib/errors";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
@@ -33,6 +35,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await checkAndRecordUsage(organization.id, UsageEventType.COMPANY_SEARCH);
+
     const provider = getCompanyDataProvider();
     const results = await provider.search(query.trim());
 
@@ -88,8 +92,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ companies });
   } catch (error) {
+    if (error instanceof UserFacingError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error("Company search failed:", error);
-    const message = error instanceof UserFacingError ? error.message : GENERIC_ERROR;
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }
 }

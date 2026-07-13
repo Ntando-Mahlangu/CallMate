@@ -3,9 +3,18 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { PLANS, planLabel } from "@/lib/billing/plans";
+import { getUsageSummary } from "@/lib/billing/usage";
 import { CheckoutButton } from "@/components/billing/checkout-button";
 import { ManageBillingButton } from "@/components/billing/manage-billing-button";
+
+const USAGE_LABELS: Record<string, string> = {
+  COMPANY_SEARCH: "Company searches",
+  COMPANY_RESEARCH: "AI company reports",
+  OUTREACH_GENERATION: "Outreach generations",
+  BLUEPRINT_GENERATION: "Growth Blueprints",
+};
 
 export default async function BillingPage() {
   const session = await getCurrentSession();
@@ -19,6 +28,7 @@ export default async function BillingPage() {
   const checkoutConfigured = Boolean(
     starterPriceId && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
   );
+  const usage = await getUsageSummary(organization.id, organization.planTier);
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -53,6 +63,27 @@ export default async function BillingPage() {
             <ManageBillingButton />
           </div>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Usage
+        </h2>
+        <div className="space-y-4">
+          {usage.map(({ type, used, limit }) => (
+            <div key={type}>
+              <div className="mb-1.5 flex items-center justify-between text-sm">
+                <span className="text-[var(--color-text-secondary)]">
+                  {USAGE_LABELS[type]}
+                </span>
+                <span className="tabular-nums text-[var(--color-text-muted)]">
+                  {used} {limit != null ? `/ ${limit}` : "· Unlimited"}
+                </span>
+              </div>
+              {limit != null && <ProgressBar value={(used / limit) * 100} />}
+            </div>
+          ))}
+        </div>
       </Card>
 
       <div className="grid gap-6 sm:grid-cols-2">
