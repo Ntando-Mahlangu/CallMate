@@ -14,6 +14,11 @@ export type GenerateObjectInput<T> = {
   toolName: string;
 };
 
+export type GenerateTextInput = {
+  system: string;
+  messages: AIMessage[];
+};
+
 /**
  * Every AI-backed feature in Outrun talks to this interface, never to a
  * provider SDK directly (docs/outrun/11, docs/outrun/13 "AI SERVICE").
@@ -22,4 +27,7 @@ export type GenerateObjectInput<T> = {
  */
 export interface AIProvider {
   generateObject<T>(input: GenerateObjectInput<T>): Promise<T>;
+  /** Free-form conversational response — used where forcing a structured
+   * tool call would make the reply feel robotic (e.g. CEO Agent chat). */
+  generateText(input: GenerateTextInput): Promise<string>;
 }

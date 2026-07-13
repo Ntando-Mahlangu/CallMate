@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 import type { CompanyResearchData } from "./research-schema";
 import { outreachSchema, outreachJsonSchema, type OutreachData } from "./outreach-schema";
 
@@ -85,7 +86,7 @@ export async function generateOutreach(
     toolName: "outreach_message",
   });
 
-  return prisma.outreachMessage.create({
+  const message = await prisma.outreachMessage.create({
     data: {
       companyId: company.id,
       campaignId,
@@ -94,4 +95,12 @@ export async function generateOutreach(
       openingRationale: data.openingRationale,
     },
   });
+
+  await logEvent(
+    organizationId,
+    EventType.OUTREACH_GENERATED,
+    `Generated outreach for ${company.name}.`,
+  );
+
+  return message;
 }

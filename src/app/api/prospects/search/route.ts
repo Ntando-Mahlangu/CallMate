@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getCompanyDataProvider } from "@/lib/leads";
 import { scoreCompany } from "@/lib/leads/scoring";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 import { UserFacingError } from "@/lib/errors";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
@@ -89,6 +90,12 @@ export async function POST(request: NextRequest) {
     );
 
     companies.sort((a, b) => (b.fitScore ?? 0) - (a.fitScore ?? 0));
+
+    await logEvent(
+      organization.id,
+      EventType.COMPANY_SEARCHED,
+      `Searched "${query.trim()}" — ${companies.length} result${companies.length === 1 ? "" : "s"}.`,
+    );
 
     return NextResponse.json({ companies });
   } catch (error) {

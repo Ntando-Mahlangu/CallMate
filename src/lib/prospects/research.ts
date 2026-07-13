@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 import {
   companyResearchSchema,
   companyResearchJsonSchema,
@@ -96,6 +97,12 @@ export async function researchCompany(companyId: string, organizationId: string)
     where: { id: company.id },
     data: { research: data },
   });
+
+  await logEvent(
+    organizationId,
+    EventType.COMPANY_RESEARCHED,
+    `Researched ${company.name}.`,
+  );
 
   return updated;
 }

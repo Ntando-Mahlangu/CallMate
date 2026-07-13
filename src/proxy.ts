@@ -8,6 +8,10 @@ const PROTECTED_PREFIXES = [
   "/blueprint",
   "/prospects",
   "/campaigns",
+  "/memory",
+  "/ceo-agent",
+  "/seo",
+  "/settings",
   "/billing",
 ];
 
@@ -39,6 +43,10 @@ export const config = {
     "/blueprint/:path*",
     "/prospects/:path*",
     "/campaigns/:path*",
+    "/memory/:path*",
+    "/ceo-agent/:path*",
+    "/seo/:path*",
+    "/settings/:path*",
     "/billing/:path*",
   ],
 };

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 import {
   growthBlueprintSchema,
   growthBlueprintJsonSchema,
@@ -133,6 +134,12 @@ export async function generateGrowthBlueprint(organizationId: string) {
       data: { growthScore: data.growthScore },
     }),
   ]);
+
+  await logEvent(
+    organizationId,
+    EventType.BLUEPRINT_GENERATED,
+    `Growth Blueprint v${nextVersion} generated — score ${data.growthScore}/100.`,
+  );
 
   return blueprint;
 }

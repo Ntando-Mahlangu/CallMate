@@ -4,6 +4,7 @@ import { UserFacingError } from "@/lib/errors";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { generateOutreach } from "@/lib/prospects/outreach";
 import { generateCampaignStrategy } from "./strategy";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 
 export async function createCampaign(
   organizationId: string,
@@ -77,6 +78,12 @@ export async function createCampaign(
     where: { id: campaign.id },
     data: { status: generatedCount > 0 ? "READY" : "DRAFT" },
   });
+
+  await logEvent(
+    organizationId,
+    EventType.CAMPAIGN_CREATED,
+    `Campaign "${input.name}" created with ${generatedCount} message${generatedCount === 1 ? "" : "s"}.`,
+  );
 
   return { campaignId: campaign.id, generatedCount, requestedCount: companies.length, limitReached };
 }

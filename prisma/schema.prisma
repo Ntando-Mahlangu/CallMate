@@ -136,6 +136,8 @@ model Organization {
   companies        Company[]
   usageEvents      UsageEvent[]
   campaigns        Campaign[]
+  events           Event[]
+  chatMessages     ChatMessage[]
 
   @@map("organization")
 }
@@ -325,4 +327,58 @@ model Membership {
 
   @@unique([userId, organizationId])
   @@map("membership")
+}
+
+enum EventType {
+  BLUEPRINT_GENERATED
+  COMPANY_SEARCHED
+  COMPANY_RESEARCHED
+  OUTREACH_GENERATED
+  CAMPAIGN_CREATED
+  SEO_ANALYZED
+  SEO_CONTENT_GENERATED
+  TEAM_MEMBER_INVITED
+  TEAM_MEMBER_JOINED
+}
+
+// The Business Brain's growth timeline (docs/outrun/08 "GROWTH MEMORY" /
+// "BUSINESS TIMELINE") — a plain event log, not a knowledge graph. Every
+// meaningful action across the app writes one row here via
+// src/lib/memory/log-event.ts, giving a single searchable history without
+// a heavier memory architecture this stage doesn't need yet.
+model Event {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type    EventType
+  summary String
+
+  createdAt DateTime @default(now())
+
+  @@map("event")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+// One row per turn in "Ask the CEO" (docs/outrun/10). Kept simple —
+// a single ongoing conversation per organization, not multiple named
+// threads; the last N turns plus the Business Brain context
+// (src/lib/memory/context.ts) is what gets sent to the model each time.
+model ChatMessage {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  role    ChatRole
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@map("chat_message")
 }

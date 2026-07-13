@@ -1,0 +1,16 @@
+-- CreateEnum
+CREATE TYPE "EventType" AS ENUM ('BLUEPRINT_GENERATED', 'COMPANY_SEARCHED', 'COMPANY_RESEARCHED', 'OUTREACH_GENERATED', 'CAMPAIGN_CREATED', 'SEO_ANALYZED', 'SEO_CONTENT_GENERATED', 'TEAM_MEMBER_INVITED', 'TEAM_MEMBER_JOINED');
+
+-- CreateTable
+CREATE TABLE "event" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "type" "EventType" NOT NULL,
+    "summary" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "event_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "event" ADD CONSTRAINT "event_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;

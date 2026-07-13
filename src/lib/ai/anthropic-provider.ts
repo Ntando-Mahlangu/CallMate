@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AIProvider, GenerateObjectInput } from "./types";
+import type { AIProvider, GenerateObjectInput, GenerateTextInput } from "./types";
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5";
 
@@ -41,5 +41,21 @@ export class AnthropicProvider implements AIProvider {
     }
 
     return schema.parse(toolUse.input);
+  }
+
+  async generateText({ system, messages }: GenerateTextInput): Promise<string> {
+    const response = await this.client.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+
+    const textBlock = response.content.find((block) => block.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error("AI provider did not return a text response.");
+    }
+
+    return textBlock.text;
   }
 }
