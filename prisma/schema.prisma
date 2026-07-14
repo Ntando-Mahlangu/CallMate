@@ -133,6 +133,12 @@ model Organization {
 
   growthScore Int? // 0-100, set once a Growth Blueprint exists
 
+  // Growth Blueprint sharing (docs/outrun/05 "EXPORTS" — Shareable Link).
+  // Opt-in, off by default; the public page always shows the *latest*
+  // version so the link doesn't go stale as the Blueprint improves.
+  blueprintShareEnabled Boolean @default(false)
+  blueprintShareToken   String? @unique
+
   // Billing (docs/outrun/14). Set only by verified Paddle webhooks
   // (src/app/api/billing/webhook/route.ts) — never by the client, so plan
   // access can't be forged from the frontend (Article XII).
