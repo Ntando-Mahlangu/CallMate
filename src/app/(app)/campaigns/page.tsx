@@ -17,21 +17,34 @@ const STATUS_TONE = {
   COMPLETED: "accent",
 } as const;
 
-export default async function CampaignsPage() {
+const PAGE_SIZE = 20;
+
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const session = await getCurrentSession();
   if (!session) redirect("/sign-in");
 
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
 
-  const [campaigns, improvementLoopResult] = await Promise.all([
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+
+  const [campaigns, totalCount, improvementLoopResult] = await Promise.all([
     prisma.campaign.findMany({
       where: { organizationId: organization.id },
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { messages: true } } },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
     }),
+    prisma.campaign.count({ where: { organizationId: organization.id } }),
     analyzeOutreachPatterns(organization.id),
   ]);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -57,7 +70,7 @@ export default async function CampaignsPage() {
         </div>
       </div>
 
-      {campaigns.length === 0 ? (
+      {totalCount === 0 ? (
         <Card className="text-center">
           <p className="text-[var(--color-text-secondary)]">
             You haven&apos;t created your first campaign yet. Research a few
@@ -92,6 +105,34 @@ export default async function CampaignsPage() {
               </Card>
             </Link>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <Link
+            href={`/campaigns?page=${page - 1}`}
+            aria-disabled={page <= 1}
+            className={cn(
+              "text-[var(--color-accent)] hover:underline",
+              page <= 1 && "pointer-events-none opacity-40",
+            )}
+          >
+            ← Previous
+          </Link>
+          <span className="text-[var(--color-text-muted)]">
+            Page {page} of {totalPages}
+          </span>
+          <Link
+            href={`/campaigns?page=${page + 1}`}
+            aria-disabled={page >= totalPages}
+            className={cn(
+              "text-[var(--color-accent)] hover:underline",
+              page >= totalPages && "pointer-events-none opacity-40",
+            )}
+          >
+            Next →
+          </Link>
         </div>
       )}
 

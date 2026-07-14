@@ -190,6 +190,7 @@ model UsageEvent {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId, type, createdAt])
   @@map("usage_event")
 }
 
@@ -327,6 +328,7 @@ model LeadListCompany {
   addedAt DateTime @default(now())
 
   @@unique([leadListId, companyId])
+  @@index([companyId])
   @@map("lead_list_company")
 }
 
@@ -357,6 +359,7 @@ model RefundRequest {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId])
   @@map("refund_request")
 }
 
@@ -406,6 +409,8 @@ model OutreachMessage {
 
   createdAt DateTime @default(now())
 
+  @@index([companyId])
+  @@index([campaignId])
   @@map("outreach_message")
 }
 
@@ -450,6 +455,7 @@ model Campaign {
 
   messages OutreachMessage[]
 
+  @@index([organizationId])
   @@map("campaign")
 }
 
@@ -499,6 +505,7 @@ model Membership {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, organizationId])
+  @@index([organizationId])
   @@map("membership")
 }
 
@@ -555,6 +562,7 @@ model StrategicReview {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId])
   @@map("strategic_review")
 }
 
@@ -574,6 +582,7 @@ model Event {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId, createdAt])
   @@map("event")
 }
 
@@ -597,6 +606,7 @@ model ChatMessage {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId, createdAt])
   @@map("chat_message")
 }
 
@@ -640,6 +650,7 @@ model SeoContentPiece {
 
   createdAt DateTime @default(now())
 
+  @@index([organizationId])
   @@map("seo_content_piece")
 }
 
@@ -673,6 +684,7 @@ model Invitation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([organizationId])
   @@map("invitation")
 }
 

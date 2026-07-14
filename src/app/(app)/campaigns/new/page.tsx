@@ -19,12 +19,17 @@ export default async function NewCampaignPage({
   if (!organization) redirect("/sign-in");
 
   const { templateId } = await searchParams;
+  const COMPANY_LIMIT = 200;
 
-  const [companies, template] = await Promise.all([
+  const [companies, researchedCount, template] = await Promise.all([
     prisma.company.findMany({
       where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
       orderBy: { fitScore: "desc" },
+      take: COMPANY_LIMIT,
       select: { id: true, name: true, category: true, fitScore: true, fitReason: true, isSaved: true },
+    }),
+    prisma.company.count({
+      where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
     }),
     templateId
       ? prisma.campaignTemplate.findFirst({
@@ -55,14 +60,22 @@ export default async function NewCampaignPage({
           </p>
         </Card>
       ) : (
-        <NewCampaignForm
-          companies={companies}
-          initialValues={
-            template
-              ? { name: template.name, objective: template.objective, abTest: template.abTest }
-              : undefined
-          }
-        />
+        <>
+          {researchedCount > COMPANY_LIMIT && (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Showing your top {COMPANY_LIMIT} researched prospects by Fit Score, out of{" "}
+              {researchedCount} total. Use a saved list to target a specific subset.
+            </p>
+          )}
+          <NewCampaignForm
+            companies={companies}
+            initialValues={
+              template
+                ? { name: template.name, objective: template.objective, abTest: template.abTest }
+                : undefined
+            }
+          />
+        </>
       )}
     </div>
   );
