@@ -136,3 +136,15 @@ rather than silently assumed). Two ways to wire it up:
 Without `CRON_SECRET` set at all, the endpoint refuses every request
 (`501`) rather than running unauthenticated — there is no way to trigger
 real sends without deliberately configuring this.
+
+## 10. Rate limiting
+
+docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
+password reset) is protected by Better Auth's own built-in limiter
+(`src/lib/auth.ts`), explicitly enabled with Postgres-backed storage so
+limits hold across serverless instances rather than resetting per cold
+start. AI generation endpoints, prospect search, data exports, and
+webhook endpoints (Paddle, the autonomous-send cron) are protected by a
+separate app-level limiter (`src/lib/rate-limit.ts`, also Postgres-backed,
+fixed-window). No configuration needed — both work out of the box against
+the same `DATABASE_URL` already required for everything else.

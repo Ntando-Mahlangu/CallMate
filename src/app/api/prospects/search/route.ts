@@ -7,7 +7,8 @@ import { getCompanyDataProvider } from "@/lib/leads";
 import { scoreCompany } from "@/lib/leads/scoring";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { logEvent, EventType } from "@/lib/memory/log-event";
-import { UserFacingError } from "@/lib/errors";
+import { UserFacingError, RateLimitError } from "@/lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 import { captureError } from "@/lib/observability";
 
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await checkRateLimit(
+      `search:${organization.id}`,
+      RATE_LIMITS.SEARCH.limit,
+      RATE_LIMITS.SEARCH.windowSeconds,
+    );
     await checkAndRecordUsage(organization.id, UsageEventType.COMPANY_SEARCH);
 
     const provider = getCompanyDataProvider();
@@ -100,6 +106,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ companies });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

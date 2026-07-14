@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPaddleClient } from "@/lib/billing/paddle-client";
 import { handlePaddleEvent } from "@/lib/billing/webhook-handler";
+import { RateLimitError } from "@/lib/errors";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
@@ -9,6 +11,19 @@ export async function POST(request: NextRequest) {
 
   if (!signature || !secret) {
     return NextResponse.json({ error: "Webhook not configured." }, { status: 501 });
+  }
+
+  try {
+    await checkRateLimit(
+      `webhook:${getClientIp(request)}`,
+      RATE_LIMITS.WEBHOOK.limit,
+      RATE_LIMITS.WEBHOOK.windowSeconds,
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
+    throw error;
   }
 
   const rawBody = await request.text();

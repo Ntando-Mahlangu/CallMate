@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
+import { RateLimitError } from "@/lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 // docs/outrun/08 Privacy — "Allow users to view, edit, delete, export memory."
 export async function GET() {
@@ -13,6 +15,19 @@ export async function GET() {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
+  }
+
+  try {
+    await checkRateLimit(
+      `export:${organization.id}`,
+      RATE_LIMITS.EXPORT.limit,
+      RATE_LIMITS.EXPORT.windowSeconds,
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
+    throw error;
   }
 
   const [businessProfile, blueprints, campaigns, companies, events] = await Promise.all([

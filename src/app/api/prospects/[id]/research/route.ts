@@ -4,7 +4,8 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { researchCompany } from "@/lib/prospects/research";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
-import { UserFacingError } from "@/lib/errors";
+import { UserFacingError, RateLimitError } from "@/lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
@@ -30,10 +31,14 @@ export async function POST(
   const { id } = await params;
 
   try {
+    await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
     await checkAndRecordUsage(organization.id, UsageEventType.COMPANY_RESEARCH);
     const company = await researchCompany(id, organization.id);
     return NextResponse.json({ company });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

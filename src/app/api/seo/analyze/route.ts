@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { analyzeSEO } from "@/lib/seo/analyze";
-import { UserFacingError } from "@/lib/errors";
+import { UserFacingError, RateLimitError } from "@/lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
@@ -20,9 +21,13 @@ export async function POST() {
   }
 
   try {
+    await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
     const analysis = await analyzeSEO(organization.id);
     return NextResponse.json({ analysis });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
     if (error instanceof UserFacingError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
     }

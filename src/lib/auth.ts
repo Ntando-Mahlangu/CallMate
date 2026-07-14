@@ -50,6 +50,19 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // refresh once per day of activity
   },
 
+  // docs/outrun/15 "RATE LIMITING" — Authentication. Better Auth already
+  // ships stricter built-in defaults for sign-in/sign-up (3 per 10s) and
+  // password-reset/verification (3 per 60s); explicitly enabling this
+  // (rather than relying on its isProduction-only default) and pointing
+  // it at Postgres (rather than the in-memory default) means limits hold
+  // across serverless instances and restarts, not just one process.
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    window: 60,
+    max: 100,
+  },
+
   databaseHooks: {
     user: {
       create: {

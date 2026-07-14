@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { askCeoAgent } from "@/lib/ceo-agent/chat";
+import { RateLimitError } from "@/lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
@@ -24,9 +26,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
     const reply = await askCeoAgent(organization.id, message.trim());
     return NextResponse.json({ reply });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
     captureError("ceo-agent.chat", error, { organizationId: organization.id });
     return NextResponse.json({ error: GENERIC_ERROR }, { status: 502 });
   }

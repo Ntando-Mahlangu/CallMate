@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAutonomousSendTick } from "@/lib/campaigns/autonomous";
+import { RateLimitError } from "@/lib/errors";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 /**
@@ -22,9 +24,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    await checkRateLimit(
+      `webhook:${getClientIp(request)}`,
+      RATE_LIMITS.WEBHOOK.limit,
+      RATE_LIMITS.WEBHOOK.windowSeconds,
+    );
     const result = await runAutonomousSendTick();
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 429 });
+    }
     captureError("cron.autonomous-send", error);
     return NextResponse.json({ error: "Tick failed." }, { status: 500 });
   }

@@ -75,6 +75,20 @@ model Verification {
   @@map("verification")
 }
 
+// Better Auth's own rate limiter storage (docs/outrun/15 "RATE LIMITING" —
+// Authentication). Database-backed rather than the in-memory default so
+// limits hold across serverless instances/restarts, not just a single
+// process. Shape matches what Better Auth's rate-limiter reads/writes
+// directly — see src/lib/auth.ts `rateLimit: { storage: "database" }`.
+model RateLimit {
+  id          String  @id @default(uuid())
+  key         String?
+  count       Int?
+  lastRequest BigInt?
+
+  @@map("rate_limit")
+}
+
 // ── Outrun domain models ───────────────────────────────────────────────────
 // docs/outrun/12-database-architecture-scalability.md,
 // docs/outrun/14-billing-subscriptions-teams-enterprise.md
@@ -491,4 +505,17 @@ model Invitation {
   updatedAt DateTime @updatedAt
 
   @@map("invitation")
+}
+
+// Fixed-window rate limiting for Outrun's own routes (docs/outrun/15
+// "RATE LIMITING" — AI Endpoints, Search, Exports, Webhook Endpoints).
+// Separate from Better Auth's own RateLimit table since it's owned by
+// this app, not Better Auth internals. See src/lib/rate-limit.ts.
+model AppRateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@map("app_rate_limit_bucket")
 }
