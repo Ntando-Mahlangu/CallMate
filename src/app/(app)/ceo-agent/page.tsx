@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { ChatPanel } from "@/components/ceo-agent/chat-panel";
 import { RiskPanel } from "@/components/ceo-agent/risk-panel";
 import { WhatIfPanel } from "@/components/ceo-agent/whatif-panel";
+import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-panel";
 import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
+import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
 
 export default async function CeoAgentPage() {
   const session = await getCurrentSession();
@@ -14,12 +16,13 @@ export default async function CeoAgentPage() {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
 
-  const [history, signals] = await Promise.all([
+  const [history, signals, opportunities] = await Promise.all([
     prisma.chatMessage.findMany({
       where: { organizationId: organization.id },
       orderBy: { createdAt: "asc" },
     }),
     getRisksAndOpportunities(organization.id),
+    getOpportunityFeed(organization.id),
   ]);
 
   return (
@@ -34,6 +37,8 @@ export default async function CeoAgentPage() {
       </div>
 
       <RiskPanel signals={signals} />
+
+      <OpportunityFeedPanel items={opportunities} />
 
       <WhatIfPanel />
 
