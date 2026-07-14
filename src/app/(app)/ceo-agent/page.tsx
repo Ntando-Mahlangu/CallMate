@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
@@ -28,13 +29,21 @@ export default async function CeoAgentPage() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div>
-        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-          Ask the CEO
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Grounded in everything Outrun knows about {organization.name}.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+            Ask the CEO
+          </h1>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Grounded in everything Outrun knows about {organization.name}.
+          </p>
+        </div>
+        <Link
+          href="/ceo-agent/reviews"
+          className="mt-1 text-sm text-[var(--color-accent)] hover:underline"
+        >
+          Strategic Reviews →
+        </Link>
       </div>
 
       <RiskPanel signals={signals} />

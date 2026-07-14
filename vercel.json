@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/autonomous-send",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/strategic-reviews",
+      "schedule": "0 6 * * *"
     }
   ]
 }

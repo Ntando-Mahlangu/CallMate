@@ -137,6 +137,26 @@ Without `CRON_SECRET` set at all, the endpoint refuses every request
 (`501`) rather than running unauthenticated — there is no way to trigger
 real sends without deliberately configuring this.
 
+## 9a. Strategic Reviews
+
+docs/outrun/10 "STRATEGIC REVIEWS" — weekly, monthly, and quarterly
+reviews generated from real events, campaign activity, and Growth
+Blueprint score changes in that period. Owners can generate one on demand
+from `/ceo-agent/reviews`, but "generate automatically" needs the same
+kind of scheduler as Autonomous Growth Mode above, hitting
+`GET /api/cron/strategic-reviews` once a day — it checks every workspace
+and only generates a review once enough time has passed since that
+period's last one, so a daily cadence is enough even for weekly reviews.
+
+- **Vercel**: `vercel.json` already defines this cron. Same `CRON_SECRET`
+  as the autonomous-send cron above.
+- **Any other host**: `.github/workflows/strategic-reviews.yml` runs
+  daily and calls the same endpoint, using the same `APP_URL` and
+  `CRON_SECRET` repository secrets.
+
+Without `CRON_SECRET` set, this endpoint also refuses every request
+(`501`) — reviews can still be generated manually from the UI regardless.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
@@ -144,7 +164,8 @@ password reset) is protected by Better Auth's own built-in limiter
 (`src/lib/auth.ts`), explicitly enabled with Postgres-backed storage so
 limits hold across serverless instances rather than resetting per cold
 start. AI generation endpoints, prospect search, data exports, and
-webhook endpoints (Paddle, the autonomous-send cron) are protected by a
+webhook endpoints (Paddle, the autonomous-send and strategic-reviews
+crons) are protected by a
 separate app-level limiter (`src/lib/rate-limit.ts`, also Postgres-backed,
 fixed-window). No configuration needed — both work out of the box against
 the same `DATABASE_URL` already required for everything else.

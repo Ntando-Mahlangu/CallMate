@@ -163,6 +163,7 @@ model Organization {
   invitations      Invitation[]
   leadLists        LeadList[]
   refundRequests   RefundRequest[]
+  strategicReviews StrategicReview[]
 
   @@map("organization")
 }
@@ -472,6 +473,40 @@ enum EventType {
   WHATIF_SIMULATED
   DECISION_REQUESTED
   AUTONOMOUS_SEND_RUN
+  STRATEGIC_REVIEW_GENERATED
+}
+
+enum ReviewPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+// docs/outrun/10 "STRATEGIC REVIEWS" — generated automatically on a
+// rolling cadence per period (src/app/api/cron/strategic-reviews) and
+// on-demand from the UI. Every section is grounded in the real events,
+// campaigns, and Blueprint score change within [periodStart, periodEnd]
+// — never a fabricated summary of a period nothing happened in.
+model StrategicReview {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  period      ReviewPeriod
+  periodStart DateTime
+  periodEnd   DateTime
+
+  achievements          Json
+  missedOpportunities   Json
+  risks                 Json
+  keyLearnings          Json
+  recommendedPriorities Json
+  nextGrowthStrategy    String
+
+  createdAt DateTime @default(now())
+
+  @@map("strategic_review")
 }
 
 // The Business Brain's growth timeline (docs/outrun/08 "GROWTH MEMORY" /
