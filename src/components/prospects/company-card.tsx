@@ -36,8 +36,12 @@ export function CompanyCard({ company }: { company: Company }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <ScoreBadge label="Fit" score={company.fitScore ?? 0} />
-        <ScoreBadge label="Confidence" score={company.confidenceScore ?? 0} />
+        <ScoreBadge label="Fit" score={company.fitScore ?? 0} reason={company.fitReason} />
+        <ScoreBadge
+          label="Confidence"
+          score={company.confidenceScore ?? 0}
+          reason={company.confidenceReason}
+        />
       </div>
 
       {company.rating != null && (

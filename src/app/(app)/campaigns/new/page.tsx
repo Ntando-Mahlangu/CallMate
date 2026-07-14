@@ -24,7 +24,7 @@ export default async function NewCampaignPage({
     prisma.company.findMany({
       where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
       orderBy: { fitScore: "desc" },
-      select: { id: true, name: true, category: true, fitScore: true, isSaved: true },
+      select: { id: true, name: true, category: true, fitScore: true, fitReason: true, isSaved: true },
     }),
     templateId
       ? prisma.campaignTemplate.findFirst({

@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
             rating: result.rating,
             reviewCount: result.reviewCount,
             fitScore: score.fitScore,
+            fitReason: score.fitReason,
             confidenceScore: score.confidenceScore,
+            confidenceReason: score.confidenceReason,
           },
           update: {
             name: result.name,
@@ -90,7 +92,9 @@ export async function POST(request: NextRequest) {
             rating: result.rating,
             reviewCount: result.reviewCount,
             fitScore: score.fitScore,
+            fitReason: score.fitReason,
             confidenceScore: score.confidenceScore,
+            confidenceReason: score.confidenceReason,
           },
         });
       }),

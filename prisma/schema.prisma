@@ -271,9 +271,11 @@ model Company {
   rating           Float?
   reviewCount      Int?
 
-  fitScore        Int?
-  confidenceScore Int?
-  research        Json?
+  fitScore          Int?
+  fitReason         String?
+  confidenceScore   Int?
+  confidenceReason  String?
+  research          Json?
 
   // Cached cold-call script (docs/outrun/07 "COLD CALL SCRIPT") generated
   // from this company's research profile. Cached per-company rather than

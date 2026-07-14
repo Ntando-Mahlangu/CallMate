@@ -26,6 +26,7 @@ type CompanyOption = {
   name: string;
   category: string | null;
   fitScore: number | null;
+  fitReason: string | null;
   isSaved: boolean;
 };
 
@@ -165,7 +166,7 @@ export function NewCampaignForm({
                   </p>
                 </div>
               </div>
-              <ScoreBadge label="Fit" score={company.fitScore ?? 0} />
+              <ScoreBadge label="Fit" score={company.fitScore ?? 0} reason={company.fitReason} />
             </label>
           ))}
         </div>
