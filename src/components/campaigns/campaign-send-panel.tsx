@@ -26,17 +26,25 @@ export function CampaignSendPanel({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [replyBusyId, setReplyBusyId] = useState<string | null>(null);
   const [isSendingAll, setIsSendingAll] = useState(false);
+  const [generatingFollowUpsFor, setGeneratingFollowUpsFor] = useState<string | null>(null);
   const [lastSummary, setLastSummary] = useState<{
     sent: number;
     failed: number;
     skippedNoEmail: number;
+    skippedNotDue?: number;
+    skippedReplied?: number;
   } | null>(null);
 
+  function isDue(message: MessageWithCompany) {
+    return !message.scheduledFor || new Date(message.scheduledFor) <= new Date();
+  }
+
+  const topLevelMessages = messages.filter((m) => !m.followUpToId);
   const sendableCount = messages.filter(
-    (m) => m.sendStatus !== "SENT" && m.company.contactEmail,
+    (m) => m.sendStatus !== "SENT" && m.company.contactEmail && isDue(m),
   ).length;
   const missingEmailCount = messages.filter((m) => !m.company.contactEmail).length;
-  const hasVariants = messages.some((m) => m.variantLabel);
+  const hasVariants = topLevelMessages.some((m) => m.variantLabel);
 
   async function sendOne(messageId: string) {
     setError(null);
@@ -71,6 +79,24 @@ export function CampaignSendPanel({
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setIsSendingAll(false);
+    }
+  }
+
+  async function generateFollowUps(messageId: string) {
+    setError(null);
+    setGeneratingFollowUpsFor(messageId);
+    try {
+      const res = await fetch(`/api/outreach/${messageId}/follow-ups`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+      setMessages((prev) => [...prev, ...body.followUps.map((f: OutreachMessage) => ({
+        ...f,
+        company: prev.find((m) => m.id === messageId)!.company,
+      }))]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setGeneratingFollowUpsFor(null);
     }
   }
 
@@ -126,7 +152,12 @@ export function CampaignSendPanel({
         {lastSummary && (
           <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
             Sent {lastSummary.sent}, failed {lastSummary.failed}, skipped{" "}
-            {lastSummary.skippedNoEmail} (no email on file).
+            {lastSummary.skippedNoEmail} (no email on file)
+            {typeof lastSummary.skippedNotDue === "number" &&
+              `, ${lastSummary.skippedNotDue} (follow-up not due yet)`}
+            {typeof lastSummary.skippedReplied === "number" &&
+              `, ${lastSummary.skippedReplied} (prospect already replied)`}
+            .
           </p>
         )}
 
@@ -135,72 +166,155 @@ export function CampaignSendPanel({
         </div>
 
         <div className="mt-4 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/prospects/${message.companyId}`}
-                    className="text-sm font-medium text-[var(--color-accent)] hover:underline"
-                  >
-                    {message.company.name}
-                  </Link>
-                  {message.variantLabel && (
-                    <Badge tone="accent">Variant {message.variantLabel}</Badge>
-                  )}
+          {topLevelMessages.map((message) => {
+            const followUps = messages
+              .filter((m) => m.followUpToId === message.id)
+              .sort((a, b) => a.sequenceStep - b.sequenceStep);
+
+            return (
+              <div
+                key={message.id}
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/prospects/${message.companyId}`}
+                      className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+                    >
+                      {message.company.name}
+                    </Link>
+                    {message.variantLabel && (
+                      <Badge tone="accent">Variant {message.variantLabel}</Badge>
+                    )}
+                  </div>
+                  <SendStatusBadge
+                    status={message.sendStatus}
+                    sentAt={message.sentAt}
+                    hasEmail={Boolean(message.company.contactEmail)}
+                  />
                 </div>
-                <SendStatusBadge
-                  status={message.sendStatus}
-                  sentAt={message.sentAt}
-                  hasEmail={Boolean(message.company.contactEmail)}
-                />
-              </div>
-              <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                Subject
-              </p>
-              <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                {message.subject}
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
-                {message.body}
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => sendOne(message.id)}
-                  disabled={
-                    sendingId === message.id ||
-                    message.sendStatus === "SENT" ||
-                    !message.company.contactEmail ||
-                    !emailConfigured
-                  }
-                >
-                  {sendingId === message.id
-                    ? "Sending…"
-                    : message.sendStatus === "SENT"
-                      ? "Sent"
-                      : message.sendStatus === "FAILED"
-                        ? "Retry Send"
-                        : "Send"}
-                </Button>
-                {message.sendStatus === "SENT" && (
+                <p className="mt-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Subject
+                </p>
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {message.subject}
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+                  {message.body}
+                </p>
+                <div className="mt-3 flex items-center gap-2">
                   <Button
                     size="sm"
-                    variant="ghost"
-                    onClick={() => toggleReply(message.id, message.gotReply)}
-                    disabled={replyBusyId === message.id}
+                    variant="secondary"
+                    onClick={() => sendOne(message.id)}
+                    disabled={
+                      sendingId === message.id ||
+                      message.sendStatus === "SENT" ||
+                      !message.company.contactEmail ||
+                      !emailConfigured
+                    }
                   >
-                    {message.gotReply ? "✓ Marked as replied" : "Mark as replied"}
+                    {sendingId === message.id
+                      ? "Sending…"
+                      : message.sendStatus === "SENT"
+                        ? "Sent"
+                        : message.sendStatus === "FAILED"
+                          ? "Retry Send"
+                          : "Send"}
                   </Button>
+                  {message.sendStatus === "SENT" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleReply(message.id, message.gotReply)}
+                      disabled={replyBusyId === message.id}
+                    >
+                      {message.gotReply ? "✓ Marked as replied" : "Mark as replied"}
+                    </Button>
+                  )}
+                  {message.sendStatus === "SENT" && followUps.length === 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => generateFollowUps(message.id)}
+                      disabled={generatingFollowUpsFor === message.id}
+                    >
+                      {generatingFollowUpsFor === message.id
+                        ? "Generating…"
+                        : "Generate Follow-up Sequence"}
+                    </Button>
+                  )}
+                </div>
+
+                {followUps.length > 0 && (
+                  <div className="mt-4 space-y-3 border-t border-[var(--color-border)] pt-3">
+                    {followUps.map((followUp) => (
+                      <div
+                        key={followUp.id}
+                        className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <Badge tone="accent">Day {[3, 7, 14][followUp.sequenceStep - 1]}</Badge>
+                            {followUp.scheduledFor && (
+                              <span className="text-xs text-[var(--color-text-muted)]">
+                                Scheduled {new Date(followUp.scheduledFor).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          <SendStatusBadge
+                            status={followUp.sendStatus}
+                            sentAt={followUp.sentAt}
+                            hasEmail={Boolean(message.company.contactEmail)}
+                          />
+                        </div>
+                        <p className="mt-2 text-sm font-medium text-[var(--color-text-primary)]">
+                          {followUp.subject}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+                          {followUp.body}
+                        </p>
+                        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                          Why this follow-up: {followUp.openingRationale}
+                        </p>
+                        {message.gotReply ? (
+                          <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                            Sequence stopped — prospect already replied.
+                          </p>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="mt-2"
+                            onClick={() => sendOne(followUp.id)}
+                            disabled={
+                              sendingId === followUp.id ||
+                              followUp.sendStatus === "SENT" ||
+                              !message.company.contactEmail ||
+                              !emailConfigured ||
+                              !isDue(followUp)
+                            }
+                          >
+                            {sendingId === followUp.id
+                              ? "Sending…"
+                              : followUp.sendStatus === "SENT"
+                                ? "Sent"
+                                : !isDue(followUp)
+                                  ? "Not due yet"
+                                  : followUp.sendStatus === "FAILED"
+                                    ? "Retry Send"
+                                    : "Send"}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
-          {messages.length === 0 && (
+            );
+          })}
+          {topLevelMessages.length === 0 && (
             <p className="text-sm text-[var(--color-text-muted)]">
               No outreach was generated for this campaign.
             </p>

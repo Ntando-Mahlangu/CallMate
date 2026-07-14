@@ -18,7 +18,7 @@ export async function sendOutreachMessage(organizationId: string, messageId: str
 
   const message = await prisma.outreachMessage.findFirst({
     where: { id: messageId, company: { organizationId } },
-    include: { company: true },
+    include: { company: true, followUpTo: true },
   });
   if (!message) {
     throw new UserFacingError("That message could not be found.");
@@ -27,6 +27,24 @@ export async function sendOutreachMessage(organizationId: string, messageId: str
     throw new UserFacingError(
       "Add a contact email for this prospect before sending.",
     );
+  }
+
+  // docs/outrun/07 "FOLLOW-UP SEQUENCES" — a follow-up can't jump its
+  // scheduled date, and stops entirely once the prospect has replied to
+  // the message it follows up on. This is the single choke point every
+  // send path (manual, "Send All", autonomous) goes through, so the rule
+  // only needs to live here once.
+  if (message.followUpToId) {
+    if (message.scheduledFor && message.scheduledFor > new Date()) {
+      throw new UserFacingError(
+        `This follow-up isn't due until ${message.scheduledFor.toLocaleDateString()}.`,
+      );
+    }
+    if (message.followUpTo?.gotReply) {
+      throw new UserFacingError(
+        "This prospect already replied — the follow-up sequence has been stopped.",
+      );
+    }
   }
 
   try {
@@ -81,15 +99,29 @@ export async function sendCampaignOutreach(organizationId: string, campaignId: s
     );
   }
 
+  const byId = new Map(campaign.messages.map((m) => [m.id, m]));
+
   let sent = 0;
   let failed = 0;
   let skippedNoEmail = 0;
+  let skippedNotDue = 0;
+  let skippedReplied = 0;
 
   for (const message of campaign.messages) {
     if (message.sendStatus === "SENT") continue;
     if (!message.company.contactEmail) {
       skippedNoEmail += 1;
       continue;
+    }
+    if (message.followUpToId) {
+      if (message.scheduledFor && message.scheduledFor > new Date()) {
+        skippedNotDue += 1;
+        continue;
+      }
+      if (byId.get(message.followUpToId)?.gotReply) {
+        skippedReplied += 1;
+        continue;
+      }
     }
 
     try {
@@ -106,7 +138,7 @@ export async function sendCampaignOutreach(organizationId: string, campaignId: s
     orderBy: { createdAt: "asc" },
   });
 
-  return { sent, failed, skippedNoEmail, messages };
+  return { sent, failed, skippedNoEmail, skippedNotDue, skippedReplied, messages };
 }
 
 /**

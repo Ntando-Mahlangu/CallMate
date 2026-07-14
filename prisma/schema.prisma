@@ -389,6 +389,18 @@ model OutreachMessage {
   sendStatus SendStatus @default(NOT_SENT)
   sentAt     DateTime?
 
+  // Follow-up sequences (docs/outrun/07 "FOLLOW-UP SEQUENCES") — Day
+  // 3/7/14 messages generated off a message that's already been sent.
+  // sequenceStep is 0 for an original message, 1/2/3 for its follow-ups
+  // in order. scheduledFor gates sending (see sendOutreachMessage): a
+  // follow-up can't go out before its date, or at all once the parent
+  // message's gotReply is true.
+  followUpToId String?
+  followUpTo   OutreachMessage?  @relation("MessageFollowUps", fields: [followUpToId], references: [id], onDelete: Cascade)
+  followUps    OutreachMessage[] @relation("MessageFollowUps")
+  sequenceStep Int               @default(0)
+  scheduledFor DateTime?
+
   createdAt DateTime @default(now())
 
   @@map("outreach_message")
@@ -462,6 +474,7 @@ enum EventType {
   COMPANY_RESEARCHED
   OUTREACH_GENERATED
   OUTREACH_SENT
+  FOLLOW_UP_SEQUENCE_GENERATED
   CALL_SCRIPT_GENERATED
   LEAD_LIST_CREATED
   REFUND_REQUESTED
