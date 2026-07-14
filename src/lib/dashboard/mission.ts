@@ -48,3 +48,19 @@ export function getTodaysMission(blueprint: GrowthBlueprint): TodaysMission | nu
     source: "opportunity",
   };
 }
+
+/**
+ * Where "Start Today's Mission" (docs/outrun/10 "HOME SCREEN") should
+ * send the user — a lightweight keyword match against the mission's own
+ * text rather than a fabricated task type, since the Blueprint doesn't
+ * tag roadmap items with a category.
+ */
+export function getMissionActionHref(mission: TodaysMission): string {
+  const text = `${mission.action} ${mission.reason}`.toLowerCase();
+  if (text.includes("campaign")) return "/campaigns";
+  if (text.includes("seo") || text.includes("website")) return "/seo";
+  if (text.includes("outreach") || text.includes("prospect") || text.includes("lead")) {
+    return "/prospects";
+  }
+  return "/blueprint";
+}

@@ -3,7 +3,10 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
-import { getTodaysMission } from "@/lib/dashboard/mission";
+import { getTodaysMission, getMissionActionHref } from "@/lib/dashboard/mission";
+import { getBusinessHealth } from "@/lib/ceo-agent/health";
+import { getBiggestWinThisWeek } from "@/lib/ceo-agent/weekly-win";
+import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
 import { Card } from "@/components/ui/card";
 import { ImpactBadge } from "@/components/ui/badge";
 import { ScoreGauge } from "@/components/growth-blueprint/score-gauge";
@@ -11,6 +14,11 @@ import { EvidenceToggle } from "@/components/dashboard/evidence-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+
+function formatTrend(trend: number | null): string | null {
+  if (trend === null || trend === 0) return null;
+  return trend > 0 ? `+${trend}` : `${trend}`;
+}
 
 function greeting(date: Date) {
   const hour = date.getHours();
@@ -35,9 +43,15 @@ export default async function DashboardPage() {
 
   const mission = getTodaysMission(blueprint);
   const scoreCategories = blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"];
-  const opportunities = (
-    blueprint.opportunities as GrowthBlueprintData["opportunities"]
-  ).slice(0, 3);
+  const allOpportunities = blueprint.opportunities as GrowthBlueprintData["opportunities"];
+  const opportunities = allOpportunities.slice(0, 3);
+
+  const [health, biggestWin, risks] = await Promise.all([
+    getBusinessHealth(organization.id),
+    getBiggestWinThisWeek(organization.id),
+    getRisksAndOpportunities(organization.id),
+  ]);
+  const healthTrendLabel = health ? formatTrend(health.overallTrend) : null;
 
   const firstName = session.user.name.split(" ")[0];
   const today = new Date();
@@ -56,7 +70,7 @@ export default async function DashboardPage() {
       {mission && (
         <Card className="border-[var(--color-accent)]/40">
           <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
-            Today&apos;s Mission
+            Today&apos;s Priority
           </p>
           <h2 className="mt-2 text-xl font-light text-[var(--color-text-primary)]">
             {mission.action}
@@ -83,6 +97,53 @@ export default async function DashboardPage() {
 
           <div className="mt-4">
             <EvidenceToggle reason={mission.reason} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[var(--color-border)] pt-5 sm:grid-cols-4">
+            {health && (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Business Health
+                </p>
+                <p className="text-sm text-[var(--color-text-primary)]">
+                  {health.overall}/100
+                  {healthTrendLabel && (
+                    <span className="ml-1 text-xs text-[var(--color-text-muted)]">
+                      ({healthTrendLabel})
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                New Opportunities
+              </p>
+              <p className="text-sm text-[var(--color-text-primary)]">{allOpportunities.length}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                Potential Risks
+              </p>
+              <p className="text-sm text-[var(--color-text-primary)]">{risks.length}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                Biggest Win This Week
+              </p>
+              <p className="text-sm text-[var(--color-text-primary)]">
+                {biggestWin ?? "Nothing major to report yet"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <Link
+              href={getMissionActionHref(mission)}
+              className={cn(buttonVariants({ size: "lg" }))}
+            >
+              Start Today&apos;s Mission
+            </Link>
           </div>
         </Card>
       )}
