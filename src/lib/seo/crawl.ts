@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { UserFacingError } from "@/lib/errors";
+import { assertPubliclyRoutableUrl, ssrfSafeDispatcher } from "@/lib/security/ssrf";
 
 export type WebsiteSignals = {
   url: string;
@@ -22,12 +23,23 @@ export type WebsiteSignals = {
  * Vitals) or an API this app doesn't have (Search Console).
  */
 export async function crawlWebsite(url: string): Promise<WebsiteSignals> {
+  try {
+    assertPubliclyRoutableUrl(url);
+  } catch (error) {
+    throw new UserFacingError(
+      error instanceof Error ? error.message : "That website URL isn't valid.",
+    );
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       headers: { "User-Agent": "OutrunBot/1.0 (+https://outrun.app)" },
       signal: AbortSignal.timeout(10_000),
       redirect: "follow",
+      // @ts-expect-error -- `dispatcher` is undici-specific and not in the
+      // standard fetch() types, but Node's global fetch accepts it.
+      dispatcher: ssrfSafeDispatcher,
     });
   } catch {
     throw new UserFacingError(
