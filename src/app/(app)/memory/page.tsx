@@ -15,6 +15,7 @@ const EVENT_LABELS: Record<string, string> = {
   SEO_CONTENT_GENERATED: "SEO Content",
   TEAM_MEMBER_INVITED: "Team",
   TEAM_MEMBER_JOINED: "Team",
+  PATTERN_IDENTIFIED: "Improvement Loop",
 };
 
 export default async function MemoryPage() {

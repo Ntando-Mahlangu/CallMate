@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { analyzeOutreachPatterns } from "@/lib/campaigns/improvement-loop";
+import { ImprovementLoopPanel } from "@/components/campaigns/improvement-loop-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -22,11 +24,14 @@ export default async function CampaignsPage() {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
 
-  const campaigns = await prisma.campaign.findMany({
-    where: { organizationId: organization.id },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { messages: true } } },
-  });
+  const [campaigns, improvementLoopResult] = await Promise.all([
+    prisma.campaign.findMany({
+      where: { organizationId: organization.id },
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { messages: true } } },
+    }),
+    analyzeOutreachPatterns(organization.id),
+  ]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -89,6 +94,8 @@ export default async function CampaignsPage() {
           ))}
         </div>
       )}
+
+      <ImprovementLoopPanel initialResult={improvementLoopResult} />
     </div>
   );
 }
