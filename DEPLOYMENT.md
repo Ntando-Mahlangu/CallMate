@@ -148,3 +148,121 @@ webhook endpoints (Paddle, the autonomous-send cron) are protected by a
 separate app-level limiter (`src/lib/rate-limit.ts`, also Postgres-backed,
 fixed-window). No configuration needed — both work out of the box against
 the same `DATABASE_URL` already required for everything else.
+
+## 11. Backups and disaster recovery
+
+docs/outrun/15 "BACKUPS" / "DISASTER RECOVERY". Outrun has exactly one
+piece of durable state: the Postgres database. There's no queue, no
+background worker, no separate cache to back up — every job in this app
+(Blueprint generation, outreach sends, the autonomous-send tick) runs
+synchronously inside a request, so the recovery story is really "how do
+we get Postgres back."
+
+**Backups.** Don't build a custom backup job — every provider listed in
+section 2 already does this better than a hand-rolled `pg_dump` cron:
+
+| Provider | Automated backups | Point-in-time recovery |
+|---|---|---|
+| Neon | Yes, included | Yes (retention depends on plan) |
+| Supabase | Yes, daily on paid plans | Yes on paid plans |
+| Railway | Yes, via volume snapshots | Limited — check current plan docs |
+| Amazon RDS | Yes, configurable window | Yes, up to the retention period |
+
+Whichever you use: turn on automated backups and PITR in that provider's
+dashboard, and set the retention window to at least 7 days. Encryption at
+rest is the provider's default on all four — verify it's on rather than
+assuming.
+
+**Recovery testing.** A backup nobody has restored is a hope, not a
+backup. Quarterly (or before any major migration), restore the latest
+backup into a throwaway database and run:
+
+```bash
+DATABASE_URL="<restored-db-url>" npx prisma migrate deploy
+DATABASE_URL="<restored-db-url>" npx prisma studio
+```
+
+Confirm the migration history applies cleanly and spot-check a few
+tables (organizations, memberships, growth blueprints) for plausible
+data. Record how long the restore took — that number is your actual RTO,
+not an estimate.
+
+**Disaster scenarios this app can actually hit:**
+
+- **Database failure/corruption** — restore from the provider's latest
+  backup/PITR checkpoint as above; there's no secondary datastore to fail
+  over to, so this is the one true single point of failure. Mitigate by
+  keeping backup retention long enough to catch corruption that isn't
+  noticed immediately.
+- **AI provider outage** (Anthropic) — every AI-backed route already
+  fails closed with a friendly, specific error (`UserFacingError`) rather
+  than a stack trace; nothing else in the app depends on it, so Mission
+  Control, Prospects, Campaigns (browsing/sending), Billing, and Teams
+  all keep working normally during an outage.
+- **Email provider outage** (Resend) — `sendEmail()` throws, which
+  surfaces as a friendly "couldn't send" error on outreach sends and
+  billing notifications; auth verification/reset emails fail the same
+  way. No feature silently pretends to have sent something that didn't
+  go out.
+- **Lead data provider outage** (Google Places) — prospect search fails
+  with a friendly error; previously-saved companies and all other
+  features are unaffected.
+- **Payment provider outage** (Paddle) — checkout/portal links fail
+  gracefully; existing `planTier` stays whatever it was last set to by a
+  verified webhook, so an outage can't silently downgrade or upgrade
+  anyone.
+- **Hosting/cloud outage** — covered by whatever multi-region/failover
+  the host (Vercel/Railway/Fly/Render) provides; this app has no
+  self-managed infrastructure to fail over.
+
+There's no worker or queue in this build, so "Worker Failure" and "Queue
+Failure" from the spec don't apply yet — they'll need real runbooks once
+either exists.
+
+## 12. Incident response
+
+docs/outrun/15 "INCIDENT RESPONSE". A lightweight runbook so an incident
+has a shape instead of everyone improvising in the moment. For each
+category below: **detect** (how you'd find out) → **contain** (stop it
+getting worse) → **communicate** (who needs to know, and what you tell
+them) → **resolve** → **postmortem** (timeline, root cause, resolution,
+preventive actions — write this down every time, even for small
+incidents; it's the only way patterns become visible).
+
+- **Security incident / data breach** — Detect via `captureError()`
+  reports (Sentry, if configured) or a report from a user/researcher.
+  Contain: rotate the affected secret(s) immediately (`BETTER_AUTH_SECRET`,
+  `PADDLE_WEBHOOK_SECRET`, `CRON_SECRET`, API keys) and force-expire
+  sessions if account compromise is suspected (`prisma.session.deleteMany`
+  scoped to the affected user, or all sessions if the auth secret itself
+  was exposed). Communicate: notify affected workspace owners directly;
+  for a confirmed breach of personal data, legal counsel determines
+  disclosure obligations (see `/privacy`) — don't self-diagnose this.
+- **Provider outage** (Anthropic, Resend, Google Places, Paddle) — Detect
+  via `captureError()` volume for that scope (`ai.*`, `billing.*`,
+  `prospects.search`, etc.) or the provider's own status page. Contain:
+  nothing to do — every dependency already fails closed with a friendly
+  error rather than cascading (see section 11). Communicate only if it's
+  prolonged enough that users will notice a pattern (e.g. a banner on
+  the affected page). Resolve: wait for the provider, or swap
+  credentials if the outage is account-specific.
+- **Deployment failure** — Detect via CI (`.github/workflows/ci.yml`)
+  failing, or `GET /api/health` returning `503` post-deploy. Contain:
+  roll back to the last known-good deployment (your host's rollback —
+  Vercel/Railway/Fly/Render all support one-click revert to a previous
+  build). Never debug a bad deploy live in production; roll back first,
+  investigate after.
+- **Performance degradation** — Detect via slow `/api/health` responses
+  or elevated error rates in `captureError()` logs. Contain: check
+  Postgres connection pool exhaustion first (the most likely cause given
+  this app's single-database architecture) — look at the provider's
+  connection dashboard. Resolve: scale the database plan, or add
+  connection pooling (e.g. PgBouncer / Neon's built-in pooler) if not
+  already in front of it.
+- **Critical bug** — Detect via error reports or user reports. Contain:
+  if it's actively harming users (e.g. sending wrong outreach content,
+  double-charging), disable the specific feature rather than the whole
+  app where possible — most AI/billing routes are isolated enough that
+  this is surgical (e.g. temporarily unsetting `RESEND_API_KEY` disables
+  all outbound email without taking down anything else). Fix forward
+  with a real commit, not a hotfix patched directly in production.
