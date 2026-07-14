@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { CampaignSendPanel } from "@/components/campaigns/campaign-send-panel";
 import { AutonomousSendPanel } from "@/components/campaigns/autonomous-send-panel";
 import { CampaignExportPanel } from "@/components/campaigns/campaign-export-panel";
+import { SaveAsTemplateButton } from "@/components/campaigns/save-as-template-button";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -50,14 +51,21 @@ export default async function CampaignDetailPage({
         ← Campaigns
       </Link>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
             {campaign.name}
           </h1>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{campaign.objective}</p>
         </div>
-        <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
+        <div className="flex items-center gap-3">
+          <SaveAsTemplateButton
+            defaultName={campaign.name}
+            objective={campaign.objective}
+            abTest={campaign.messages.some((m) => m.variantLabel !== null)}
+          />
+          <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
+        </div>
       </div>
 
       {campaign.strategyRationale && (

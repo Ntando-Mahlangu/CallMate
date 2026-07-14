@@ -7,18 +7,31 @@ import { Prisma } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { NewCampaignForm } from "@/components/campaigns/new-campaign-form";
 
-export default async function NewCampaignPage() {
+export default async function NewCampaignPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ templateId?: string }>;
+}) {
   const session = await getCurrentSession();
   if (!session) redirect("/sign-in");
 
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
 
-  const companies = await prisma.company.findMany({
-    where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
-    orderBy: { fitScore: "desc" },
-    select: { id: true, name: true, category: true, fitScore: true, isSaved: true },
-  });
+  const { templateId } = await searchParams;
+
+  const [companies, template] = await Promise.all([
+    prisma.company.findMany({
+      where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
+      orderBy: { fitScore: "desc" },
+      select: { id: true, name: true, category: true, fitScore: true, isSaved: true },
+    }),
+    templateId
+      ? prisma.campaignTemplate.findFirst({
+          where: { id: templateId, organizationId: organization.id },
+        })
+      : Promise.resolve(null),
+  ]);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -42,7 +55,14 @@ export default async function NewCampaignPage() {
           </p>
         </Card>
       ) : (
-        <NewCampaignForm companies={companies} />
+        <NewCampaignForm
+          companies={companies}
+          initialValues={
+            template
+              ? { name: template.name, objective: template.objective, abTest: template.abTest }
+              : undefined
+          }
+        />
       )}
     </div>
   );

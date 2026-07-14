@@ -164,6 +164,7 @@ model Organization {
   leadLists        LeadList[]
   refundRequests   RefundRequest[]
   strategicReviews StrategicReview[]
+  campaignTemplates CampaignTemplate[]
 
   @@map("organization")
 }
@@ -450,6 +451,37 @@ model Campaign {
   @@map("campaign")
 }
 
+enum CampaignTemplateCategory {
+  COLD_OUTREACH
+  REFERRAL_REQUESTS
+  PARTNERSHIPS
+  WEBSITE_AUDITS
+  CONSULTATION_OFFERS
+  PRODUCT_LAUNCHES
+}
+
+// docs/outrun/07 "CAMPAIGN LIBRARY" — a reusable starting point (name,
+// category, objective, A/B setting), not a snapshot of generated
+// messages, since outreach content is always written fresh from a
+// specific audience's research. "Templates should remain editable" —
+// every field can be changed after creation.
+model CampaignTemplate {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  category  CampaignTemplateCategory
+  objective String
+  abTest    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campaign_template")
+}
+
 // Joins a User to an Organization with a role (docs/outrun/14 permissions).
 model Membership {
   id   String         @id @default(uuid())
@@ -479,6 +511,7 @@ enum EventType {
   LEAD_LIST_CREATED
   REFUND_REQUESTED
   CAMPAIGN_CREATED
+  CAMPAIGN_TEMPLATE_SAVED
   SEO_ANALYZED
   SEO_CONTENT_GENERATED
   TEAM_MEMBER_INVITED

@@ -39,9 +39,17 @@ export default async function CampaignsPage() {
             Batch outreach across a chosen audience of researched prospects.
           </p>
         </div>
-        <Link href="/campaigns/new" className={cn(buttonVariants())}>
-          Create Campaign
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/campaigns/library"
+            className="text-sm text-[var(--color-accent)] hover:underline"
+          >
+            Campaign Library
+          </Link>
+          <Link href="/campaigns/new" className={cn(buttonVariants())}>
+            Create Campaign
+          </Link>
+        </div>
       </div>
 
       {campaigns.length === 0 ? (

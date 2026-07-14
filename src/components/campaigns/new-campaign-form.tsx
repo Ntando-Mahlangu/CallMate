@@ -29,13 +29,24 @@ type CompanyOption = {
   isSaved: boolean;
 };
 
-export function NewCampaignForm({ companies }: { companies: CompanyOption[] }) {
+export function NewCampaignForm({
+  companies,
+  initialValues,
+}: {
+  companies: CompanyOption[];
+  initialValues?: { name: string; objective: string; abTest: boolean };
+}) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [objective, setObjective] = useState("");
-  const [objectiveOther, setObjectiveOther] = useState("");
+  const [name, setName] = useState(initialValues?.name ?? "");
+  const isKnownObjective = initialValues && OBJECTIVES.includes(initialValues.objective);
+  const [objective, setObjective] = useState(
+    initialValues ? (isKnownObjective ? initialValues.objective : "Other") : "",
+  );
+  const [objectiveOther, setObjectiveOther] = useState(
+    initialValues && !isKnownObjective ? initialValues.objective : "",
+  );
   const [selected, setSelected] = useState<string[]>([]);
-  const [abTest, setAbTest] = useState(false);
+  const [abTest, setAbTest] = useState(initialValues?.abTest ?? false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -87,6 +98,11 @@ export function NewCampaignForm({ companies }: { companies: CompanyOption[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {initialValues && (
+        <p className="text-sm text-[var(--color-accent)]">
+          Prefilled from your saved template — choose a fresh audience below.
+        </p>
+      )}
       <Card>
         <Label htmlFor="name">Campaign name</Label>
         <Input
