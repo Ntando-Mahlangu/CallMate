@@ -6,6 +6,7 @@ import { ChatPanel } from "@/components/ceo-agent/chat-panel";
 import { RiskPanel } from "@/components/ceo-agent/risk-panel";
 import { WhatIfPanel } from "@/components/ceo-agent/whatif-panel";
 import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-panel";
+import { DecisionPanel } from "@/components/ceo-agent/decision-panel";
 import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
 import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
 
@@ -39,6 +40,8 @@ export default async function CeoAgentPage() {
       <RiskPanel signals={signals} />
 
       <OpportunityFeedPanel items={opportunities} />
+
+      <DecisionPanel />
 
       <WhatIfPanel />
 
