@@ -170,6 +170,7 @@ enum UsageEventType {
   COMPANY_RESEARCH
   OUTREACH_GENERATION
   BLUEPRINT_GENERATION
+  CALL_SCRIPT_GENERATION
 }
 
 // One row per billable action taken (docs/outrun/14 "USAGE METERS"). Counted
@@ -269,6 +270,11 @@ model Company {
   fitScore        Int?
   confidenceScore Int?
   research        Json?
+
+  // Cached cold-call script (docs/outrun/07 "COLD CALL SCRIPT") generated
+  // from this company's research profile. Cached per-company rather than
+  // per-message since a call script isn't tied to any one campaign send.
+  callScript Json?
 
   isSaved Boolean @default(false)
 
@@ -386,6 +392,7 @@ enum EventType {
   COMPANY_RESEARCHED
   OUTREACH_GENERATED
   OUTREACH_SENT
+  CALL_SCRIPT_GENERATED
   CAMPAIGN_CREATED
   SEO_ANALYZED
   SEO_CONTENT_GENERATED

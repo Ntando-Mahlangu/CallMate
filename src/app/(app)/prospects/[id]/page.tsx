@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/prospects/score-badge";
 import { ResearchPanel } from "@/components/prospects/research-panel";
 import { OutreachPanel } from "@/components/prospects/outreach-panel";
+import { CallScriptPanel } from "@/components/prospects/call-script-panel";
 import type { CompanyResearchData } from "@/lib/prospects/research-schema";
+import type { CallScriptData } from "@/lib/prospects/call-script-schema";
 
 export default async function ProspectDetailPage({
   params,
@@ -78,6 +80,17 @@ export default async function ProspectDetailPage({
           initialMessages={company.outreachMessages}
           initialContactEmail={company.contactEmail}
           emailConfigured={isEmailSendingConfigured()}
+        />
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Cold Call Script
+        </h2>
+        <CallScriptPanel
+          companyId={company.id}
+          hasResearch={Boolean(company.research)}
+          initialCallScript={company.callScript as CallScriptData | null}
         />
       </Card>
     </div>

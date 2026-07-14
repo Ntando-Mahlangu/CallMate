@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CampaignSendPanel } from "@/components/campaigns/campaign-send-panel";
 import { AutonomousSendPanel } from "@/components/campaigns/autonomous-send-panel";
+import { CampaignExportPanel } from "@/components/campaigns/campaign-export-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -37,6 +38,11 @@ export default async function CampaignDetailPage({
     include: { messages: { include: { company: true }, orderBy: { createdAt: "asc" } } },
   });
   if (!campaign) notFound();
+
+  const uniqueCompanies = new Map(campaign.messages.map((m) => [m.company.id, m.company]));
+  const companiesWithoutScriptCount = Array.from(uniqueCompanies.values()).filter(
+    (c) => c.research && !c.callScript,
+  ).length;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -95,6 +101,11 @@ export default async function CampaignDetailPage({
         campaignId={campaign.id}
         initialMessages={campaign.messages}
         emailConfigured={isEmailSendingConfigured()}
+      />
+
+      <CampaignExportPanel
+        campaignId={campaign.id}
+        companiesWithoutScriptCount={companiesWithoutScriptCount}
       />
     </div>
   );

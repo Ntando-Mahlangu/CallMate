@@ -11,12 +11,14 @@ const LIMITS: Partial<Record<PlanTier, Record<UsageEventType, number>>> = {
     [UsageEventType.COMPANY_RESEARCH]: 10,
     [UsageEventType.OUTREACH_GENERATION]: 5,
     [UsageEventType.BLUEPRINT_GENERATION]: 1,
+    [UsageEventType.CALL_SCRIPT_GENERATION]: 5,
   },
   STARTER: {
     [UsageEventType.COMPANY_SEARCH]: 250,
     [UsageEventType.COMPANY_RESEARCH]: 250,
     [UsageEventType.OUTREACH_GENERATION]: 500,
     [UsageEventType.BLUEPRINT_GENERATION]: 1_000_000, // "unlimited" in practice
+    [UsageEventType.CALL_SCRIPT_GENERATION]: 500,
   },
 };
 
@@ -29,6 +31,8 @@ const UPGRADE_MESSAGE: Record<UsageEventType, string> = {
     "You've used all your Free outreach generations. Upgrade to Starter to keep writing outreach.",
   [UsageEventType.BLUEPRINT_GENERATION]:
     "The Free plan includes one Growth Blueprint. Upgrade to Starter for unlimited Blueprint updates.",
+  [UsageEventType.CALL_SCRIPT_GENERATION]:
+    "You've used all your Free call scripts. Upgrade to Starter to keep generating call scripts.",
 };
 
 /**

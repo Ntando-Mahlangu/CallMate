@@ -14,6 +14,7 @@ const USAGE_LABELS: Record<string, string> = {
   COMPANY_RESEARCH: "AI company reports",
   OUTREACH_GENERATION: "Outreach generations",
   BLUEPRINT_GENERATION: "Growth Blueprints",
+  CALL_SCRIPT_GENERATION: "Call scripts",
 };
 
 export default async function BillingPage() {
