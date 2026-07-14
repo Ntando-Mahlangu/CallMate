@@ -42,7 +42,6 @@ export default async function DashboardPage() {
   if (!blueprint) redirect("/blueprint/generating");
 
   const mission = getTodaysMission(blueprint);
-  const scoreCategories = blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"];
   const allOpportunities = blueprint.opportunities as GrowthBlueprintData["opportunities"];
   const opportunities = allOpportunities.slice(0, 3);
 
@@ -155,19 +154,41 @@ export default async function DashboardPage() {
 
         <Card>
           <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
-            Score Breakdown
+            Business Health Score
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {scoreCategories.map((c) => (
-              <div key={c.category} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-[var(--color-text-secondary)]">
-                  {c.category}
-                </span>
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {c.score}
-                </span>
-              </div>
-            ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {health?.categories.map((c) => {
+              const trendLabel = formatTrend(c.trend);
+              return (
+                <div
+                  key={c.category}
+                  className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-3"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {c.category}
+                    </span>
+                    <span className="text-sm text-[var(--color-text-primary)]">
+                      {c.score}
+                      {trendLabel && (
+                        <span className="ml-1 text-xs text-[var(--color-text-muted)]">
+                          ({trendLabel})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{c.status}</p>
+                  {c.mainIssue && (
+                    <p className="mt-1 text-xs text-[var(--color-warning)]">
+                      Main issue: {c.mainIssue}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                    Fastest improvement: {c.fastestImprovement}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>
