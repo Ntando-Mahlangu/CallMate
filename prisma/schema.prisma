@@ -162,6 +162,7 @@ model Organization {
   seoContentPieces SeoContentPiece[]
   invitations      Invitation[]
   leadLists        LeadList[]
+  refundRequests   RefundRequest[]
 
   @@map("organization")
 }
@@ -325,6 +326,36 @@ model LeadListCompany {
   @@map("lead_list_company")
 }
 
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+// docs/outrun/14 "REFUNDS" — a request queue, not a self-serve refund
+// button. Actually moving money is a real, hard-to-reverse financial
+// action, so this only records the request, reason, and an audit trail;
+// approving it happens out-of-band (Paddle dashboard / support review),
+// matching the doc's own "Allow support review" requirement.
+model RefundRequest {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  requestedByUserId String
+  requestedByName   String
+  reason            String
+
+  status         RefundRequestStatus @default(PENDING)
+  resolutionNote String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@map("refund_request")
+}
+
 enum SendStatus {
   NOT_SENT
   SENT
@@ -432,6 +463,7 @@ enum EventType {
   OUTREACH_SENT
   CALL_SCRIPT_GENERATED
   LEAD_LIST_CREATED
+  REFUND_REQUESTED
   CAMPAIGN_CREATED
   SEO_ANALYZED
   SEO_CONTENT_GENERATED

@@ -1,13 +1,16 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
-import { getCurrentOrganization } from "@/lib/org";
+import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
+import { canManageBilling } from "@/lib/teams/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { PLANS, planLabel } from "@/lib/billing/plans";
 import { getUsageSummary } from "@/lib/billing/usage";
+import { getRefundRequestsForOrg } from "@/lib/billing/refunds";
 import { CheckoutButton } from "@/components/billing/checkout-button";
 import { ManageBillingButton } from "@/components/billing/manage-billing-button";
+import { RefundRequestPanel } from "@/components/billing/refund-request-panel";
 
 const USAGE_LABELS: Record<string, string> = {
   COMPANY_SEARCH: "Company searches",
@@ -24,12 +27,15 @@ export default async function BillingPage() {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
 
+  const membership = await getMembershipFor(session.user.id, organization.id);
+
   const isSubscribed = organization.planTier !== "FREE";
   const starterPriceId = PLANS.STARTER.paddlePriceId;
   const checkoutConfigured = Boolean(
     starterPriceId && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
   );
   const usage = await getUsageSummary(organization.id, organization.planTier);
+  const refundRequests = isSubscribed ? await getRefundRequestsForOrg(organization.id) : [];
 
   return (
     <div className="animate-fade-in space-y-8">
@@ -128,6 +134,18 @@ export default async function BillingPage() {
           );
         })}
       </div>
+
+      {isSubscribed && (
+        <Card>
+          <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+            Refund Requests
+          </h2>
+          <RefundRequestPanel
+            canManage={Boolean(membership && canManageBilling(membership.role))}
+            initialRequests={refundRequests}
+          />
+        </Card>
+      )}
     </div>
   );
 }

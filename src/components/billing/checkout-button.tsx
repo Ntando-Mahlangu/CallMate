@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FormError } from "@/components/ui/form-error";
 
 let paddlePromise: Promise<Paddle | undefined> | null = null;
@@ -29,6 +30,7 @@ export function CheckoutButton({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
 
   async function handleClick() {
     setError(null);
@@ -40,6 +42,7 @@ export function CheckoutButton({
       paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
         customData: { organizationId },
+        ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
       });
     } catch (err) {
       setError(
@@ -53,6 +56,11 @@ export function CheckoutButton({
   return (
     <div className="space-y-2">
       <FormError message={error} />
+      <Input
+        placeholder="Coupon code (optional)"
+        value={discountCode}
+        onChange={(e) => setDiscountCode(e.target.value)}
+      />
       <Button onClick={handleClick} disabled={isLoading}>
         {isLoading ? "Loading…" : "Upgrade to Starter"}
       </Button>

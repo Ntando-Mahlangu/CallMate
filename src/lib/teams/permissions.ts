@@ -15,3 +15,9 @@ export function canManageTeam(role: MembershipRole): boolean {
 export function canManageCampaigns(role: MembershipRole): boolean {
   return TEAM_MANAGERS.includes(role);
 }
+
+// Same Owner/Admin set — gates requesting a refund (docs/outrun/14
+// "REFUNDS"), a real financial action, not just viewing plan info.
+export function canManageBilling(role: MembershipRole): boolean {
+  return TEAM_MANAGERS.includes(role);
+}

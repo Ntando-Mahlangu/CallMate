@@ -9,7 +9,8 @@ type BillingNotification =
   | { type: "payment_failed" }
   | { type: "canceled" }
   | { type: "paused" }
-  | { type: "plan_changed"; fromTier: PlanTier; toTier: PlanTier };
+  | { type: "plan_changed"; fromTier: PlanTier; toTier: PlanTier }
+  | { type: "refund_requested"; reason: string };
 
 const SUBJECTS: Record<BillingNotification["type"], string> = {
   activated: "Your Outrun plan is active",
@@ -17,6 +18,7 @@ const SUBJECTS: Record<BillingNotification["type"], string> = {
   canceled: "Your Outrun subscription was canceled",
   paused: "Your Outrun subscription is paused",
   plan_changed: "Your Outrun plan has changed",
+  refund_requested: "We received your refund request",
 };
 
 function bodyFor(notification: BillingNotification, organizationName: string): string {
@@ -31,6 +33,8 @@ function bodyFor(notification: BillingNotification, organizationName: string): s
       return `Your subscription for ${organizationName} is currently paused.`;
     case "plan_changed":
       return `${organizationName} moved from ${planLabel(notification.fromTier)} to ${planLabel(notification.toTier)}.`;
+    case "refund_requested":
+      return `We received your refund request for ${organizationName}: "${notification.reason}". Our team reviews every request and will follow up by email.`;
   }
 }
 
