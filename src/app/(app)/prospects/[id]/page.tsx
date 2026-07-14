@@ -9,6 +9,7 @@ import { ScoreBadge } from "@/components/prospects/score-badge";
 import { ResearchPanel } from "@/components/prospects/research-panel";
 import { OutreachPanel } from "@/components/prospects/outreach-panel";
 import { CallScriptPanel } from "@/components/prospects/call-script-panel";
+import { AddToListMenu } from "@/components/prospects/add-to-list-menu";
 import type { CompanyResearchData } from "@/lib/prospects/research-schema";
 import type { CallScriptData } from "@/lib/prospects/call-script-schema";
 
@@ -37,9 +38,12 @@ export default async function ProspectDetailPage({
       </Link>
 
       <div>
-        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-          {company.name}
-        </h1>
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+            {company.name}
+          </h1>
+          <AddToListMenu companyId={company.id} />
+        </div>
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           {company.category ?? "Uncategorized"}
           {company.formattedAddress ? ` · ${company.formattedAddress}` : ""}

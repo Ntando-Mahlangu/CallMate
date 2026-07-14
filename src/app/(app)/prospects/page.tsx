@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Company } from "@prisma/client";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
@@ -36,13 +37,21 @@ export default function ProspectsPage() {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <div>
-        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-          Find Prospects
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-          Describe who you&apos;re looking for in plain English.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+            Find Prospects
+          </h1>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Describe who you&apos;re looking for in plain English.
+          </p>
+        </div>
+        <Link
+          href="/prospects/lists"
+          className="mt-1 text-sm text-[var(--color-accent)] hover:underline"
+        >
+          Your Lists →
+        </Link>
       </div>
 
       <form onSubmit={handleSearch} className="flex gap-3">

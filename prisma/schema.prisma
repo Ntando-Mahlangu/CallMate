@@ -161,6 +161,7 @@ model Organization {
   seoAnalyses      SeoAnalysis[]
   seoContentPieces SeoContentPiece[]
   invitations      Invitation[]
+  leadLists        LeadList[]
 
   @@map("organization")
 }
@@ -282,9 +283,46 @@ model Company {
   updatedAt DateTime @updatedAt
 
   outreachMessages OutreachMessage[]
+  leadListEntries  LeadListCompany[]
 
   @@unique([organizationId, source, sourceId])
   @@map("company")
+}
+
+// docs/outrun/06 "LEAD LISTS" — named lists a user organizes saved
+// companies into (e.g. "Hot Prospects", "Q3 Campaign"), layered on top of
+// the simple isSaved toggle rather than replacing it. A company can
+// belong to any number of lists regardless of its isSaved state.
+model LeadList {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies LeadListCompany[]
+
+  @@unique([organizationId, name])
+  @@map("lead_list")
+}
+
+model LeadListCompany {
+  id String @id @default(uuid())
+
+  leadListId String
+  leadList   LeadList @relation(fields: [leadListId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([leadListId, companyId])
+  @@map("lead_list_company")
 }
 
 enum SendStatus {
@@ -393,6 +431,7 @@ enum EventType {
   OUTREACH_GENERATED
   OUTREACH_SENT
   CALL_SCRIPT_GENERATED
+  LEAD_LIST_CREATED
   CAMPAIGN_CREATED
   SEO_ANALYZED
   SEO_CONTENT_GENERATED

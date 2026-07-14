@@ -6,6 +6,7 @@ import type { Company } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScoreBadge } from "./score-badge";
+import { AddToListMenu } from "./add-to-list-menu";
 
 export function CompanyCard({ company }: { company: Company }) {
   const [isSaved, setIsSaved] = useState(company.isSaved);
@@ -52,16 +53,18 @@ export function CompanyCard({ company }: { company: Company }) {
         >
           Research →
         </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="ml-auto"
-          onClick={toggleSave}
-          disabled={isToggling}
-        >
-          {isSaved ? "Saved" : "Save"}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <AddToListMenu companyId={company.id} />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={toggleSave}
+            disabled={isToggling}
+          >
+            {isSaved ? "Saved" : "Save"}
+          </Button>
+        </div>
       </div>
     </Card>
   );
