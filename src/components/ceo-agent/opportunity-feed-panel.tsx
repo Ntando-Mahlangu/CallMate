@@ -16,9 +16,36 @@ const SORT_OPTIONS: { value: OpportunitySort; label: string }[] = [
   { value: "confidence", label: "Highest Confidence" },
 ];
 
-export function OpportunityFeedPanel({ items }: { items: OpportunityFeedItem[] }) {
+type Rating = "HELPFUL" | "NOT_HELPFUL" | "DISMISSED";
+
+async function submitFeedback(itemId: string, itemTitle: string, rating: Rating) {
+  await fetch("/api/opportunities/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemId, itemTitle, rating }),
+  });
+}
+
+// docs/outrun/08 "FEEDBACK LOOP" — "Allow users to rate recommendations.
+// Helpful / Not Helpful / Completed / Dismissed. Use feedback to refine
+// future suggestions." Dismissing removes the item from this feed for
+// good (enforced server-side too, in getOpportunityFeed); Helpful/Not
+// Helpful just record a rating that future Blueprint regenerations read
+// back (src/lib/memory/recommendation-outcomes.ts) — neither changes
+// what's shown here.
+export function OpportunityFeedPanel({ items: initialItems }: { items: OpportunityFeedItem[] }) {
+  const [items, setItems] = useState(initialItems);
   const [sort, setSort] = useState<OpportunitySort>("roi");
+  const [rated, setRated] = useState<Record<string, Rating>>({});
   const sorted = useMemo(() => sortOpportunities(items, sort), [items, sort]);
+
+  function rate(item: OpportunityFeedItem, rating: Rating) {
+    setRated((prev) => ({ ...prev, [item.id]: rating }));
+    if (rating === "DISMISSED") {
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+    }
+    void submitFeedback(item.id, item.title, rating);
+  }
 
   return (
     <Card>
@@ -64,6 +91,37 @@ export function OpportunityFeedPanel({ items }: { items: OpportunityFeedItem[] }
               <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                 {item.source} · {item.recommendedAction}
               </p>
+              <div className="mt-2 flex items-center gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => rate(item, "HELPFUL")}
+                  className={
+                    rated[item.id] === "HELPFUL"
+                      ? "text-[var(--color-accent)]"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  }
+                >
+                  Helpful
+                </button>
+                <button
+                  type="button"
+                  onClick={() => rate(item, "NOT_HELPFUL")}
+                  className={
+                    rated[item.id] === "NOT_HELPFUL"
+                      ? "text-[var(--color-accent)]"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  }
+                >
+                  Not Helpful
+                </button>
+                <button
+                  type="button"
+                  onClick={() => rate(item, "DISMISSED")}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                >
+                  Dismiss
+                </button>
+              </div>
             </li>
           ))}
         </ul>

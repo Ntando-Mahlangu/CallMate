@@ -170,6 +170,7 @@ model Organization {
   notifications    Notification[]
   tasks            Task[]
   goals            Goal[]
+  recommendationFeedback RecommendationFeedback[]
 
   @@map("organization")
 }
@@ -587,6 +588,9 @@ enum EventType {
   CALL_SCRIPT_GENERATED
   LEAD_LIST_CREATED
   REFUND_REQUESTED
+  TASK_COMPLETED
+  TASK_DISMISSED
+  RECOMMENDATION_RATED
   CAMPAIGN_CREATED
   CAMPAIGN_TEMPLATE_SAVED
   PATTERN_IDENTIFIED
@@ -885,6 +889,39 @@ model Task {
 
   @@index([organizationId, status, createdAt])
   @@map("task")
+}
+
+// docs/outrun/08 "FEEDBACK LOOP" — "Allow users to rate recommendations.
+// Helpful / Not Helpful / Completed / Dismissed. Use feedback to refine
+// future suggestions." One row per Opportunity Feed item the user has
+// rated (itemId matches OpportunityFeedItem.id — see
+// src/lib/ceo-agent/opportunity-feed.ts); itemTitle is a snapshot so a
+// rating still makes sense in later reports even after the source item
+// (e.g. a specific Blueprint version's opportunity list) is gone.
+// Completed/dismissed *Tasks* already cover "Completed / Dismissed" for
+// roadmap-derived recommendations; this covers the feed items that never
+// become a Task (SEO quick wins, unactioned prospects, reply-rate trend).
+enum RecommendationRating {
+  HELPFUL
+  NOT_HELPFUL
+  DISMISSED
+}
+
+model RecommendationFeedback {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  itemId    String
+  itemTitle String
+  rating    RecommendationRating
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, itemId])
+  @@map("recommendation_feedback")
 }
 
 // docs/outrun/10 "GOAL MANAGEMENT" — "Users define goals... Every

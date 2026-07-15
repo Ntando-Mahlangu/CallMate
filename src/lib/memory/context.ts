@@ -3,6 +3,7 @@ import * as campaignRepository from "@/lib/repositories/campaign-repository";
 import * as companyRepository from "@/lib/repositories/company-repository";
 import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import { getPriorRecommendationOutcomes } from "./recommendation-outcomes";
 
 /**
  * The Business Brain's retrieval layer (docs/outrun/08 "MEMORY RETRIEVAL" —
@@ -12,8 +13,15 @@ import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
  * feature that needs cross-cutting context reads through this one place.
  */
 export async function getBusinessContext(organizationId: string) {
-  const [organization, latestBlueprint, campaigns, companyStats, recentEvents, activeGoals] =
-    await Promise.all([
+  const [
+    organization,
+    latestBlueprint,
+    campaigns,
+    companyStats,
+    recentEvents,
+    activeGoals,
+    priorRecommendationOutcomes,
+  ] = await Promise.all([
       prisma.organization.findUniqueOrThrow({
         where: { id: organizationId },
         include: { businessProfile: true },
@@ -30,6 +38,7 @@ export async function getBusinessContext(organizationId: string) {
         where: { organizationId, status: "ACTIVE" },
         orderBy: { createdAt: "asc" },
       }),
+      getPriorRecommendationOutcomes(organizationId),
     ]);
 
   const researchedCount = await companyRepository.countResearchedForOrg(organizationId);
@@ -42,6 +51,7 @@ export async function getBusinessContext(organizationId: string) {
     companyStats: { total: companyStats._count.id, researched: researchedCount },
     recentEvents,
     activeGoals,
+    priorRecommendationOutcomes,
   };
 }
 
@@ -99,9 +109,30 @@ export function formatBusinessContext(context: BusinessContext): string {
     );
   }
 
-  if (context.recentEvents.length > 0) {
+  // docs/outrun/08 "GROWTH MEMORY" — patterns the AI Improvement Loop has
+  // identified (src/lib/campaigns/improvement-loop.ts) are genuine derived
+  // learnings, not just "something happened" — surfaced in their own
+  // section so the CEO Agent treats them as lessons, not recency noise.
+  const patternEvents = context.recentEvents.filter((e) => e.type === "PATTERN_IDENTIFIED");
+  const otherEvents = context.recentEvents.filter((e) => e.type !== "PATTERN_IDENTIFIED");
+
+  if (patternEvents.length > 0) {
+    lines.push("Patterns learned from past outreach:");
+    for (const event of patternEvents.slice(0, 5)) {
+      lines.push(`- ${event.summary}`);
+    }
+  }
+
+  // docs/outrun/08 "FEEDBACK LOOP" / "RECOMMENDATION HISTORY" — what
+  // happened after previous recommendations, so the CEO Agent doesn't
+  // repeat suggestions that were already dismissed or underperformed.
+  if (context.priorRecommendationOutcomes) {
+    lines.push(`Recommendation history: ${context.priorRecommendationOutcomes}`);
+  }
+
+  if (otherEvents.length > 0) {
     lines.push("Recent activity:");
-    for (const event of context.recentEvents.slice(0, 8)) {
+    for (const event of otherEvents.slice(0, 8)) {
       lines.push(`- ${event.summary}`);
     }
   }

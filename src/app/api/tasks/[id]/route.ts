@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
+import { logEvent, EventType } from "@/lib/memory/log-event";
 
 const GENERIC_ERROR = "We couldn't update that task right now. Please try again in a moment.";
 const STATUSES = ["PENDING", "COMPLETED", "DISMISSED"] as const;
@@ -39,6 +40,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         completedAt: status === "PENDING" ? null : (existing.completedAt ?? new Date()),
       },
     });
+
+    // docs/outrun/08 "GROWTH MEMORY" — "Recommendation completed.
+    // Recommendation ignored." Only log on an actual transition, so
+    // re-saving notes on an already-completed task doesn't spam the
+    // timeline with duplicate entries.
+    if (status !== existing.status) {
+      if (status === "COMPLETED") {
+        const notes = typeof completionNotes === "string" ? completionNotes.trim() : "";
+        await logEvent(
+          organization.id,
+          EventType.TASK_COMPLETED,
+          `Completed task "${existing.title}".${notes ? ` ${notes}` : ""}`,
+        );
+      } else if (status === "DISMISSED") {
+        await logEvent(
+          organization.id,
+          EventType.TASK_DISMISSED,
+          `Dismissed task "${existing.title}".`,
+        );
+      }
+    }
+
     return NextResponse.json({ task });
   } catch (error) {
     captureError("tasks.update", error, { organizationId: organization.id, taskId: id });

@@ -26,6 +26,9 @@ export const EVENT_LABELS: Record<EventType, string> = {
   STRATEGIC_REVIEW_GENERATED: "Growth Review",
   GOAL_CREATED: "Goal",
   GOAL_ACHIEVED: "Goal Achieved",
+  TASK_COMPLETED: "Task Completed",
+  TASK_DISMISSED: "Task Dismissed",
+  RECOMMENDATION_RATED: "Feedback",
 };
 
 export function eventLabel(type: EventType): string {

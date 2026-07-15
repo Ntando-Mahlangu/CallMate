@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 import type { ImpactLevel } from "@/components/ui/badge";
+import { getDismissedItemIds } from "./recommendation-feedback";
 
 export type OpportunityFeedItem = {
   id: string;
@@ -115,7 +116,7 @@ async function getReplyRateTrendOpportunity(
  * low effort by definition.
  */
 export async function getOpportunityFeed(organizationId: string): Promise<OpportunityFeedItem[]> {
-  const [blueprint, seoAnalysis, unactionedProspects, replyRateTrend] = await Promise.all([
+  const [blueprint, seoAnalysis, unactionedProspects, replyRateTrend, dismissedIds] = await Promise.all([
     prisma.growthBlueprint.findFirst({
       where: { organizationId },
       orderBy: { version: "desc" },
@@ -126,6 +127,7 @@ export async function getOpportunityFeed(organizationId: string): Promise<Opport
     }),
     getUnactionedProspectsOpportunity(organizationId),
     getReplyRateTrendOpportunity(organizationId),
+    getDismissedItemIds(organizationId),
   ]);
 
   const items: OpportunityFeedItem[] = [];
@@ -165,7 +167,9 @@ export async function getOpportunityFeed(organizationId: string): Promise<Opport
   if (unactionedProspects) items.push(unactionedProspects);
   if (replyRateTrend) items.push(replyRateTrend);
 
-  return items;
+  // docs/outrun/08 "FEEDBACK LOOP" — a Dismissed rating removes the item
+  // from the live feed, not just the one time the user clicked it.
+  return items.filter((item) => !dismissedIds.has(item.id));
 }
 
 export type OpportunitySort = "roi" | "fastest" | "lowest-effort" | "confidence";

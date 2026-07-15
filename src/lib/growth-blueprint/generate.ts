@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { getPriorRecommendationOutcomes } from "@/lib/memory/recommendation-outcomes";
 import { growthBlueprintTag, orgProfileTag } from "@/lib/cache-tags";
 import {
   growthBlueprintSchema,
@@ -27,7 +28,13 @@ Rules you must follow (non-negotiable):
   biggest opportunity, its biggest challenge, and the recommended focus.
 - Identify exactly ONE biggest bottleneck — not several.
 - Write like an experienced, direct growth consultant: concise and
-  actionable, never generic filler that could apply to any business.`;
+  actionable, never generic filler that could apply to any business.
+- If prior recommendation outcomes are provided, treat them as real
+  history: don't suggest an action that was already dismissed or rated
+  Not Helpful, and acknowledge genuine completed progress where it's
+  relevant to the current bottleneck or opportunities. If no prior
+  outcomes are provided, this is the business's first Blueprint —
+  proceed without referencing history that doesn't exist.`;
 
 function buildUserMessage(input: {
   organizationName: string;
@@ -41,6 +48,7 @@ function buildUserMessage(input: {
   growthStage: string | null;
   mainGoal: string;
   competitors: string[];
+  priorRecommendationOutcomes: string | null;
 }) {
   const lines = [
     `Business name: ${input.organizationName}`,
@@ -63,6 +71,10 @@ function buildUserMessage(input: {
   return [
     lines.join("\n"),
     "",
+    input.priorRecommendationOutcomes
+      ? `What happened after previous Blueprints: ${input.priorRecommendationOutcomes}`
+      : "This is this business's first Growth Blueprint — there is no recommendation history yet.",
+    "",
     "Produce a complete Growth Blueprint from this information alone.",
   ].join("\n");
 }
@@ -81,6 +93,7 @@ export async function generateGrowthBlueprint(organizationId: string) {
   }
 
   const ai = getAIProvider();
+  const priorRecommendationOutcomes = await getPriorRecommendationOutcomes(organizationId);
 
   const data = await ai.generateObject<GrowthBlueprintData>({
     system: SYSTEM_PROMPT,
@@ -99,6 +112,7 @@ export async function generateGrowthBlueprint(organizationId: string) {
           growthStage: organization.growthStage,
           mainGoal: profile.mainGoal,
           competitors: profile.competitors,
+          priorRecommendationOutcomes,
         }),
       },
     ],
