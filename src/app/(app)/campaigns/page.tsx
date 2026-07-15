@@ -9,6 +9,8 @@ import { cn } from "@/lib/cn";
 import { analyzeOutreachPatterns } from "@/lib/campaigns/improvement-loop";
 import * as campaignRepository from "@/lib/repositories/campaign-repository";
 import { ImprovementLoopPanel } from "@/components/campaigns/improvement-loop-panel";
+import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
+import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -33,13 +35,14 @@ export default async function CampaignsPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
 
-  const [campaigns, totalCount, improvementLoopResult] = await Promise.all([
+  const [campaigns, totalCount, improvementLoopResult, opportunities] = await Promise.all([
     campaignRepository.findManyByOrgPaginated(organization.id, {
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
     campaignRepository.countForOrg(organization.id),
     analyzeOutreachPatterns(organization.id),
+    getOpportunityFeed(organization.id),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -132,6 +135,19 @@ export default async function CampaignsPage({
           </Link>
         </div>
       )}
+
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
+            Autonomous Growth Mode
+          </h2>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Outrun continuously looks for opportunities like these. Nothing is ever launched
+            automatically — review and act on any of them yourself.
+          </p>
+        </div>
+        <OpportunityFeedPanel items={opportunities} />
+      </div>
 
       <ImprovementLoopPanel initialResult={improvementLoopResult} />
     </div>

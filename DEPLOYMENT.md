@@ -485,6 +485,37 @@ found" view.
   Blueprint-specific one, since campaign/CEO-agent/memory exports set the
   precedent of each export having its own gate rather than sharing one.
 
+## 9k. Autonomous Growth Mode opportunity-finding
+
+docs/outrun/07 "AUTONOMOUS GROWTH MODE" lists nine signal types Outrun
+should continuously watch for. `src/lib/ceo-agent/opportunity-feed.ts`
+(already the shared "Opportunity Feed" engine behind `/ceo-agent`, now
+also rendered on `/campaigns` under an "Autonomous Growth Mode" heading)
+gained two new real, deterministic signals on top of its existing
+Growth-Blueprint/SEO ones:
+
+- **Unactioned high-fit prospects** — companies with `fitScore >= 70`
+  that have zero `OutreachMessage` rows. Deliberately *not* a live
+  re-search against the lead-data provider on every page load (that
+  would burn API quota silently on each read) — it surfaces companies
+  Outrun already found instead.
+- **Reply-rate trend** — a real time-windowed comparison (last 14 days
+  vs. the 14 days before that, `TREND_MIN_SAMPLE = 5` per window), not
+  a cross-sectional bucket split. Only fires on a genuine ≥10-point
+  decline with enough sends in both windows — same honesty bar as the
+  Improvement Loop (`src/lib/campaigns/improvement-loop.ts`, which
+  already covered "better-performing subject lines" from a past task
+  and is reused as-is, not duplicated).
+
+Three of the doc's signal types — **emerging industries, competitor
+changes, pricing observations** — have no real data source anywhere in
+this app (no market-data feed, no competitor/pricing tracking) and are
+deliberately left unbuilt rather than faked; "content ideas" and
+"website improvements" are already covered by the existing SEO-sourced
+items in the same feed. "Nothing is launched without user approval" is
+enforced structurally — this feed only ever renders read-only
+recommendations with a link to the real page where a human acts on it.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
