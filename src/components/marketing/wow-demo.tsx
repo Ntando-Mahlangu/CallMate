@@ -41,7 +41,7 @@ export function WowDemo() {
 
   return (
     <section id="wow-demo" className="mx-auto max-w-3xl px-6 py-20">
-      <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent)]">
+      <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
         Example
       </p>
       <h2 className="mt-2 text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">

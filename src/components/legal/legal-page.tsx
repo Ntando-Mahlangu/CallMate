@@ -12,7 +12,7 @@ export function LegalPage({
   return (
     <main className="bg-[var(--color-bg-primary)]">
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <Link href="/" className="text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/" className="text-sm text-[var(--color-accent-text)] hover:underline">
           ← Outrun
         </Link>
 

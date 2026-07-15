@@ -52,11 +52,20 @@ jobs:
       - name: Unit + integration tests
         run: npm run test
 
+      # docs/outrun/15 "DEPLOYMENT PIPELINE" / "SECURITY TESTING" —
+      # Dependency Audits. Fails on high/critical advisories only; lower-
+      # severity transitive findings with no available fix (tracked in
+      # DEPLOYMENT.md) shouldn't block every PR.
+      - name: Security audit
+        run: npm audit --audit-level=high
+
       - name: Build
         run: npm run build
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: E2E tests
+      # Includes tests/e2e/accessibility.spec.ts (docs/outrun/15 "CI/CD" —
+      # Accessibility Checks), alongside the golden-path E2E specs.
+      - name: E2E tests (incl. accessibility)
         run: npm run test:e2e

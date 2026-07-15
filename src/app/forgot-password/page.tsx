@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <p className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
-          <Link href="/sign-in" className="text-[var(--color-accent)] hover:underline">
+          <Link href="/sign-in" className="text-[var(--color-accent-text)] underline">
             Back to Sign In
           </Link>
         </p>

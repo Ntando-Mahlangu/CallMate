@@ -10,3 +10,7 @@ dist
 next-env.d.ts
 npm-debug.log*
 .DS_Store
+
+# Playwright artifacts
+/test-results
+/playwright-report

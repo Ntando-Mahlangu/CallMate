@@ -128,6 +128,41 @@ aren't covered here: there's no way to exercise them honestly in CI
 without a live API key, and pretending to test them would be worse than
 not testing them.
 
+## 7a. Accessibility and security checks in CI
+
+`tests/e2e/accessibility.spec.ts` runs `@axe-core/playwright` (WCAG
+2 A/AA rules) against the public, unauthenticated pages — the marketing
+site, sign-in, and sign-up — and fails the build on any `serious` or
+`critical` violation. It's part of the same `npm run test:e2e` step
+that already runs in CI, not a separate job. This is deliberately scoped
+to pages that have already been fixed and verified; the authenticated
+app (dashboard, prospects, campaigns, etc.) isn't scanned yet — that's
+the separate "accessibility pass on key flows" work, since scanning
+those pages before anyone has looked at them would just make this check
+permanently red on issues nobody has triaged.
+
+Fixing the violations this surfaced added a `--color-accent-text` token
+(`src/app/globals.css`) — a lighter violet than `--color-accent` — for
+accent-colored text sitting directly on a dark surface (links, badges),
+since the original `--color-accent` only clears 4.5:1 as white text on
+a solid fill (buttons), not as foreground text on `--color-bg-primary`/
+`--color-card`. Only the specific components this pass touched
+(auth cross-links, the shared `Badge` "accent" tone, the wow-demo label)
+were migrated to it; most of the ~40 other `text-[var(--color-accent)]`
+usages across the app haven't been audited yet.
+
+CI also runs `npm audit --audit-level=high` (fails only on high/critical
+advisories — see the known moderate-severity finding below) and a
+weekly + per-PR CodeQL static analysis scan
+(`.github/workflows/codeql.yml`), covering the "Security Scans" /
+"Static Analysis" items in docs/outrun/15's deployment pipeline.
+
+**Known accepted risk:** `npm audit` currently reports one moderate
+PostCSS XSS advisory, reached transitively through `next` → `better-auth`.
+The only fix available is a major-version downgrade of `next`
+(`npm audit fix --force`), which is a worse trade than the advisory
+itself. Re-check this after the next Next.js/Better Auth upgrade.
+
 ## 8. Observability
 
 Every server-side catch block calls `captureError()`

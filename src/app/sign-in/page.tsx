@@ -176,7 +176,7 @@ export default function SignInPage() {
 
         <p className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
           New to Outrun?{" "}
-          <Link href="/sign-up" className="text-[var(--color-accent)] hover:underline">
+          <Link href="/sign-up" className="text-[var(--color-accent-text)] underline">
             Start Free
           </Link>
         </p>
