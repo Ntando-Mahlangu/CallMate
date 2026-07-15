@@ -4,11 +4,29 @@ import { UserFacingError } from "@/lib/errors";
 import { sendOutreachMessage } from "@/lib/outreach/send";
 import { isEmailSendingConfigured } from "@/lib/email";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 import { captureError } from "@/lib/observability";
 import { canManageCampaigns } from "@/lib/teams/permissions";
 
 const MIN_DAILY_LIMIT = 1;
 const MAX_DAILY_LIMIT = 500;
+
+// docs/outrun/07 "AUTONOMOUS GROWTH MODE" lists "Declining reply rates" as
+// one of the things this mode is supposed to watch for and act on — a real
+// circuit breaker on this app's own send failures (already-retried by
+// sendEmail's withRetry, so a FAILED status here means genuinely broken,
+// not a transient blip), not a fabricated "engagement score." Below this
+// sample size, one or two bad addresses can't trip the breaker; at or
+// above it, a majority-failing run pauses the campaign and hands it back
+// to a human rather than continuing to burn the daily budget on the same
+// broken run.
+const MIN_SAMPLE_FOR_PAUSE = 3;
+const FAILURE_RATE_PAUSE_THRESHOLD = 0.5;
+
+export function shouldAutoPauseForFailures(attempted: number, failed: number): boolean {
+  if (attempted < MIN_SAMPLE_FOR_PAUSE) return false;
+  return failed / attempted >= FAILURE_RATE_PAUSE_THRESHOLD;
+}
 
 /**
  * Autonomous Growth Mode, deliberately scoped narrow (docs/outrun/07):
@@ -120,7 +138,28 @@ export async function runAutonomousSendForCampaign(campaign: Campaign) {
     );
   }
 
-  return { attempted: pending.length, sent, failed };
+  let paused = false;
+  if (shouldAutoPauseForFailures(pending.length, failed)) {
+    await prisma.campaign.update({
+      where: { id: campaign.id },
+      data: { autonomousSendEnabled: false },
+    });
+    await logEvent(
+      campaign.organizationId,
+      EventType.AUTONOMOUS_SEND_PAUSED,
+      `Autonomous sending for "${campaign.name}" paused automatically: ${failed} of ${pending.length} sends failed.`,
+    );
+    await createNotification(
+      campaign.organizationId,
+      NotificationType.AUTONOMOUS_SEND_PAUSED,
+      "Autonomous sending paused",
+      `"${campaign.name}" had ${failed} of ${pending.length} sends fail in a row, so autonomous sending was turned off. Review the campaign before re-enabling it.`,
+      `/campaigns/${campaign.id}`,
+    );
+    paused = true;
+  }
+
+  return { attempted: pending.length, sent, failed, paused };
 }
 
 /**
@@ -134,13 +173,19 @@ export async function runAutonomousSendTick() {
     where: { autonomousSendEnabled: true, status: "READY" },
   });
 
-  const results = { campaignsChecked: campaigns.length, totalSent: 0, totalFailed: 0 };
+  const results = {
+    campaignsChecked: campaigns.length,
+    totalSent: 0,
+    totalFailed: 0,
+    campaignsPaused: 0,
+  };
 
   for (const campaign of campaigns) {
     try {
       const result = await runAutonomousSendForCampaign(campaign);
       results.totalSent += result.sent;
       results.totalFailed += result.failed;
+      if (result.paused) results.campaignsPaused += 1;
     } catch (error) {
       captureError("campaigns.autonomous.tick", error, { campaignId: campaign.id });
     }

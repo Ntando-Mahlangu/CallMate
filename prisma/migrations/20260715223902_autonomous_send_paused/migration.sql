@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "EventType" ADD VALUE 'AUTONOMOUS_SEND_PAUSED';
+
+-- AlterEnum
+ALTER TYPE "NotificationType" ADD VALUE 'AUTONOMOUS_SEND_PAUSED';

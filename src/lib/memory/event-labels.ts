@@ -23,6 +23,7 @@ export const EVENT_LABELS: Record<EventType, string> = {
   WHATIF_SIMULATED: "What-If",
   DECISION_REQUESTED: "Decision",
   AUTONOMOUS_SEND_RUN: "Autonomous Send",
+  AUTONOMOUS_SEND_PAUSED: "Autonomous Send Paused",
   STRATEGIC_REVIEW_GENERATED: "Growth Review",
   GOAL_CREATED: "Goal",
   GOAL_ACHIEVED: "Goal Achieved",
