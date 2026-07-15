@@ -29,6 +29,20 @@ export function findManyByIdsForOrgWithResearch(organizationId: string, ids: str
   });
 }
 
+/** Unlike findManyByIdsForOrgWithResearch, includes companies that
+ * haven't been researched yet — used by bulk actions (export, save)
+ * that operate on whatever the user selected, not just researched ones. */
+export function findManyByIdsForOrg(organizationId: string, ids: string[]) {
+  return prisma.company.findMany({ where: { id: { in: ids }, organizationId } });
+}
+
+export function setManySaved(organizationId: string, ids: string[], isSaved: boolean) {
+  return prisma.company.updateMany({
+    where: { id: { in: ids }, organizationId },
+    data: { isSaved },
+  });
+}
+
 export function findAllForOrg(organizationId: string) {
   return prisma.company.findMany({ where: { organizationId } });
 }

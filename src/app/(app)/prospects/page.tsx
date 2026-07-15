@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Company } from "@prisma/client";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { CompanyCard } from "@/components/prospects/company-card";
+import {
+  FilterBar,
+  DEFAULT_PROSPECT_FILTERS,
+  applyProspectFilters,
+  type ProspectFilters,
+} from "@/components/prospects/filter-bar";
+import { BulkActionsBar } from "@/components/prospects/bulk-actions-bar";
 
 type Interpretation = { searchedFor: string; unsupportedIntents: string[] };
 
@@ -16,11 +23,34 @@ export default function ProspectsPage() {
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [filters, setFilters] = useState<ProspectFilters>(DEFAULT_PROSPECT_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const categories = useMemo(
+    () =>
+      Array.from(new Set((companies ?? []).map((c) => c.category).filter((c): c is string => Boolean(c)))).sort(),
+    [companies],
+  );
+
+  const filteredCompanies = useMemo(
+    () => (companies ? applyProspectFilters(companies, filters) : null),
+    [companies, filters],
+  );
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setIsSearching(true);
+    setSelectedIds(new Set());
 
     try {
       const res = await fetch("/api/prospects/search", {
@@ -32,6 +62,7 @@ export default function ProspectsPage() {
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
       setCompanies(body.companies);
       setInterpretation(body.interpretation ?? null);
+      setFilters(DEFAULT_PROSPECT_FILTERS);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -102,11 +133,31 @@ export default function ProspectsPage() {
       )}
 
       {companies && companies.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {companies.map((company) => (
-            <CompanyCard key={company.id} company={company} />
-          ))}
-        </div>
+        <>
+          <FilterBar categories={categories} filters={filters} onChange={setFilters} />
+
+          <BulkActionsBar
+            selectedIds={Array.from(selectedIds)}
+            onClearSelection={() => setSelectedIds(new Set())}
+          />
+
+          {filteredCompanies && filteredCompanies.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)]">
+              No results match these filters.
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredCompanies?.map((company) => (
+                <CompanyCard
+                  key={company.id}
+                  company={company}
+                  selected={selectedIds.has(company.id)}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

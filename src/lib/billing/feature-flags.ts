@@ -8,6 +8,7 @@ export const FEATURE_FLAGS = {
   SEO_ENGINE: "seo.engine",
   GROWTH_BLUEPRINT_EXPORT: "growth_blueprint.export",
   TEAM_WORKSPACES: "team.workspaces",
+  PROSPECTS_EXPORT: "prospects.export",
 } as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
@@ -22,6 +23,7 @@ const FLAG_TIERS: Record<FeatureFlag, PlanTier[]> = {
   [FEATURE_FLAGS.SEO_ENGINE]: ["STARTER", "GROWTH", "UNLIMITED"],
   [FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT]: ["STARTER", "GROWTH", "UNLIMITED"],
   [FEATURE_FLAGS.TEAM_WORKSPACES]: ["FREE", "STARTER", "GROWTH", "UNLIMITED"],
+  [FEATURE_FLAGS.PROSPECTS_EXPORT]: ["STARTER", "GROWTH", "UNLIMITED"],
 };
 
 export function isFeatureEnabled(planTier: PlanTier, flag: FeatureFlag): boolean {

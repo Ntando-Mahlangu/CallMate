@@ -450,6 +450,41 @@ Degrades honestly without `ANTHROPIC_API_KEY`: `parseSearchQuery`
 returns the raw query untouched (same behavior as before this feature
 existed) rather than blocking search on an AI call it can't make.
 
+## 9j. Prospect filters, bulk actions, and exports
+
+docs/outrun/06 "FILTERS" lists many qualifiers (employee count, revenue,
+tech stack, funding, hiring activity) that nothing in this schema or the
+lead-data provider can actually verify — `src/components/prospects/
+filter-bar.tsx` only implements the ones backed by real `Company` fields:
+category, minimum rating, minimum review count, website presence, and
+saved status. Filters apply client-side to whatever result set is
+already on screen (a search's results, or a Lead List's companies) —
+this is search/list refinement, not a new "browse every company ever
+found" view.
+
+- **Bulk selection** — a checkbox per company (`CompanyCard`'s
+  `onToggleSelect`, and inline in `LeadListDetailClient`) feeds
+  `src/components/prospects/bulk-actions-bar.tsx`, which appears once
+  anything is selected.
+- **Bulk actions**: add selected to a list (loops the existing
+  single-company `POST /api/prospects/[id]/lists`), save selected
+  (`POST /api/prospects/bulk-save` — sets `isSaved: true` unconditionally
+  rather than reusing the single-company endpoint's *toggle*, since
+  toggling a mixed-state selection would be ambiguous), and — inside a
+  Lead List only — remove selected from that list.
+- **Export** (`POST /api/prospects/export`, `{ companyIds, format }`) —
+  CSV (a from-scratch RFC 4180 writer, `src/lib/prospects/export-csv.ts`
+  — no CSV library existed in this codebase before) and PDF (reusing the
+  `@react-pdf/renderer` pattern already established for Growth Blueprint
+  exports, `src/lib/prospects/export-pdf.tsx`). "Excel" from the doc's
+  "CSV/Excel/PDF" is served by the CSV file — it opens in Excel natively;
+  a true `.xlsx` would need a new dependency this codebase doesn't carry
+  and isn't required to satisfy that use case. Gated behind a new
+  `FEATURE_FLAGS.PROSPECTS_EXPORT` flag (Starter and above, same tiers as
+  `GROWTH_BLUEPRINT_EXPORT`) — a new flag rather than reusing the
+  Blueprint-specific one, since campaign/CEO-agent/memory exports set the
+  precedent of each export having its own gate rather than sharing one.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

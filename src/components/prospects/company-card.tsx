@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { ScoreBadge } from "./score-badge";
 import { AddToListMenu } from "./add-to-list-menu";
 
-export function CompanyCard({ company }: { company: Company }) {
+export function CompanyCard({
+  company,
+  selected,
+  onToggleSelect,
+}: {
+  company: Company;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+}) {
   const [isSaved, setIsSaved] = useState(company.isSaved);
   const [isToggling, setIsToggling] = useState(false);
 
@@ -26,12 +34,23 @@ export function CompanyCard({ company }: { company: Company }) {
   return (
     <Card className="animate-fade-in">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium text-[var(--color-text-primary)]">{company.name}</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {company.category ?? "Uncategorized"}
-            {company.formattedAddress ? ` · ${company.formattedAddress}` : ""}
-          </p>
+        <div className="flex items-start gap-2">
+          {onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onChange={() => onToggleSelect(company.id)}
+              className="mt-1 size-4 shrink-0 accent-[var(--color-accent)]"
+              aria-label={`Select ${company.name}`}
+            />
+          )}
+          <div>
+            <p className="font-medium text-[var(--color-text-primary)]">{company.name}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {company.category ?? "Uncategorized"}
+              {company.formattedAddress ? ` · ${company.formattedAddress}` : ""}
+            </p>
+          </div>
         </div>
       </div>
 
