@@ -9,10 +9,12 @@ import { pollJob } from "@/lib/jobs/poll-job";
 
 export function BlueprintActions({
   hasHistory,
+  canExport,
   initialShareEnabled,
   initialShareToken,
 }: {
   hasHistory: boolean;
+  canExport: boolean;
   initialShareEnabled: boolean;
   initialShareToken: string | null;
 }) {
@@ -76,18 +78,26 @@ export function BlueprintActions({
     <div className="animate-fade-in space-y-3">
       <FormError message={error} />
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <a
-          href="/api/blueprint/export?format=markdown"
-          className="text-sm text-[var(--color-accent)] hover:underline"
-        >
-          Export Markdown
-        </a>
-        <a
-          href="/api/blueprint/export?format=pdf"
-          className="text-sm text-[var(--color-accent)] hover:underline"
-        >
-          Export PDF
-        </a>
+        {canExport ? (
+          <>
+            <a
+              href="/api/blueprint/export?format=markdown"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              Export Markdown
+            </a>
+            <a
+              href="/api/blueprint/export?format=pdf"
+              className="text-sm text-[var(--color-accent)] hover:underline"
+            >
+              Export PDF
+            </a>
+          </>
+        ) : (
+          <Link href="/billing" className="text-sm text-[var(--color-text-muted)] hover:underline">
+            Upgrade to export
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => window.print()}

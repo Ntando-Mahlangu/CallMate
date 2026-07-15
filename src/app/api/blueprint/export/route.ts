@@ -8,6 +8,7 @@ import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
+import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
 
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
@@ -18,6 +19,12 @@ export async function GET(request: NextRequest) {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
+  }
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT)) {
+    return NextResponse.json(
+      { error: "Exporting your Growth Blueprint is available on the Starter plan and above." },
+      { status: 403 },
+    );
   }
 
   try {

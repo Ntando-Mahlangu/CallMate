@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { BlueprintView } from "@/components/growth-blueprint/blueprint-view";
 import { BlueprintActions } from "@/components/growth-blueprint/blueprint-actions";
+import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 export default async function BlueprintPage() {
@@ -33,6 +34,7 @@ export default async function BlueprintPage() {
         <div className="print:hidden">
           <BlueprintActions
             hasHistory={versionCount > 1}
+            canExport={isFeatureEnabled(organization.planTier, FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT)}
             initialShareEnabled={organization.blueprintShareEnabled}
             initialShareToken={organization.blueprintShareToken}
           />

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { isPaidPlan } from "./plans";
 import { notifyBillingEvent } from "./notifications";
 
 const MAX_REASON_LENGTH = 1000;
@@ -30,7 +31,7 @@ export async function requestRefund(
     where: { id: organizationId },
     select: { planTier: true },
   });
-  if (organization.planTier === "FREE") {
+  if (!isPaidPlan(organization.planTier)) {
     throw new UserFacingError("There's no paid subscription on this workspace to refund.");
   }
 

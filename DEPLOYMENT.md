@@ -262,6 +262,30 @@ with a real read/write path, not just an empty schema addition:
   person at a Company, distinct from `Company.contactEmail` (a generic
   inbox).
 
+## 9e. Feature flags
+
+docs/outrun/14 "FEATURE GATING" — "Every feature checks plan access.
+Never hard-code plan names. Use feature flags." `src/lib/billing/feature-flags.ts`
+is the single source of truth: dot-namespaced keys (`seo.engine`,
+`growth_blueprint.export`, `team.workspaces`) mapped to the plan tiers
+that unlock them, checked via `isFeatureEnabled(planTier, flag)` at both
+the API route (server-side enforcement) and the page/component (so a
+gated feature shows an upgrade prompt, not a raw 403 JSON blob).
+
+Only FREE and STARTER have a real Paddle price today
+(`src/lib/billing/plans.ts`) — gating anything behind GROWTH/UNLIMITED
+would make it permanently unreachable, since no one can actually
+subscribe to those tiers yet. `team.workspaces` is deliberately left
+open to every tier for the same reason (matching the pre-existing
+decision in `src/lib/teams/invite.ts`). Add a tier's Paddle price before
+gating anything behind it.
+
+`src/lib/billing/plans.ts` also centralizes `isPaidPlan()` (replaces
+`planTier === "FREE"` checks) and `HIGHLIGHTED_TIER` (which plan card
+gets the "most popular" styling) — every other hardcoded plan-tier
+string comparison in the app should route through one of these three
+helpers rather than comparing `PlanTier` literals directly.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

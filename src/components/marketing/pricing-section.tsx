@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { PLANS } from "@/lib/billing/plans";
+import { PLANS, HIGHLIGHTED_TIER } from "@/lib/billing/plans";
 
 export function PricingSection() {
   return (
@@ -11,10 +11,11 @@ export function PricingSection() {
         Choose Your Growth Partner.
       </h2>
       <div className="mt-12 grid gap-6 sm:grid-cols-2">
-        {(["FREE", "STARTER"] as const).map((tier) => {
+        {(Object.keys(PLANS) as (keyof typeof PLANS)[]).map((tier) => {
           const plan = PLANS[tier];
+          const isHighlighted = tier === HIGHLIGHTED_TIER;
           return (
-            <Card key={tier} className={tier === "STARTER" ? "border-[var(--color-accent)]/40" : ""}>
+            <Card key={tier} className={isHighlighted ? "border-[var(--color-accent)]/40" : ""}>
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium text-[var(--color-text-primary)]">
                   {plan.name}
@@ -30,7 +31,7 @@ export function PricingSection() {
               </ul>
               <Link
                 href="/sign-up"
-                className={cn(buttonVariants({ variant: tier === "STARTER" ? "primary" : "secondary" }), "mt-6 w-full")}
+                className={cn(buttonVariants({ variant: isHighlighted ? "primary" : "secondary" }), "mt-6 w-full")}
               >
                 Start Free
               </Link>

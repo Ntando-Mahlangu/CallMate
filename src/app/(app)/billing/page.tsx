@@ -5,7 +5,7 @@ import { canManageBilling } from "@/lib/teams/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { PLANS, planLabel } from "@/lib/billing/plans";
+import { PLANS, planLabel, isPaidPlan, HIGHLIGHTED_TIER } from "@/lib/billing/plans";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { getRefundRequestsForOrg } from "@/lib/billing/refunds";
 import { CheckoutButton } from "@/components/billing/checkout-button";
@@ -29,7 +29,7 @@ export default async function BillingPage() {
 
   const membership = await getMembershipFor(session.user.id, organization.id);
 
-  const isSubscribed = organization.planTier !== "FREE";
+  const isSubscribed = isPaidPlan(organization.planTier);
   const starterPriceId = PLANS.STARTER.paddlePriceId;
   const checkoutConfigured = Boolean(
     starterPriceId && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
@@ -94,7 +94,7 @@ export default async function BillingPage() {
       </Card>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        {(["FREE", "STARTER"] as const).map((tier) => {
+        {(Object.keys(PLANS) as (keyof typeof PLANS)[]).map((tier) => {
           const plan = PLANS[tier];
           const isCurrent = organization.planTier === tier;
 
@@ -117,7 +117,7 @@ export default async function BillingPage() {
               <div className="mt-6">
                 {isCurrent ? (
                   <Badge tone="accent">Current plan</Badge>
-                ) : tier === "STARTER" ? (
+                ) : tier === HIGHLIGHTED_TIER ? (
                   checkoutConfigured ? (
                     <CheckoutButton
                       priceId={starterPriceId!}

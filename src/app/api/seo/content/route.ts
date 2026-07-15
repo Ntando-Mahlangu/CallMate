@@ -5,6 +5,7 @@ import { generateSEOContent } from "@/lib/seo/content";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
 
 const GENERIC_ERROR =
   "We couldn't generate that content right now. Please try again in a moment.";
@@ -18,6 +19,12 @@ export async function POST(request: NextRequest) {
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
+  }
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.SEO_ENGINE)) {
+    return NextResponse.json(
+      { error: "The SEO Engine is available on the Starter plan and above. Upgrade to unlock it." },
+      { status: 403 },
+    );
   }
 
   const { headline, targetKeyword, businessGoal } = await request.json();
