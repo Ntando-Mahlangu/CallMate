@@ -44,7 +44,8 @@ inline there. Summary of what's required vs. optional:
 | `BETTER_AUTH_SECRET` | Yes | Generate a **fresh** one per environment: `openssl rand -base64 32`. Never reuse the dev secret. |
 | `BETTER_AUTH_URL` | Yes | Your production URL, e.g. `https://app.yourdomain.com` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional | Enables "Continue with Google"; hidden until set |
-| `RESEND_API_KEY` / `EMAIL_FROM` | Recommended | Without it, verification/reset emails log to the server console instead of sending |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` | Optional | Enables "Continue with Microsoft"; hidden until the client ID/secret are set |
+| `RESEND_API_KEY` / `EMAIL_FROM` | **Yes in production** | Sign-up now requires a verified email before a session is issued (see §9h) — without a real send path, a new user's verification link only ever reaches the server console and they can never get in. Safe to leave unset in development only. |
 | `ANTHROPIC_API_KEY` | Yes | Growth Blueprint, company research, and outreach generation all depend on this |
 | `GOOGLE_PLACES_API_KEY` | Yes | Prospect search depends on this |
 | `PADDLE_API_KEY` / `PADDLE_WEBHOOK_SECRET` | Yes | Billing |
@@ -99,6 +100,9 @@ this endpoint.
 - Set `NEXT_PUBLIC_PADDLE_ENVIRONMENT=production` and use a live (not
   sandbox) Paddle price ID.
 - Confirm `BETTER_AUTH_SECRET` was freshly generated for this environment.
+- Confirm `RESEND_API_KEY` is set — required now that sign-up enforces
+  email verification (§9h). Without it, no real user can ever complete
+  sign-up.
 
 ## 7. Continuous integration
 
@@ -377,6 +381,51 @@ that wasn't there before:
 covering every `EventType`, not just the subset `/memory` originally
 had) so the Recent Activity widget and the AI Memory timeline never
 disagree on how an event is labeled.
+
+## 9h. Magic Link, Microsoft, session management, email verification
+
+docs/outrun/03 "AUTHENTICATION" — the remaining auth requirements beyond
+Google + email/password:
+
+- **Magic Link** (`src/lib/auth.ts`'s `magicLink` plugin,
+  `src/components/auth/magic-link-panel.tsx`) — a password-less
+  alternative on both `/sign-in` and `/sign-up` ("Email me a sign-in
+  link instead"). Reuses the same `sendEmail()` seam as verification/
+  reset. A new account is created automatically the first time an
+  unrecognized email uses it, so the one form covers sign-up too.
+- **Microsoft** (`genericOAuth` + the `microsoftEntraId` preset, since
+  Better Auth has no first-class `socialProviders.microsoft` the way it
+  does for Google) — gated behind `MICROSOFT_CLIENT_ID`/
+  `MICROSOFT_CLIENT_SECRET` exactly like Google's `googleConfigured`
+  pattern, surfaced through the same `/api/auth/config` flag mechanism.
+- **Email verification is now enforced**
+  (`emailAndPassword.requireEmailVerification: true`) — a credential
+  sign-up no longer returns a session; the user is sent to
+  `/verify-email` (`src/app/verify-email/page.tsx`) until they click the
+  emailed link. `emailVerification.autoSignInAfterVerification: true`
+  means clicking that link signs them in directly and carries them to
+  `/welcome` (the sign-up form's `callbackURL`), rather than making them
+  sign in a second time. OAuth and Magic Link sessions are always
+  already verified (Google/Microsoft report `emailVerified` on the
+  account; clicking a magic link **is** the verification), so neither
+  path is affected. `src/app/(app)/layout.tsx` additionally redirects
+  any session with `emailVerified: false` to `/verify-email` as a
+  defense-in-depth backstop, though in practice the flag above already
+  prevents such a session from existing.
+- **Session/device management**
+  (`src/app/(app)/settings/security/page.tsx`,
+  `src/components/settings/sessions-panel.tsx`) — lists every active
+  session (parsed device/browser from `Session.userAgent`, IP, last
+  active) using Better Auth's core session endpoints directly
+  (`listSessions`/`revokeSession`/`revokeOtherSessions` — no extra
+  plugin needed, since the requirement is "view and revoke my own
+  sessions," not concurrent multi-account sessions in one browser).
+  Marks the current session and lets the user revoke any other one
+  individually, or all of them at once.
+- **Remember me** — turns out to already be a native `signIn.email`/
+  `signUp.email` option (`rememberMe: false` issues a browser-session-only
+  cookie instead of the normal 30-day one); `/sign-in` now exposes it as
+  a checkbox, defaulting to checked.
 
 ## 10. Rate limiting
 

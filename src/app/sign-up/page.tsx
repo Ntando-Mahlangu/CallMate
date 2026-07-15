@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FormError } from "@/components/ui/form-error";
 import { GoogleIcon } from "@/components/icons/google-icon";
+import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
+import { MagicLinkPanel } from "@/components/auth/magic-link-panel";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -20,12 +22,20 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [microsoftEnabled, setMicrosoftEnabled] = useState(false);
+  const [useMagicLink, setUseMagicLink] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/config")
       .then((res) => res.json())
-      .then((data) => setGoogleEnabled(Boolean(data.googleEnabled)))
-      .catch(() => setGoogleEnabled(false));
+      .then((data) => {
+        setGoogleEnabled(Boolean(data.googleEnabled));
+        setMicrosoftEnabled(Boolean(data.microsoftEnabled));
+      })
+      .catch(() => {
+        setGoogleEnabled(false);
+        setMicrosoftEnabled(false);
+      });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,6 +47,7 @@ export default function SignUpPage() {
       name: `${firstName.trim()} ${lastName.trim()}`.trim(),
       email,
       password,
+      callbackURL: "/welcome",
     });
 
     setIsSubmitting(false);
@@ -49,11 +60,18 @@ export default function SignUpPage() {
       return;
     }
 
-    router.push("/welcome");
+    // requireEmailVerification means sign-up doesn't create a session —
+    // the user lands here after clicking the emailed link instead (see
+    // src/lib/auth.ts's autoSignInAfterVerification).
+    router.push(`/verify-email?email=${encodeURIComponent(email)}`);
   }
 
   async function handleGoogle() {
     await authClient.signIn.social({ provider: "google", callbackURL: "/welcome" });
+  }
+
+  async function handleMicrosoft() {
+    await authClient.signIn.oauth2({ providerId: "microsoft", callbackURL: "/welcome" });
   }
 
   return (
@@ -64,63 +82,75 @@ export default function SignUpPage() {
           <CardDescription>It only takes a few minutes.</CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormError message={error} />
+        {useMagicLink ? (
+          <MagicLinkPanel initialEmail={email} />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormError message={error} />
 
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First name</Label>
+                <Input
+                  id="firstName"
+                  autoComplete="given-name"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last name</Label>
+                <Input
+                  id="lastName"
+                  autoComplete="family-name"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
+              <Label htmlFor="email">Business email</Label>
               <Input
-                id="firstName"
-                autoComplete="given-name"
+                id="email"
+                type="email"
+                autoComplete="email"
                 required
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
-                id="lastName"
-                autoComplete="family-name"
+                id="password"
+                type="password"
+                autoComplete="new-password"
                 required
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Business email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Creating your account…" : "Continue"}
+            </Button>
+          </form>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+        <button
+          type="button"
+          onClick={() => setUseMagicLink((v) => !v)}
+          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+        >
+          {useMagicLink ? "Use a password instead" : "Sign up with an email link instead"}
+        </button>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Creating your account…" : "Continue"}
-          </Button>
-        </form>
-
-        {googleEnabled && (
+        {(googleEnabled || microsoftEnabled) && (
           <>
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[var(--color-border)]" />
@@ -128,15 +158,30 @@ export default function SignUpPage() {
               <div className="h-px flex-1 bg-[var(--color-border)]" />
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={handleGoogle}
-            >
-              <GoogleIcon className="size-4" />
-              Continue with Google
-            </Button>
+            <div className="space-y-3">
+              {googleEnabled && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={handleGoogle}
+                >
+                  <GoogleIcon className="size-4" />
+                  Continue with Google
+                </Button>
+              )}
+              {microsoftEnabled && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={handleMicrosoft}
+                >
+                  <MicrosoftIcon className="size-4" />
+                  Continue with Microsoft
+                </Button>
+              )}
+            </div>
           </>
         )}
 

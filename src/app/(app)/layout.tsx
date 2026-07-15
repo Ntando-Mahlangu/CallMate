@@ -14,6 +14,7 @@ export default async function DashboardLayout({
 }) {
   const session = await getCurrentSession();
   if (!session) redirect("/sign-in");
+  if (!session.user.emailVerified) redirect("/verify-email");
 
   const [organization, memberships] = await Promise.all([
     getCurrentOrganization(session.user.id),

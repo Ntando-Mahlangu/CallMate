@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
-import { isGoogleAuthEnabled } from "@/lib/auth";
+import { isGoogleAuthEnabled, isMicrosoftAuthEnabled } from "@/lib/auth";
 
 export function GET() {
-  return NextResponse.json({ googleEnabled: isGoogleAuthEnabled });
+  return NextResponse.json({
+    googleEnabled: isGoogleAuthEnabled,
+    microsoftEnabled: isMicrosoftAuthEnabled,
+  });
 }

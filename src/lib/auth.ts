@@ -1,10 +1,16 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { magicLink } from "better-auth/plugins/magic-link";
+import { genericOAuth, microsoftEntraId } from "better-auth/plugins/generic-oauth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 
 const googleConfigured = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+);
+
+const microsoftConfigured = Boolean(
+  process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET,
 );
 
 export const auth = betterAuth({
@@ -14,8 +20,11 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    // Flip to true once RESEND_API_KEY is set — see docs/outrun/03.
-    requireEmailVerification: false,
+    // docs/outrun/03 "AUTHENTICATION" requirements — a session isn't
+    // issued on sign-up while this is true (Better Auth returns
+    // { token: null } instead), so src/app/sign-up/page.tsx sends the
+    // user to /verify-email rather than assuming one exists.
+    requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -27,6 +36,10 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: true,
+    // Clicking the verification link signs the user straight in rather
+    // than dropping them back at /sign-in a second time — sign-up's own
+    // callbackURL (see the sign-up page) carries them on to /welcome.
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
@@ -44,6 +57,39 @@ export const auth = betterAuth({
         },
       }
     : undefined,
+
+  plugins: [
+    // docs/outrun/03 "AUTHENTICATION — Magic Link". Reuses the same
+    // sendEmail() seam as password reset/verification; a fresh account
+    // is created automatically for an email that doesn't exist yet
+    // (disableSignUp defaults to false), so this doubles as a
+    // password-less sign-up path too.
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        await sendEmail({
+          to: email,
+          subject: "Your Outrun sign-in link",
+          text: `Sign in to Outrun: ${url}\n\nIf you didn't request this, you can ignore this email.`,
+        });
+      },
+    }),
+    // docs/outrun/03 "AUTHENTICATION — Microsoft". Microsoft has no
+    // first-class socialProviders entry in Better Auth (unlike Google);
+    // it ships as a genericOAuth preset instead.
+    ...(microsoftConfigured
+      ? [
+          genericOAuth({
+            config: [
+              microsoftEntraId({
+                clientId: process.env.MICROSOFT_CLIENT_ID!,
+                clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+                tenantId: process.env.MICROSOFT_TENANT_ID || "common",
+              }),
+            ],
+          }),
+        ]
+      : []),
+  ],
 
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
@@ -85,3 +131,4 @@ export const auth = betterAuth({
 });
 
 export const isGoogleAuthEnabled = googleConfigured;
+export const isMicrosoftAuthEnabled = microsoftConfigured;

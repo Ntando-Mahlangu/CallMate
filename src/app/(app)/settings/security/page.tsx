@@ -1,0 +1,29 @@
+import { redirect } from "next/navigation";
+import { getCurrentSession } from "@/lib/session";
+import { Card } from "@/components/ui/card";
+import { SessionsPanel } from "@/components/settings/sessions-panel";
+
+export default async function SecuritySettingsPage() {
+  const session = await getCurrentSession();
+  if (!session) redirect("/sign-in");
+
+  return (
+    <div className="animate-fade-in space-y-8">
+      <div>
+        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Security
+        </h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Manage where you&apos;re signed in.
+        </p>
+      </div>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Active Sessions
+        </h2>
+        <SessionsPanel currentToken={session.session.token} />
+      </Card>
+    </div>
+  );
+}

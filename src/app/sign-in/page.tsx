@@ -10,20 +10,31 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FormError } from "@/components/ui/form-error";
 import { GoogleIcon } from "@/components/icons/google-icon";
+import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
+import { MagicLinkPanel } from "@/components/auth/magic-link-panel";
 
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [microsoftEnabled, setMicrosoftEnabled] = useState(false);
+  const [useMagicLink, setUseMagicLink] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/config")
       .then((res) => res.json())
-      .then((data) => setGoogleEnabled(Boolean(data.googleEnabled)))
-      .catch(() => setGoogleEnabled(false));
+      .then((data) => {
+        setGoogleEnabled(Boolean(data.googleEnabled));
+        setMicrosoftEnabled(Boolean(data.microsoftEnabled));
+      })
+      .catch(() => {
+        setGoogleEnabled(false);
+        setMicrosoftEnabled(false);
+      });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,6 +45,7 @@ export default function SignInPage() {
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
+      rememberMe,
     });
 
     setIsSubmitting(false);
@@ -53,6 +65,10 @@ export default function SignInPage() {
     await authClient.signIn.social({ provider: "google", callbackURL: "/welcome" });
   }
 
+  async function handleMicrosoft() {
+    await authClient.signIn.oauth2({ providerId: "microsoft", callbackURL: "/welcome" });
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-4 py-16">
       <Card className="w-full max-w-md animate-fade-in">
@@ -61,47 +77,69 @@ export default function SignInPage() {
           <CardDescription>Sign in to keep growing.</CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormError message={error} />
+        {useMagicLink ? (
+          <MagicLinkPanel initialEmail={email} />
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormError message={error} />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Business email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                href="/forgot-password"
-                className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-              >
-                Forgot password?
-              </Link>
+            <div className="space-y-2">
+              <Label htmlFor="email">Business email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in…" : "Sign In"}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-        {googleEnabled && (
+            <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="size-4 rounded border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
+              />
+              Remember me
+            </label>
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in…" : "Sign In"}
+            </Button>
+          </form>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setUseMagicLink((v) => !v)}
+          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+        >
+          {useMagicLink ? "Use a password instead" : "Email me a sign-in link instead"}
+        </button>
+
+        {(googleEnabled || microsoftEnabled) && (
           <>
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[var(--color-border)]" />
@@ -109,15 +147,30 @@ export default function SignInPage() {
               <div className="h-px flex-1 bg-[var(--color-border)]" />
             </div>
 
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={handleGoogle}
-            >
-              <GoogleIcon className="size-4" />
-              Continue with Google
-            </Button>
+            <div className="space-y-3">
+              {googleEnabled && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={handleGoogle}
+                >
+                  <GoogleIcon className="size-4" />
+                  Continue with Google
+                </Button>
+              )}
+              {microsoftEnabled && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={handleMicrosoft}
+                >
+                  <MicrosoftIcon className="size-4" />
+                  Continue with Microsoft
+                </Button>
+              )}
+            </div>
           </>
         )}
 
