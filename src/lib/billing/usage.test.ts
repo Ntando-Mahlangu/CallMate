@@ -1,0 +1,75 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { UsageEventType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { UserFacingError } from "@/lib/errors";
+import { checkAndRecordUsage, getUsageSummary } from "./usage";
+
+// Integration tests against the real Postgres instance CI already
+// provisions for `prisma migrate deploy` — the enforcement logic here
+// is entirely DB-state-dependent, so a mocked Prisma client would just
+// re-assert the mock rather than catch a real off-by-one in the query.
+describe("checkAndRecordUsage (integration)", () => {
+  let organizationId: string;
+
+  beforeEach(async () => {
+    const org = await prisma.organization.create({
+      data: { name: "Usage Test Org", planTier: "FREE" },
+    });
+    organizationId = org.id;
+  });
+
+  afterEach(async () => {
+    await prisma.organization.delete({ where: { id: organizationId } });
+  });
+
+  it("records usage under the limit without throwing", async () => {
+    await expect(
+      checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION),
+    ).resolves.toBeUndefined();
+    const count = await prisma.usageEvent.count({
+      where: { organizationId, type: UsageEventType.BLUEPRINT_GENERATION },
+    });
+    expect(count).toBe(1);
+  });
+
+  it("throws a friendly UserFacingError once the Free plan's limit is reached", async () => {
+    // Free plan allows exactly 1 Blueprint generation.
+    await checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION);
+    await expect(
+      checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION),
+    ).rejects.toBeInstanceOf(UserFacingError);
+  });
+
+  it("does not record a usage event when the limit is exceeded", async () => {
+    await checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION);
+    await expect(
+      checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION),
+    ).rejects.toThrow();
+    const count = await prisma.usageEvent.count({
+      where: { organizationId, type: UsageEventType.BLUEPRINT_GENERATION },
+    });
+    expect(count).toBe(1);
+  });
+
+  it("keeps usage isolated per organization", async () => {
+    const otherOrg = await prisma.organization.create({
+      data: { name: "Other Usage Org", planTier: "FREE" },
+    });
+    try {
+      await checkAndRecordUsage(organizationId, UsageEventType.BLUEPRINT_GENERATION);
+      await expect(
+        checkAndRecordUsage(otherOrg.id, UsageEventType.BLUEPRINT_GENERATION),
+      ).resolves.toBeUndefined();
+    } finally {
+      await prisma.organization.delete({ where: { id: otherOrg.id } });
+    }
+  });
+
+  it("reports usage summary counts and limits per type", async () => {
+    await checkAndRecordUsage(organizationId, UsageEventType.COMPANY_SEARCH);
+    const summary = await getUsageSummary(organizationId, "FREE");
+    const searchEntry = summary.find((s) => s.type === UsageEventType.COMPANY_SEARCH);
+    expect(searchEntry?.used).toBe(1);
+    expect(searchEntry?.limit).toBe(10);
+  });
+});

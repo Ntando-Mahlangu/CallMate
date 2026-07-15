@@ -88,10 +88,25 @@ this endpoint.
 
 `.github/workflows/ci.yml` runs on every push and pull request: it spins
 up a throwaway Postgres service, applies the migration history with
-`prisma migrate deploy`, then runs lint, typecheck, and a full `next
-build`. There's no automated test suite yet (see DEPLOYMENT.md's sibling
-task list) — the pipeline only runs checks that actually exist today
-rather than a placeholder test step.
+`prisma migrate deploy`, then runs lint, typecheck, a Vitest suite
+(`npm run test`), a full `next build`, and a Playwright E2E suite
+(`npm run test:e2e`) against that build's dev server.
+
+The Vitest suite mixes pure-function unit tests (scoring, mission
+selection, SSRF checks, retry/backoff) with integration tests that hit
+the same real Postgres service (usage-limit enforcement, the company
+repository) — enforcement logic here is entirely DB-state-dependent, so
+a mocked Prisma client would just re-assert the mock rather than catch a
+real off-by-one in a query. Integration tests create and delete their
+own throwaway `Organization` rows; nothing they do touches real data.
+
+The Playwright suite (`tests/e2e/`) is deliberately scoped to golden
+paths that don't require a configured AI or lead-data-provider key —
+sign-up, sign-in, the marketing pages, and the health check. Flows that
+need real AI generation (Blueprint, research, outreach, campaigns)
+aren't covered here: there's no way to exercise them honestly in CI
+without a live API key, and pretending to test them would be worse than
+not testing them.
 
 ## 8. Observability
 
