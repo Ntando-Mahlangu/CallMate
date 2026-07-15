@@ -7,7 +7,11 @@ import { FormError } from "@/components/ui/form-error";
 import { Button } from "@/components/ui/button";
 import { pollJob } from "@/lib/jobs/poll-job";
 
-// docs/outrun/03 "AI ANALYSIS" — never a spinner, always a sense of progress.
+// docs/outrun/03 "AI ANALYSIS" — never a spinner, always a sense of
+// progress. The later messages describe the Second Wow Moment
+// (src/lib/onboarding/second-wow.ts), which only runs after the very
+// first Blueprint and is chained into this same wait — by the time the
+// user reaches /blueprint, that work is already done too.
 const MESSAGES = [
   "Understanding your business…",
   "Analysing your market…",
@@ -15,6 +19,9 @@ const MESSAGES = [
   "Comparing growth strategies…",
   "Building your Growth Blueprint…",
   "Preparing recommendations…",
+  "Finding your best-fit prospects…",
+  "Researching qualified companies…",
+  "Preparing your first campaign…",
 ];
 
 export default function GeneratingBlueprintPage() {
@@ -38,7 +45,7 @@ export default function GeneratingBlueprintPage() {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
 
-        const job = await pollJob(body.jobId);
+        const job = await pollJob(body.jobId, { timeoutMs: 280_000 });
         if (cancelled) return;
         if (job.status === "FAILED") {
           throw new Error(job.errorMessage ?? "We couldn't build your Growth Blueprint. Please try again.");
@@ -80,7 +87,7 @@ export default function GeneratingBlueprintPage() {
               {MESSAGES[messageIndex]}
             </p>
             <p className="mt-3 text-sm text-[var(--color-text-muted)]">
-              This usually takes 30–60 seconds.
+              This usually takes 1–3 minutes.
             </p>
           </>
         )}

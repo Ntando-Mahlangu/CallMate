@@ -15,8 +15,11 @@ const GENERIC_ERROR =
 // The actual generation runs in `after()`, which on Vercel counts against
 // this same invocation's execution budget — raise it so a slow AI call
 // doesn't get killed mid-generation. Requires a Vercel plan that allows
-// it; on Hobby this is capped at 60s regardless.
-export const maxDuration = 120;
+// it; on Hobby this is capped at 60s regardless. Set to 300 (not 120)
+// because the very first Blueprint chains the Second Wow Moment
+// (src/lib/onboarding/second-wow.ts — a search, up to 3 research calls,
+// and a campaign-with-outreach generation) inside the same job.
+export const maxDuration = 300;
 
 export async function POST() {
   const session = await getCurrentSession();

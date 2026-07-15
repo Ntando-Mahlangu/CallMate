@@ -264,17 +264,19 @@ export default async function DashboardPage() {
           <Link href="/blueprint" className={cn(buttonVariants({ variant: "secondary" }))}>
             View Growth Blueprint
           </Link>
-          <Link
-            href="/blueprint/generating"
-            className={cn(buttonVariants({ variant: "secondary" }))}
-          >
-            Update Growth Blueprint
+          <Link href="/prospects" className={cn(buttonVariants({ variant: "secondary" }))}>
+            Find Prospects
+          </Link>
+          <Link href="/campaigns" className={cn(buttonVariants({ variant: "secondary" }))}>
+            View Campaigns
+          </Link>
+          <Link href="/tasks" className={cn(buttonVariants({ variant: "secondary" }))}>
+            Growth Tasks
+          </Link>
+          <Link href="/goals" className={cn(buttonVariants({ variant: "secondary" }))}>
+            Goals
           </Link>
         </div>
-        <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-          Prospect discovery, outreach, and campaigns unlock in the next build
-          phase.
-        </p>
       </Card>
     </div>
   );

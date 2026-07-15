@@ -6,6 +6,9 @@ import { analyzeSEO } from "@/lib/seo/analyze";
 import { createCampaign } from "@/lib/campaigns/create";
 import { createTasksFromBlueprint } from "@/lib/tasks/generate-from-blueprint";
 import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
+import { generateSecondWow } from "@/lib/onboarding/second-wow";
+import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
+import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 export type CampaignGenerationPayload = {
   name: string;
@@ -18,6 +21,7 @@ type JobPayloads = {
   BLUEPRINT_GENERATION: Record<string, never>;
   SEO_ANALYSIS: Record<string, never>;
   CAMPAIGN_GENERATION: CampaignGenerationPayload;
+  SECOND_WOW_GENERATION: Record<string, never>;
 };
 
 /**
@@ -48,6 +52,24 @@ async function runHandler(job: Job): Promise<string | null> {
         `Version ${blueprint.version} of your Growth Blueprint has finished generating.`,
         "/blueprint",
       );
+
+      // docs/outrun/03 "SECOND WOW MOMENT" — only on the very first
+      // Blueprint ever, never a regeneration, so this never silently
+      // creates a second auto-campaign each time the user refreshes their
+      // Blueprint. Chained (not fire-and-forget) so the client's poll on
+      // this job only resolves once the second-wow work is also done —
+      // by the time the user lands on /blueprint, it's already there. A
+      // failure here must never fail the Blueprint job itself, since the
+      // Blueprint already succeeded.
+      if (blueprint.version === 1) {
+        try {
+          const secondWowJob = await enqueueJob(job.organizationId, "SECOND_WOW_GENERATION", {});
+          await runJob(secondWowJob.id);
+        } catch (error) {
+          captureError("jobs.second-wow-chain", error, { organizationId: job.organizationId });
+        }
+      }
+
       return blueprint.id;
     }
     case "SEO_ANALYSIS": {
@@ -71,6 +93,14 @@ async function runHandler(job: Job): Promise<string | null> {
         `"${payload.name}" has finished generating.`,
         `/campaigns/${result.campaignId}`,
       );
+      return result.campaignId;
+    }
+    case "SECOND_WOW_GENERATION": {
+      const latest = await growthBlueprintRepository.findLatestIcpForOrg(job.organizationId);
+      const icp = latest?.idealCustomerProfile as GrowthBlueprintData["idealCustomerProfile"] | undefined;
+      if (!icp) return null;
+
+      const result = await generateSecondWow(job.organizationId, icp);
       return result.campaignId;
     }
   }

@@ -302,6 +302,34 @@ gets the "most popular" styling) — every other hardcoded plan-tier
 string comparison in the app should route through one of these three
 helpers rather than comparing `PlanTier` literals directly.
 
+## 9f. Second Wow Moment
+
+docs/outrun/03 "SECOND WOW MOMENT" — right after the very first Growth
+Blueprint (never a regeneration), Outrun automatically searches for
+prospects using the Blueprint's own ICP, researches the top 3 by fit
+score, and builds one ready-to-review campaign from them —
+`src/lib/onboarding/second-wow.ts`, chained into the same background
+job as Blueprint generation (`src/lib/jobs/queue.ts`'s
+`BLUEPRINT_GENERATION` case enqueues and awaits a
+`SECOND_WOW_GENERATION` job) so the client's single poll-and-navigate
+wait covers both — by the time the user lands on `/blueprint`, the
+campaign already exists. Requires `maxDuration = 300` on
+`/api/blueprint/generate` to cover the extra AI calls.
+
+Deliberately capped at 3 companies (not the "184" in the doc's own
+illustrative copy): Free plan's usage limits are only 10
+searches/10 research/5 outreach a month, and this should feel like real
+work got done without silently spending the user's entire trial before
+they've touched the product themselves.
+
+Every step degrades honestly, never fabricating a result: if
+`GOOGLE_PLACES_API_KEY` isn't configured, a usage limit is already
+exhausted, or nothing was found, the job still succeeds with an empty
+result and the Blueprint page shows the plain "Continue to Dashboard"
+button instead of a stat block with invented numbers. A failure here
+never fails the Blueprint job itself, since the Blueprint already
+succeeded.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
