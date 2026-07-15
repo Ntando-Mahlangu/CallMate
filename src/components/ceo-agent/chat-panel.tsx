@@ -75,6 +75,7 @@ export function ChatPanel({ initialMessages }: { initialMessages: Message[] }) {
 
       <form onSubmit={handleSubmit} className="mt-4 flex gap-3">
         <Input
+          aria-label="Message to the CEO Agent"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask the CEO Agent…"

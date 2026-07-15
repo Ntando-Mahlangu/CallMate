@@ -8,7 +8,7 @@ const badgeVariants = cva(
       tone: {
         high: "bg-[var(--color-success)]/15 text-[var(--color-success)]",
         medium: "bg-[var(--color-warning)]/15 text-[var(--color-warning)]",
-        low: "bg-[var(--color-text-muted)]/15 text-[var(--color-text-muted)]",
+        low: "bg-[var(--color-text-muted)]/15 text-[var(--color-text-secondary)]",
         accent: "bg-[var(--color-accent)]/15 text-[var(--color-accent-text)]",
       },
     },

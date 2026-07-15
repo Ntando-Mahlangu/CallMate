@@ -189,7 +189,7 @@ export function SeoPageClient({
                   <div>
                     <p className="font-medium text-[var(--color-text-primary)]">{c.category}</p>
                     <p className="text-sm text-[var(--color-text-secondary)]">{c.reason}</p>
-                    <p className="mt-1 text-xs text-[var(--color-accent)]">{c.suggestedFix}</p>
+                    <p className="mt-1 text-xs text-[var(--color-accent-text)]">{c.suggestedFix}</p>
                   </div>
                   <p className="shrink-0 text-2xl font-light text-[var(--color-text-primary)]">
                     {c.score}

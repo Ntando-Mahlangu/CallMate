@@ -83,7 +83,7 @@ export default function ProspectsPage() {
         </div>
         <Link
           href="/prospects/lists"
-          className="mt-1 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-1 text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Your Lists →
         </Link>
@@ -91,6 +91,7 @@ export default function ProspectsPage() {
 
       <form onSubmit={handleSearch} className="flex gap-3">
         <Input
+          aria-label="Search for prospects"
           placeholder="e.g. accounting firms in Chicago"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

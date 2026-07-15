@@ -37,7 +37,7 @@ export default async function ProspectDetailPage({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <Link href="/prospects" className="text-sm text-[var(--color-accent)] hover:underline">
+      <Link href="/prospects" className="text-sm text-[var(--color-accent-text)] hover:underline">
         ← Back to search
       </Link>
 
@@ -57,7 +57,7 @@ export default async function ProspectDetailPage({
             href={company.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-[var(--color-accent)] hover:underline"
+            className="text-sm text-[var(--color-accent-text)] hover:underline"
           >
             {company.website}
           </a>

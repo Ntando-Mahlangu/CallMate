@@ -52,13 +52,13 @@ export function CampaignExportPanel({
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <a
           href={`/api/campaigns/${campaignId}/export?format=summary`}
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Export Summary
         </a>
         <a
           href={`/api/campaigns/${campaignId}/export?format=call-scripts`}
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Export Call Scripts
         </a>

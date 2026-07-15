@@ -180,7 +180,7 @@ export function CampaignSendPanel({
                   <div className="flex items-center gap-2">
                     <Link
                       href={`/prospects/${message.companyId}`}
-                      className="text-sm font-medium text-[var(--color-accent)] hover:underline"
+                      className="text-sm font-medium text-[var(--color-accent-text)] hover:underline"
                     >
                       {message.company.name}
                     </Link>

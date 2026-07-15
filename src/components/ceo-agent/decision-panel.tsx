@@ -54,6 +54,7 @@ export function DecisionPanel() {
 
       <form onSubmit={handleSubmit} className="mt-4 flex gap-3">
         <Input
+          aria-label="Decision question"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Should I target a different market?"
@@ -121,7 +122,7 @@ export function DecisionPanel() {
           </div>
 
           <div className="rounded-[var(--radius-md)] bg-[var(--color-accent)]/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
+            <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
               Recommended next step
             </p>
             <p className="mt-1 text-sm text-[var(--color-text-primary)]">

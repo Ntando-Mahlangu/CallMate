@@ -60,7 +60,7 @@ export default async function CampaignsPage({
         <div className="flex items-center gap-3">
           <Link
             href="/campaigns/library"
-            className="text-sm text-[var(--color-accent)] hover:underline"
+            className="text-sm text-[var(--color-accent-text)] hover:underline"
           >
             Campaign Library
           </Link>
@@ -114,7 +114,7 @@ export default async function CampaignsPage({
             href={`/campaigns?page=${page - 1}`}
             aria-disabled={page <= 1}
             className={cn(
-              "text-[var(--color-accent)] hover:underline",
+              "text-[var(--color-accent-text)] hover:underline",
               page <= 1 && "pointer-events-none opacity-40",
             )}
           >
@@ -127,7 +127,7 @@ export default async function CampaignsPage({
             href={`/campaigns?page=${page + 1}`}
             aria-disabled={page >= totalPages}
             className={cn(
-              "text-[var(--color-accent)] hover:underline",
+              "text-[var(--color-accent-text)] hover:underline",
               page >= totalPages && "pointer-events-none opacity-40",
             )}
           >

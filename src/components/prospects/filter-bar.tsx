@@ -120,7 +120,7 @@ export function FilterBar({
         <button
           type="button"
           onClick={() => onChange(DEFAULT_PROSPECT_FILTERS)}
-          className="pb-2 text-xs text-[var(--color-accent)] hover:underline"
+          className="pb-2 text-xs text-[var(--color-accent-text)] hover:underline"
         >
           Clear filters
         </button>

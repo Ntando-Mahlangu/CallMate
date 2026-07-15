@@ -30,7 +30,7 @@ export function HowItWorks() {
       <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s) => (
           <div key={s.step}>
-            <div className="mb-3 text-2xl font-light text-[var(--color-accent)]">{s.step}</div>
+            <div className="mb-3 text-2xl font-light text-[var(--color-accent-text)]">{s.step}</div>
             <h3 className="text-base font-medium text-[var(--color-text-primary)]">{s.title}</h3>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{s.body}</p>
           </div>

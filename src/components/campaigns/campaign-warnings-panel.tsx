@@ -20,7 +20,7 @@ export function CampaignWarningsPanel({
           <div key={w.id}>
             <p className="text-sm font-medium text-[var(--color-text-primary)]">{w.title}</p>
             <p className="text-sm text-[var(--color-text-secondary)]">{w.detail}</p>
-            <p className="text-xs text-[var(--color-accent)]">{w.suggestion}</p>
+            <p className="text-xs text-[var(--color-accent-text)]">{w.suggestion}</p>
           </div>
         ))}
       </div>

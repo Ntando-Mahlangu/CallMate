@@ -48,7 +48,7 @@ export default async function CampaignDetailPage({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <Link href="/campaigns" className="text-sm text-[var(--color-accent)] hover:underline">
+      <Link href="/campaigns" className="text-sm text-[var(--color-accent-text)] hover:underline">
         ← Campaigns
       </Link>
 

@@ -29,6 +29,7 @@ export function WorkspaceSwitcher({
 
   return (
     <Select
+      aria-label="Switch workspace"
       value={activeOrgId}
       onChange={(e) => handleChange(e.target.value)}
       disabled={isSwitching}

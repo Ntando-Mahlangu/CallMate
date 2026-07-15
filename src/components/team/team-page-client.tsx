@@ -146,6 +146,7 @@ export function TeamPageClient({
               required
             />
             <Select
+              aria-label="Role for invited member"
               value={role}
               onChange={(e) => setRole(e.target.value as MembershipRole)}
               className="sm:w-40"
@@ -180,6 +181,7 @@ export function TeamPageClient({
               {canManage && member.role !== "OWNER" ? (
                 <div className="flex items-center gap-2">
                   <Select
+                    aria-label={`Role for ${member.user.name}`}
                     value={member.role}
                     onChange={(e) => handleRoleChange(member.id, e.target.value as MembershipRole)}
                     disabled={busyId === member.id}

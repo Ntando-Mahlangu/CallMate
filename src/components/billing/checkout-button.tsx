@@ -64,6 +64,7 @@ export function CheckoutButton({
     <div className="space-y-2">
       <FormError message={error} />
       <Input
+        aria-label="Coupon code"
         placeholder="Coupon code (optional)"
         value={discountCode}
         onChange={(e) => setDiscountCode(e.target.value)}

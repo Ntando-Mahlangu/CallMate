@@ -92,7 +92,7 @@ export function CampaignLibraryClient({ initialTemplates }: { initialTemplates: 
             anytime.
           </p>
         </div>
-        <Link href="/campaigns" className="mt-1 text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/campaigns" className="mt-1 text-sm text-[var(--color-accent-text)] hover:underline">
           ← Campaigns
         </Link>
       </div>
@@ -115,6 +115,7 @@ export function CampaignLibraryClient({ initialTemplates }: { initialTemplates: 
                     <div>
                       <label className="text-xs text-[var(--color-text-muted)]">Name</label>
                       <Input
+                        aria-label="Name"
                         className="mt-1"
                         value={draft.name}
                         onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -123,6 +124,7 @@ export function CampaignLibraryClient({ initialTemplates }: { initialTemplates: 
                     <div>
                       <label className="text-xs text-[var(--color-text-muted)]">Category</label>
                       <select
+                        aria-label="Category"
                         value={draft.category}
                         onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                         className="mt-1 h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
@@ -137,6 +139,7 @@ export function CampaignLibraryClient({ initialTemplates }: { initialTemplates: 
                     <div>
                       <label className="text-xs text-[var(--color-text-muted)]">Objective</label>
                       <Input
+                        aria-label="Objective"
                         className="mt-1"
                         value={draft.objective}
                         onChange={(e) => setDraft({ ...draft, objective: e.target.value })}
@@ -190,7 +193,7 @@ export function CampaignLibraryClient({ initialTemplates }: { initialTemplates: 
                     <div className="mt-4 flex items-center gap-3">
                       <Link
                         href={`/campaigns/new?templateId=${template.id}`}
-                        className="text-sm text-[var(--color-accent)] hover:underline"
+                        className="text-sm text-[var(--color-accent-text)] hover:underline"
                       >
                         Use Template →
                       </Link>

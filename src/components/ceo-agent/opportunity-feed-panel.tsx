@@ -52,6 +52,7 @@ export function OpportunityFeedPanel({ items: initialItems }: { items: Opportuni
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-medium text-[var(--color-text-primary)]">Opportunity Feed</h2>
         <select
+          aria-label="Sort opportunities by"
           value={sort}
           onChange={(e) => setSort(e.target.value as OpportunitySort)}
           className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
@@ -97,7 +98,7 @@ export function OpportunityFeedPanel({ items: initialItems }: { items: Opportuni
                   onClick={() => rate(item, "HELPFUL")}
                   className={
                     rated[item.id] === "HELPFUL"
-                      ? "text-[var(--color-accent)]"
+                      ? "text-[var(--color-accent-text)]"
                       : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                   }
                 >
@@ -108,7 +109,7 @@ export function OpportunityFeedPanel({ items: initialItems }: { items: Opportuni
                   onClick={() => rate(item, "NOT_HELPFUL")}
                   className={
                     rated[item.id] === "NOT_HELPFUL"
-                      ? "text-[var(--color-accent)]"
+                      ? "text-[var(--color-accent-text)]"
                       : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                   }
                 >

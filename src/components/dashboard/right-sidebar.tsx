@@ -34,7 +34,7 @@ export function RightSidebar({
         </p>
         <Link
           href="/ceo-agent"
-          className="mt-3 inline-block text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-3 inline-block text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Open chat →
         </Link>
@@ -69,7 +69,7 @@ export function RightSidebar({
       <Card>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-[var(--color-text-primary)]">Upcoming Tasks</h2>
-          <Link href="/tasks" className="text-xs text-[var(--color-accent)] hover:underline">
+          <Link href="/tasks" className="text-xs text-[var(--color-accent-text)] hover:underline">
             View all
           </Link>
         </div>

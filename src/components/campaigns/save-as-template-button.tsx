@@ -67,11 +67,12 @@ export function SaveAsTemplateButton({
       <FormError message={error} />
       <div>
         <label className="text-xs text-[var(--color-text-muted)]">Template name</label>
-        <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input aria-label="Template name" className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
         <label className="text-xs text-[var(--color-text-muted)]">Category</label>
         <select
+          aria-label="Category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="mt-1 h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-primary)] px-4 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"

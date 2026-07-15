@@ -72,7 +72,7 @@ export function CompanyCard({
       <div className="mt-4 flex gap-2">
         <Link
           href={`/prospects/${company.id}`}
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Research →
         </Link>

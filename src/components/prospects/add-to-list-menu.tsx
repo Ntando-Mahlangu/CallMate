@@ -101,7 +101,7 @@ export function AddToListMenu({ companyId }: { companyId: string }) {
 
       {open && (
         <div className="absolute right-0 z-20 mt-2 w-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-3 shadow-lg">
-          {error && <p className="mb-2 text-xs text-[var(--color-error)]">{error}</p>}
+          {error && <p className="mb-2 text-xs text-[var(--color-error-text)]">{error}</p>}
 
           {loading && <p className="text-xs text-[var(--color-text-muted)]">Loading lists…</p>}
 
@@ -134,6 +134,7 @@ export function AddToListMenu({ companyId }: { companyId: string }) {
 
           <form onSubmit={createAndAdd} className="mt-3 flex gap-2">
             <Input
+              aria-label="New list name"
               placeholder="New list name"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}

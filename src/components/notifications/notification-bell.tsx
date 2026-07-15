@@ -104,7 +104,7 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="text-xs text-[var(--color-accent)] hover:underline"
+                className="text-xs text-[var(--color-accent-text)] hover:underline"
               >
                 Mark all read
               </button>

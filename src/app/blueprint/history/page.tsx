@@ -21,7 +21,7 @@ export default async function BlueprintHistoryPage() {
     <main className="min-h-screen bg-[var(--color-bg-primary)] px-4 py-16">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <Link href="/blueprint" className="text-sm text-[var(--color-accent)] hover:underline">
+          <Link href="/blueprint" className="text-sm text-[var(--color-accent-text)] hover:underline">
             ← Back to Growth Blueprint
           </Link>
           <h1 className="mt-3 text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
@@ -96,7 +96,7 @@ export default async function BlueprintHistoryPage() {
               <div className="mt-4 flex items-center gap-3">
                 <Link
                   href={`/blueprint/history/${entry.version}`}
-                  className="text-sm text-[var(--color-accent)] hover:underline"
+                  className="text-sm text-[var(--color-accent-text)] hover:underline"
                 >
                   View full version
                 </Link>

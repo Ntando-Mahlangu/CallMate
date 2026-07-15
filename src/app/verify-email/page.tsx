@@ -70,7 +70,7 @@ function VerifyEmailContent() {
 
         <p className="mt-8 text-sm text-[var(--color-text-secondary)]">
           Wrong account?{" "}
-          <Link href="/sign-in" className="text-[var(--color-accent)] hover:underline">
+          <Link href="/sign-in" className="text-[var(--color-accent-text)] hover:underline">
             Sign in
           </Link>
         </p>

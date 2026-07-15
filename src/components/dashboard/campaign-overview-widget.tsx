@@ -27,7 +27,7 @@ export function CampaignOverviewWidget({ overview }: { overview: CampaignOvervie
     <Card>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-medium text-[var(--color-text-primary)]">Campaign Overview</h2>
-        <Link href="/campaigns" className="text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/campaigns" className="text-sm text-[var(--color-accent-text)] hover:underline">
           View all
         </Link>
       </div>

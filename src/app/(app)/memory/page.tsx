@@ -32,7 +32,7 @@ export default async function MemoryPage() {
         </div>
         <a
           href="/api/memory/export"
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Export my data
         </a>

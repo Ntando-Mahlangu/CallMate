@@ -76,6 +76,7 @@ export default function OnboardingPage() {
       render: () => (
         <Textarea
           autoFocus
+          aria-labelledby="onboarding-question"
           placeholder="We help accounting firms automate client onboarding…"
           value={answers.description}
           onChange={(e) => setAnswers({ ...answers, description: e.target.value })}
@@ -89,6 +90,7 @@ export default function OnboardingPage() {
       render: () => (
         <Textarea
           autoFocus
+          aria-labelledby="onboarding-question"
           placeholder="Independent law firms with 10-50 employees…"
           value={answers.idealCustomer}
           onChange={(e) => setAnswers({ ...answers, idealCustomer: e.target.value })}
@@ -161,6 +163,7 @@ export default function OnboardingPage() {
           {answers.growthChallenge === "Other" && (
             <Input
               autoFocus
+              aria-label="Describe your biggest growth challenge"
               placeholder="Tell us more…"
               value={answers.growthChallengeOther}
               onChange={(e) =>
@@ -179,6 +182,7 @@ export default function OnboardingPage() {
       render: () => (
         <Input
           autoFocus
+          aria-labelledby="onboarding-question"
           type="number"
           min={0}
           placeholder="e.g. 2500"
@@ -225,6 +229,7 @@ export default function OnboardingPage() {
           {answers.mainGoal === "Other" && (
             <Input
               autoFocus
+              aria-label="Describe your main goal"
               placeholder="Tell us more…"
               value={answers.mainGoalOther}
               onChange={(e) => setAnswers({ ...answers, mainGoalOther: e.target.value })}
@@ -240,6 +245,7 @@ export default function OnboardingPage() {
       render: () => (
         <Input
           autoFocus
+          aria-labelledby="onboarding-question"
           type="url"
           placeholder="https://yourbusiness.com"
           value={answers.website}
@@ -254,6 +260,7 @@ export default function OnboardingPage() {
       render: () => (
         <Input
           autoFocus
+          aria-labelledby="onboarding-question"
           placeholder="Acme Co, Northwind Partners…"
           value={answers.competitors}
           onChange={(e) => setAnswers({ ...answers, competitors: e.target.value })}
@@ -311,7 +318,10 @@ export default function OnboardingPage() {
         <ProgressBar value={((step + 1) / steps.length) * 100} />
 
         <Card className="animate-fade-in" key={step}>
-          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+          <h1
+            id="onboarding-question"
+            className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+          >
             {current.title}
           </h1>
           {current.subtitle && (

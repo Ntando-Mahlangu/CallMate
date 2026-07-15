@@ -48,7 +48,7 @@ export default async function StrategicReviewDetailPage({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <Link href="/ceo-agent/reviews" className="text-sm text-[var(--color-accent)] hover:underline">
+      <Link href="/ceo-agent/reviews" className="text-sm text-[var(--color-accent-text)] hover:underline">
         ← Strategic Reviews
       </Link>
 
@@ -67,7 +67,7 @@ export default async function StrategicReviewDetailPage({
         </div>
         <a
           href={`/api/ceo-agent/reviews/${review.id}/export`}
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Export PDF
         </a>

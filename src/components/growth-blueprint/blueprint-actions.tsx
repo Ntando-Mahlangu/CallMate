@@ -82,13 +82,13 @@ export function BlueprintActions({
           <>
             <a
               href="/api/blueprint/export?format=markdown"
-              className="text-sm text-[var(--color-accent)] hover:underline"
+              className="text-sm text-[var(--color-accent-text)] hover:underline"
             >
               Export Markdown
             </a>
             <a
               href="/api/blueprint/export?format=pdf"
-              className="text-sm text-[var(--color-accent)] hover:underline"
+              className="text-sm text-[var(--color-accent-text)] hover:underline"
             >
               Export PDF
             </a>
@@ -101,12 +101,12 @@ export function BlueprintActions({
         <button
           type="button"
           onClick={() => window.print()}
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Print
         </button>
         {hasHistory && (
-          <Link href="/blueprint/history" className="text-sm text-[var(--color-accent)] hover:underline">
+          <Link href="/blueprint/history" className="text-sm text-[var(--color-accent-text)] hover:underline">
             Version History
           </Link>
         )}
@@ -135,7 +135,7 @@ export function BlueprintActions({
           <button
             type="button"
             onClick={copyLink}
-            className="text-[var(--color-accent)] hover:underline"
+            className="text-[var(--color-accent-text)] hover:underline"
           >
             {copied ? "Copied!" : "Copy link"}
           </button>

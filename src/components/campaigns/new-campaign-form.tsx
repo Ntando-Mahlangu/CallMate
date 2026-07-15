@@ -159,7 +159,7 @@ export function NewCampaignForm({
                 s === step
                   ? "font-medium text-[var(--color-text-primary)]"
                   : STEPS.indexOf(step) > i
-                    ? "text-[var(--color-accent)]"
+                    ? "text-[var(--color-accent-text)]"
                     : ""
               }
             >
@@ -171,7 +171,7 @@ export function NewCampaignForm({
       </div>
 
       {initialValues && step === "Goal" && (
-        <p className="text-sm text-[var(--color-accent)]">
+        <p className="text-sm text-[var(--color-accent-text)]">
           Prefilled from your saved template — choose a fresh audience below.
         </p>
       )}
@@ -308,7 +308,7 @@ export function NewCampaignForm({
                   <div key={w.id}>
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">{w.title}</p>
                     <p className="text-sm text-[var(--color-text-secondary)]">{w.detail}</p>
-                    <p className="text-xs text-[var(--color-accent)]">{w.suggestion}</p>
+                    <p className="text-xs text-[var(--color-accent-text)]">{w.suggestion}</p>
                   </div>
                 ))}
               </div>
@@ -367,7 +367,7 @@ export function NewCampaignForm({
               {brandVoice
                 ? `Using your "${brandVoice}" brand voice.`
                 : "No brand voice set — outreach will default to a professional and direct tone."}{" "}
-              <a href="/settings/brand-voice" className="text-[var(--color-accent)] hover:underline">
+              <a href="/settings/brand-voice" className="text-[var(--color-accent-text)] hover:underline">
                 Change in Settings
               </a>
             </p>

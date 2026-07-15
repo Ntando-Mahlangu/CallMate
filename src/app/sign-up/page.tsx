@@ -145,7 +145,7 @@ export default function SignUpPage() {
         <button
           type="button"
           onClick={() => setUseMagicLink((v) => !v)}
-          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
         >
           {useMagicLink ? "Use a password instead" : "Sign up with an email link instead"}
         </button>

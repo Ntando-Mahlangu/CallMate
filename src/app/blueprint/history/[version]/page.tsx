@@ -28,13 +28,13 @@ export default async function BlueprintHistoryVersionPage({
       <div className="mx-auto max-w-4xl space-y-4">
         <Link
           href="/blueprint/history"
-          className="text-sm text-[var(--color-accent)] hover:underline"
+          className="text-sm text-[var(--color-accent-text)] hover:underline"
         >
           ← Version history
         </Link>
         <a
           href={`/api/blueprint/export?format=markdown&version=${blueprint.version}`}
-          className="ml-4 text-sm text-[var(--color-accent)] hover:underline"
+          className="ml-4 text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Export this version (Markdown)
         </a>

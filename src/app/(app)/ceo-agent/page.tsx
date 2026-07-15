@@ -40,7 +40,7 @@ export default async function CeoAgentPage() {
         </div>
         <Link
           href="/ceo-agent/reviews"
-          className="mt-1 text-sm text-[var(--color-accent)] hover:underline"
+          className="mt-1 text-sm text-[var(--color-accent-text)] hover:underline"
         >
           Strategic Reviews →
         </Link>

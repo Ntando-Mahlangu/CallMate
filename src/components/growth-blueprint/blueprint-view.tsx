@@ -109,7 +109,7 @@ export function BlueprintView({
       </div>
 
       <Card className="animate-fade-in border-[var(--color-accent)]/40">
-        <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
+        <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
           Biggest Opportunity
         </p>
         <h2 className="mt-2 text-xl font-light text-[var(--color-text-primary)]">
@@ -151,7 +151,7 @@ export function BlueprintView({
               <p className="mt-2 text-sm text-[var(--color-text-muted)]">
                 Evidence: {o.supportingEvidence}
               </p>
-              <p className="mt-1 text-sm font-medium text-[var(--color-accent)]">
+              <p className="mt-1 text-sm font-medium text-[var(--color-accent-text)]">
                 Next step: {o.recommendedAction}
               </p>
             </li>
@@ -244,7 +244,7 @@ export function BlueprintView({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {HORIZONS.map((horizon) => (
             <div key={horizon}>
-              <p className="mb-2 text-xs uppercase tracking-wide text-[var(--color-accent)]">
+              <p className="mb-2 text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
                 {horizon}
               </p>
               <ul className="space-y-3">

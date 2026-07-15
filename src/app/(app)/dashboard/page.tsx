@@ -114,7 +114,7 @@ export default async function DashboardPage() {
             Here&apos;s what will help {organization.name} grow today · {today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
           </p>
           {streaks.growthStreakDays > 0 && (
-            <p className="mt-2 text-sm text-[var(--color-accent)]">
+            <p className="mt-2 text-sm text-[var(--color-accent-text)]">
               {streaks.growthStreakDays} day{streaks.growthStreakDays === 1 ? "" : "s"} in a row
               taking action in Outrun.
             </p>
@@ -123,7 +123,7 @@ export default async function DashboardPage() {
 
         {mission && (
           <Card className="border-[var(--color-accent)]/40">
-            <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
+            <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
               Today&apos;s Priority
             </p>
             <h2 className="mt-2 text-xl font-light text-[var(--color-text-primary)]">
@@ -317,7 +317,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href="/blueprint"
-              className="text-sm text-[var(--color-accent)] hover:underline"
+              className="text-sm text-[var(--color-accent-text)] hover:underline"
             >
               View all
             </Link>
@@ -347,7 +347,7 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
               Recent Activity
             </h2>
-            <Link href="/memory" className="text-sm text-[var(--color-accent)] hover:underline">
+            <Link href="/memory" className="text-sm text-[var(--color-accent-text)] hover:underline">
               View all
             </Link>
           </div>

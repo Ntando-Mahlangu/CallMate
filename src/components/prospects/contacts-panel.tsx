@@ -98,15 +98,32 @@ export function ContactsPanel({
       <form onSubmit={handleAdd} className="space-y-3 border-t border-[var(--color-border)] pt-4">
         <FormError message={error} />
         <div className="grid grid-cols-2 gap-3">
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input placeholder="Role (optional)" value={role} onChange={(e) => setRole(e.target.value)} />
           <Input
+            aria-label="Name"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <Input
+            aria-label="Role"
+            placeholder="Role (optional)"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          />
+          <Input
+            aria-label="Email"
             placeholder="Email (optional)"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input
+            aria-label="Phone"
+            placeholder="Phone (optional)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
         </div>
         <Button type="submit" variant="secondary" className="h-9 px-4 text-sm" disabled={isAdding}>
           {isAdding ? "Adding…" : "Add contact"}

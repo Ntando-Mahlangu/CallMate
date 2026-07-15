@@ -124,6 +124,7 @@ export function OutreachPanel({
         </p>
         <div className="mt-2 flex gap-3">
           <Input
+            aria-label="Contact email"
             type="email"
             placeholder="owner@business.com"
             value={contactEmail}

@@ -132,6 +132,7 @@ export function BulkActionsBar({
       </span>
 
       <select
+        aria-label="Add selected prospects to list"
         value={selectedListId}
         onChange={(e) => setSelectedListId(e.target.value)}
         className="h-9 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-card)] px-2 text-sm text-[var(--color-text-primary)]"
@@ -184,7 +185,7 @@ export function BulkActionsBar({
       <button
         type="button"
         onClick={onClearSelection}
-        className="ml-auto text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+        className="ml-auto text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
       >
         Clear selection
       </button>

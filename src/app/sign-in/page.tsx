@@ -100,7 +100,7 @@ export default function SignInPage() {
                 <Label htmlFor="password">Password</Label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
                 >
                   Forgot password?
                 </Link>
@@ -134,7 +134,7 @@ export default function SignInPage() {
         <button
           type="button"
           onClick={() => setUseMagicLink((v) => !v)}
-          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
         >
           {useMagicLink ? "Use a password instead" : "Email me a sign-in link instead"}
         </button>

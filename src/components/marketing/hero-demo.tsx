@@ -40,7 +40,7 @@ export function HeroDemo() {
 
   return (
     <Card className="mx-auto w-full max-w-md animate-fade-in text-left">
-      <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
+      <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
         {STAGES[stage]!.label}
       </p>
 

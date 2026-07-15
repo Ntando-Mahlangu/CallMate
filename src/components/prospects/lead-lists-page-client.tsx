@@ -64,7 +64,7 @@ export function LeadListsPageClient({ initialLists }: { initialLists: LeadListSu
             Campaign&rdquo;.
           </p>
         </div>
-        <Link href="/prospects" className="mt-1 text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/prospects" className="mt-1 text-sm text-[var(--color-accent-text)] hover:underline">
           ← Find Prospects
         </Link>
       </div>
@@ -72,6 +72,7 @@ export function LeadListsPageClient({ initialLists }: { initialLists: LeadListSu
       <Card>
         <form onSubmit={createList} className="flex gap-3">
           <Input
+            aria-label="List name"
             placeholder="e.g. Hot Prospects"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -104,7 +105,7 @@ export function LeadListsPageClient({ initialLists }: { initialLists: LeadListSu
               <div className="mt-4 flex items-center gap-3">
                 <Link
                   href={`/prospects/lists/${list.id}`}
-                  className="text-sm text-[var(--color-accent)] hover:underline"
+                  className="text-sm text-[var(--color-accent-text)] hover:underline"
                 >
                   View →
                 </Link>

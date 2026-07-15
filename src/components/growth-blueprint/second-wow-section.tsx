@@ -16,7 +16,7 @@ export function SecondWowSection({
 }) {
   return (
     <Card className="animate-fade-in border-[var(--color-accent)]/40 print:hidden">
-      <p className="text-xs uppercase tracking-wide text-[var(--color-accent)]">
+      <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
         While you were reading this
       </p>
       <h2 className="mt-2 text-xl font-light text-[var(--color-text-primary)]">

@@ -125,7 +125,7 @@ export function LeadListDetailClient({
 
   return (
     <div className="animate-fade-in space-y-6">
-      <Link href="/prospects/lists" className="text-sm text-[var(--color-accent)] hover:underline">
+      <Link href="/prospects/lists" className="text-sm text-[var(--color-accent-text)] hover:underline">
         ← Lists
       </Link>
 
@@ -136,7 +136,7 @@ export function LeadListDetailClient({
               List name
             </label>
             <div className="mt-2 flex gap-3">
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Input aria-label="List name" value={name} onChange={(e) => setName(e.target.value)} />
               <Button
                 variant="secondary"
                 onClick={rename}
@@ -210,7 +210,7 @@ export function LeadListDetailClient({
                   <div className="mt-4 flex gap-2">
                     <Link
                       href={`/prospects/${company.id}`}
-                      className="text-sm text-[var(--color-accent)] hover:underline"
+                      className="text-sm text-[var(--color-accent-text)] hover:underline"
                     >
                       View →
                     </Link>

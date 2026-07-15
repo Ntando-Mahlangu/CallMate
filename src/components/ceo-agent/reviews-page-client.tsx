@@ -56,7 +56,7 @@ export function ReviewsPageClient({ initialReviews }: { initialReviews: Strategi
             opportunities, risks, key learnings, and what to prioritize next.
           </p>
         </div>
-        <Link href="/ceo-agent" className="mt-1 text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/ceo-agent" className="mt-1 text-sm text-[var(--color-accent-text)] hover:underline">
           ← Ask the CEO
         </Link>
       </div>
@@ -103,7 +103,7 @@ export function ReviewsPageClient({ initialReviews }: { initialReviews: Strategi
                       Generated {new Date(review.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className="text-sm text-[var(--color-accent)]">View →</span>
+                  <span className="text-sm text-[var(--color-accent-text)]">View →</span>
                 </div>
               </Card>
             </Link>

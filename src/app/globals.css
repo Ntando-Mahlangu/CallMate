@@ -16,6 +16,11 @@
   --color-success: #3ddc84;
   --color-warning: #f4b400;
   --color-error: #ea4335;
+  /* docs/outrun/15 "ACCESSIBILITY CHECKS" — --color-error reads fine as an
+     icon/border color, but as foreground text on its own /10 tinted
+     background (FormError) it only clears ~3.3-3.6:1. This lighter
+     variant is for that text-on-tint case specifically. */
+  --color-error-text: #f47066;
   --color-accent: #6e56cf;
   --color-accent-hover: #7f68e0;
   /* docs/outrun/15 "ACCESSIBILITY CHECKS" — --color-accent reads white

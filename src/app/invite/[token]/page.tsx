@@ -54,7 +54,7 @@ export default async function InviteAcceptPage({
             <CardDescription>
               You&apos;ve already joined {invitation.organization.name}.
             </CardDescription>
-            <Link href="/dashboard" className="inline-block text-sm text-[var(--color-accent)] hover:underline">
+            <Link href="/dashboard" className="inline-block text-sm text-[var(--color-accent-text)] hover:underline">
               Go to Mission Control
             </Link>
           </CardHeader>
@@ -72,10 +72,10 @@ export default async function InviteAcceptPage({
               <div className="space-y-3 text-sm text-[var(--color-text-secondary)]">
                 <p>Sign in or create an account with {invitation.email}, then come back to this link to accept.</p>
                 <div className="flex gap-3">
-                  <Link href="/sign-in" className="text-[var(--color-accent)] hover:underline">
+                  <Link href="/sign-in" className="text-[var(--color-accent-text)] hover:underline">
                     Sign in
                   </Link>
-                  <Link href="/sign-up" className="text-[var(--color-accent)] hover:underline">
+                  <Link href="/sign-up" className="text-[var(--color-accent-text)] hover:underline">
                     Create an account
                   </Link>
                 </div>

@@ -37,7 +37,7 @@ export default async function NewCampaignPage({
   return (
     <div className="animate-fade-in space-y-6">
       <div>
-        <Link href="/campaigns" className="text-sm text-[var(--color-accent)] hover:underline">
+        <Link href="/campaigns" className="text-sm text-[var(--color-accent-text)] hover:underline">
           ← Campaigns
         </Link>
         <h1 className="mt-2 text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
@@ -50,7 +50,7 @@ export default async function NewCampaignPage({
           <p className="text-[var(--color-text-secondary)]">
             You need at least one researched prospect before building a
             campaign.{" "}
-            <Link href="/prospects" className="text-[var(--color-accent)] hover:underline">
+            <Link href="/prospects" className="text-[var(--color-accent-text)] hover:underline">
               Find and research some prospects first.
             </Link>
           </p>
