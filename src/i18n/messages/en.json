@@ -1,0 +1,22 @@
+{
+  "SignIn": {
+    "title": "Welcome back.",
+    "description": "Sign in to keep growing.",
+    "emailLabel": "Business email",
+    "passwordLabel": "Password",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "submit": "Sign In",
+    "submitting": "Signing in…",
+    "defaultError": "We couldn't sign you in. Check your email and password and try again.",
+    "useMagicLink": "Email me a sign-in link instead",
+    "usePassword": "Use a password instead",
+    "or": "OR",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithMicrosoft": "Continue with Microsoft",
+    "newToOutrun": "New to Outrun?",
+    "startFree": "Start Free",
+    "twoFactorTitle": "Verify it's you.",
+    "twoFactorDescription": "Enter the code from your authenticator app to finish signing in."
+  }
+}

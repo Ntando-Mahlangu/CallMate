@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { TwoFactorChallenge } from "@/components/auth/two-factor-challenge";
 
 export default function SignInPage() {
   const router = useRouter();
+  const t = useTranslations("SignIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -53,10 +55,7 @@ export default function SignInPage() {
     setIsSubmitting(false);
 
     if (signInError) {
-      setError(
-        signInError.message ??
-          "We couldn't sign you in. Check your email and password and try again.",
-      );
+      setError(signInError.message ?? t("defaultError"));
       return;
     }
 
@@ -85,10 +84,8 @@ export default function SignInPage() {
       <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-4 py-16">
         <Card className="w-full max-w-md animate-fade-in">
           <CardHeader>
-            <CardTitle>Verify it&apos;s you.</CardTitle>
-            <CardDescription>
-              Enter the code from your authenticator app to finish signing in.
-            </CardDescription>
+            <CardTitle>{t("twoFactorTitle")}</CardTitle>
+            <CardDescription>{t("twoFactorDescription")}</CardDescription>
           </CardHeader>
           <TwoFactorChallenge onVerified={() => router.push("/welcome")} />
         </Card>
@@ -100,8 +97,8 @@ export default function SignInPage() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-4 py-16">
       <Card className="w-full max-w-md animate-fade-in">
         <CardHeader>
-          <CardTitle>Welcome back.</CardTitle>
-          <CardDescription>Sign in to keep growing.</CardDescription>
+          <CardTitle>{t("title")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
 
         {useMagicLink ? (
@@ -111,7 +108,7 @@ export default function SignInPage() {
             <FormError message={error} />
 
             <div className="space-y-2">
-              <Label htmlFor="email">Business email</Label>
+              <Label htmlFor="email">{t("emailLabel")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -124,12 +121,12 @@ export default function SignInPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("passwordLabel")}</Label>
                 <Link
                   href="/forgot-password"
                   className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
                 >
-                  Forgot password?
+                  {t("forgotPassword")}
                 </Link>
               </div>
               <Input
@@ -149,11 +146,11 @@ export default function SignInPage() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="size-4 rounded border-[var(--color-border)] bg-[var(--color-bg-secondary)]"
               />
-              Remember me
+              {t("rememberMe")}
             </label>
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in…" : "Sign In"}
+              {isSubmitting ? t("submitting") : t("submit")}
             </Button>
           </form>
         )}
@@ -163,14 +160,14 @@ export default function SignInPage() {
           onClick={() => setUseMagicLink((v) => !v)}
           className="mt-4 w-full text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-text)]"
         >
-          {useMagicLink ? "Use a password instead" : "Email me a sign-in link instead"}
+          {useMagicLink ? t("usePassword") : t("useMagicLink")}
         </button>
 
         {(googleEnabled || microsoftEnabled) && (
           <>
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[var(--color-border)]" />
-              <span className="text-xs text-[var(--color-text-muted)]">OR</span>
+              <span className="text-xs text-[var(--color-text-muted)]">{t("or")}</span>
               <div className="h-px flex-1 bg-[var(--color-border)]" />
             </div>
 
@@ -183,7 +180,7 @@ export default function SignInPage() {
                   onClick={handleGoogle}
                 >
                   <GoogleIcon className="size-4" />
-                  Continue with Google
+                  {t("continueWithGoogle")}
                 </Button>
               )}
               {microsoftEnabled && (
@@ -194,7 +191,7 @@ export default function SignInPage() {
                   onClick={handleMicrosoft}
                 >
                   <MicrosoftIcon className="size-4" />
-                  Continue with Microsoft
+                  {t("continueWithMicrosoft")}
                 </Button>
               )}
             </div>
@@ -202,9 +199,9 @@ export default function SignInPage() {
         )}
 
         <p className="mt-8 text-center text-sm text-[var(--color-text-secondary)]">
-          New to Outrun?{" "}
+          {t("newToOutrun")}{" "}
           <Link href="/sign-up" className="text-[var(--color-accent-text)] underline">
-            Start Free
+            {t("startFree")}
           </Link>
         </p>
       </Card>

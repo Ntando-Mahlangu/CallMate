@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { formatDate } from "@/lib/i18n/format";
 
 type Session = {
   id: string;
@@ -131,7 +132,7 @@ export function SessionsPanel({ currentToken }: { currentToken: string | null })
                 </div>
                 <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                   {s.ipAddress ?? "Unknown location"} · Last active{" "}
-                  {new Date(s.updatedAt).toLocaleString()}
+                  {formatDate(s.updatedAt)}
                 </p>
               </div>
               {!isCurrent && (

@@ -1,5 +1,6 @@
 import type { AuditAction } from "@prisma/client";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/i18n/format";
 
 type AuditLogEntry = {
   id: string;
@@ -64,7 +65,7 @@ export function AuditLogSection({
                 <p className="text-xs text-[var(--color-text-muted)]">{ACTION_LABEL[entry.action]}</p>
               </div>
               <span className="whitespace-nowrap text-xs text-[var(--color-text-muted)]">
-                {entry.createdAt.toLocaleString()}
+                {formatDate(entry.createdAt)}
               </span>
             </li>
           ))}
