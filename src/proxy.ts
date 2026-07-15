@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { API_VERSION } from "@/lib/api-version";
 
 const PROTECTED_PREFIXES = [
   "/welcome",
@@ -20,6 +21,16 @@ const PROTECTED_PREFIXES = [
 // page — this proxy never grants access by itself.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // docs/outrun/11 "API DESIGN — Clear versioning." Stamped here rather
+  // than in every route.ts so it can never drift on a route someone forgets
+  // to update — every /api/* response carries it, including the ones
+  // Better Auth's catch-all generates.
+  if (pathname.startsWith("/api/")) {
+    const response = NextResponse.next();
+    response.headers.set("X-API-Version", API_VERSION);
+    return response;
+  }
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
@@ -48,5 +59,6 @@ export const config = {
     "/seo/:path*",
     "/settings/:path*",
     "/billing/:path*",
+    "/api/:path*",
   ],
 };
