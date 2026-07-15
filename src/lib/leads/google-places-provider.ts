@@ -1,4 +1,5 @@
 import type { CompanyDataProvider, RawCompanyResult } from "./types";
+import { withRetry, HttpError } from "@/lib/resilience/retry";
 
 const FIELD_MASK = [
   "places.id",
@@ -30,22 +31,25 @@ export class GooglePlacesProvider implements CompanyDataProvider {
   async search(query: string): Promise<RawCompanyResult[]> {
     // Text Search understands natural-language queries directly
     // ("plumbers in Austin Texas") — no separate NL-parsing step needed.
-    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": this.apiKey,
-        "X-Goog-FieldMask": FIELD_MASK,
-      },
-      body: JSON.stringify({ textQuery: query }),
+    const data = await withRetry(async () => {
+      const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": this.apiKey,
+          "X-Goog-FieldMask": FIELD_MASK,
+        },
+        body: JSON.stringify({ textQuery: query }),
+        signal: AbortSignal.timeout(10_000),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new HttpError(`Google Places search failed: ${response.status} ${body}`, response.status);
+      }
+
+      return (await response.json()) as PlacesTextSearchResponse;
     });
-
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Google Places search failed: ${response.status} ${body}`);
-    }
-
-    const data = (await response.json()) as PlacesTextSearchResponse;
 
     return (data.places ?? []).map((place) => ({
       source: "google_places",

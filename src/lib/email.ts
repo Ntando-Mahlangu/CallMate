@@ -1,3 +1,5 @@
+import { withRetry, HttpError } from "@/lib/resilience/retry";
+
 const FROM = process.env.EMAIL_FROM ?? "Outrun <noreply@outrun.app>";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -20,19 +22,22 @@ export async function sendEmail({ to, subject, text }: SendEmailInput) {
     return;
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: FROM, to, subject, text }),
-  });
+  await withRetry(async () => {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: FROM, to, subject, text }),
+      signal: AbortSignal.timeout(10_000),
+    });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Failed to send email: ${response.status} ${body}`);
-  }
+    if (!response.ok) {
+      const body = await response.text();
+      throw new HttpError(`Failed to send email: ${response.status} ${body}`, response.status);
+    }
+  });
 }
 
 /**
