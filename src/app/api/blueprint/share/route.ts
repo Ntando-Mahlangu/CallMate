@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
+import { orgProfileTag } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
     where: { id: organization.id },
     data: { blueprintShareEnabled: enabled, blueprintShareToken: token },
   });
+  revalidateTag(orgProfileTag(organization.id), "max");
 
   return NextResponse.json({
     shareEnabled: updated.blueprintShareEnabled,

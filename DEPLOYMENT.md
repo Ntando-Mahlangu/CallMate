@@ -205,6 +205,31 @@ mid-flight) — same `vercel.json` cron / `.github/workflows/job-queue-sweep.yml
 jobs still normally complete via `after()`; the sweep is a safety net, not
 the primary mechanism.
 
+## 9c. Caching
+
+docs/outrun/12 "CACHING" — the Organization + BusinessProfile read
+(`getCurrentOrganization`, `src/lib/org.ts`) and the latest Growth
+Blueprint read (`findLatestForOrg`,
+`src/lib/repositories/growth-blueprint-repository.ts`, also used by the
+Business Health Score) sit behind Next's `unstable_cache`, tagged
+`org-profile:{organizationId}` / `growth-blueprint:{organizationId}`
+(`src/lib/cache-tags.ts`). Both are read on nearly every authenticated
+request but only change on a handful of writes, so caching them avoids
+re-querying Postgres for the same row on every page load. No Redis —
+this is Next's own Data Cache, which already works across serverless
+instances against the same deployment.
+
+There's no separate cache-warming or TTL tuning needed: every write that
+changes these rows calls `revalidateTag()` right next to the write
+(Blueprint generation, onboarding's Business Discovery save, the SEO
+website field, the Blueprint share toggle, and the Paddle billing
+webhook's plan-tier update). The 5-minute `revalidate` on each cached
+read is a safety net for any write path that's missed, not the primary
+invalidation mechanism. `unstable_cache` round-trips its return value
+through JSON, which turns `Date` fields into strings — both cached
+reads explicitly revive them back into real `Date` instances before
+returning, so callers see identical types to an uncached Prisma call.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

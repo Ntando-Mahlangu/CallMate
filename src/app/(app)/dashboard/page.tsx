@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
+import { findLatestForOrg } from "@/lib/repositories/growth-blueprint-repository";
 import { getTodaysMission, getMissionActionHref } from "@/lib/dashboard/mission";
 import { getBusinessHealth } from "@/lib/ceo-agent/health";
 import { getBiggestWinThisWeek } from "@/lib/ceo-agent/weekly-win";
@@ -35,10 +35,7 @@ export default async function DashboardPage() {
   if (!organization) redirect("/sign-in");
   if (!organization.businessProfile) redirect("/onboarding");
 
-  const blueprint = await prisma.growthBlueprint.findFirst({
-    where: { organizationId: organization.id },
-    orderBy: { version: "desc" },
-  });
+  const blueprint = await findLatestForOrg(organization.id);
   if (!blueprint) redirect("/blueprint/generating");
 
   const mission = getTodaysMission(blueprint);

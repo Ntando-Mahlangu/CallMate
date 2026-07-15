@@ -1,7 +1,9 @@
 import { EventName, type EventEntity } from "@paddle/paddle-node-sdk";
 import type { PlanTier } from "@prisma/client";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
+import { orgProfileTag } from "@/lib/cache-tags";
 import { notifyBillingEvent } from "./notifications";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -62,6 +64,7 @@ export async function handlePaddleEvent(event: EventEntity) {
           planTier: newPlanTier,
         },
       });
+      revalidateTag(orgProfileTag(organizationId), "max");
 
       // docs/outrun/14 "BILLING NOTIFICATIONS" — only on a real state
       // transition, so a duplicate/replayed webhook with the same status

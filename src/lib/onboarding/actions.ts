@@ -1,8 +1,10 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
+import { orgProfileTag } from "@/lib/cache-tags";
 import { businessDiscoverySchema, type BusinessDiscoveryInput } from "./schema";
 
 export async function saveBusinessDiscovery(input: BusinessDiscoveryInput) {
@@ -47,6 +49,8 @@ export async function saveBusinessDiscovery(input: BusinessDiscoveryInput) {
       },
     }),
   ]);
+
+  revalidateTag(orgProfileTag(organization.id), "max");
 
   return { organizationId: organization.id };
 }

@@ -1,7 +1,9 @@
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { growthBlueprintTag, orgProfileTag } from "@/lib/cache-tags";
 import {
   growthBlueprintSchema,
   growthBlueprintJsonSchema,
@@ -140,6 +142,9 @@ export async function generateGrowthBlueprint(organizationId: string) {
     EventType.BLUEPRINT_GENERATED,
     `Growth Blueprint v${nextVersion} generated — score ${data.growthScore}/100.`,
   );
+
+  revalidateTag(growthBlueprintTag(organizationId), "max");
+  revalidateTag(orgProfileTag(organizationId), "max"); // Organization.growthScore also changed
 
   return blueprint;
 }

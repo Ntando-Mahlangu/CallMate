@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { orgProfileTag } from "@/lib/cache-tags";
 
 // A user can belong to more than one workspace once they've been invited to
 // a team (docs/outrun/14 "MULTIPLE WORKSPACES"). The active one is
@@ -8,10 +10,54 @@ import { prisma } from "@/lib/prisma";
 // membership so single-workspace users never need it set.
 export const ACTIVE_ORG_COOKIE = "outrun_active_org";
 
+function fetchOrganizationWithProfile(organizationId: string) {
+  return prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { businessProfile: true },
+  });
+}
+
+type OrganizationWithProfile = Awaited<ReturnType<typeof fetchOrganizationWithProfile>>;
+
+// unstable_cache round-trips its return value through JSON, which turns
+// Date fields into strings — revive them so callers get real Date
+// instances back, exactly like an uncached Prisma call would return.
+function reviveOrganizationDates(org: OrganizationWithProfile): OrganizationWithProfile {
+  if (!org) return org;
+  return {
+    ...org,
+    createdAt: new Date(org.createdAt),
+    updatedAt: new Date(org.updatedAt),
+    deletedAt: org.deletedAt ? new Date(org.deletedAt) : org.deletedAt,
+    businessProfile: org.businessProfile && {
+      ...org.businessProfile,
+      createdAt: new Date(org.businessProfile.createdAt),
+      updatedAt: new Date(org.businessProfile.updatedAt),
+    },
+  };
+}
+
+// docs/outrun/12 "CACHING" — getCurrentOrganization is called on nearly
+// every authenticated request in the app, but the Organization +
+// BusinessProfile it returns only changes on a handful of explicit writes
+// (onboarding, blueprint generation, billing webhooks, SEO website save).
+// Caching just this fetch — not the membership/cookie resolution, which
+// depends on per-request state — avoids re-querying Postgres for the same
+// row on every page load. The 5-minute revalidate is a safety net; the
+// real invalidation is the revalidateTag() calls next to each write.
+async function getCachedOrganizationWithProfile(organizationId: string) {
+  const organization = await unstable_cache(
+    () => fetchOrganizationWithProfile(organizationId),
+    ["organization-with-profile", organizationId],
+    { tags: [orgProfileTag(organizationId)], revalidate: 300 },
+  )();
+  return reviveOrganizationDates(organization);
+}
+
 export async function getActiveMembership(userId: string) {
   const memberships = await prisma.membership.findMany({
     where: { userId },
-    include: { organization: { include: { businessProfile: true } } },
+    select: { id: true, role: true, organizationId: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
   if (memberships.length === 0) return null;
@@ -20,8 +66,13 @@ export async function getActiveMembership(userId: string) {
   const active = activeOrgId
     ? memberships.find((m) => m.organizationId === activeOrgId)
     : undefined;
+  const membership = active ?? memberships[0];
+  if (!membership) return null;
 
-  return active ?? memberships[0];
+  const organization = await getCachedOrganizationWithProfile(membership.organizationId);
+  if (!organization) return null;
+
+  return { ...membership, organization };
 }
 
 export async function getCurrentOrganization(userId: string) {

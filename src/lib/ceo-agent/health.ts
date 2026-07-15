@@ -1,4 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { growthBlueprintTag } from "@/lib/cache-tags";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 export type HealthCategory = {
@@ -30,12 +32,19 @@ const LOW_SCORE_THRESHOLD = 60;
  * there's honestly nothing to flag, and we don't invent one.
  */
 export async function getBusinessHealth(organizationId: string): Promise<BusinessHealth | null> {
-  const versions = await prisma.growthBlueprint.findMany({
-    where: { organizationId },
-    orderBy: { version: "desc" },
-    take: 2,
-    select: { growthScore: true, scoreCategories: true },
-  });
+  // Same underlying rows as the growth-blueprint repository reads, so it
+  // shares that tag — regenerating a Blueprint invalidates both together.
+  const versions = await unstable_cache(
+    () =>
+      prisma.growthBlueprint.findMany({
+        where: { organizationId },
+        orderBy: { version: "desc" },
+        take: 2,
+        select: { growthScore: true, scoreCategories: true },
+      }),
+    ["business-health-versions", organizationId],
+    { tags: [growthBlueprintTag(organizationId)], revalidate: 300 },
+  )();
   const [latest, previous] = versions;
   if (!latest) return null;
 
