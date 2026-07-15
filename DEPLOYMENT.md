@@ -427,6 +427,29 @@ Google + email/password:
   cookie instead of the normal 30-day one); `/sign-in` now exposes it as
   a checkbox, defaulting to checked.
 
+## 9i. Natural-language prospect search
+
+docs/outrun/06 "GLOBAL SEARCH" — `src/lib/leads/query-parser.ts` sits
+between the search box and `CompanyDataProvider.search()`. Google
+Places' own Text Search already handles plain "industry in location"
+phrasing, but has no concept of qualifiers like "that recently hired
+staff" or "using HubSpot" — passed through verbatim, those words just
+degrade the text match. `parseSearchQuery()` uses the AI provider to
+split a free-text request into three honest pieces:
+
+- `placesQuery` — a clean industry+location phrase for Places
+- `postFilters` — only qualifiers Outrun can actually verify from data
+  Places returns (website presence, star rating, review count) — never
+  a filter for something Places can't tell it
+- `unsupportedIntents` — every other qualifier mentioned (funding,
+  hiring activity, tech stack, "weak SEO" beyond having no site at all),
+  surfaced to the user in `/prospects` ("Outrun can't yet verify: …")
+  rather than silently dropped or faked as a working filter
+
+Degrades honestly without `ANTHROPIC_API_KEY`: `parseSearchQuery`
+returns the raw query untouched (same behavior as before this feature
+existed) rather than blocking search on an AI call it can't make.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { CompanyCard } from "@/components/prospects/company-card";
 
+type Interpretation = { searchedFor: string; unsupportedIntents: string[] };
+
 export default function ProspectsPage() {
   const [query, setQuery] = useState("");
   const [companies, setCompanies] = useState<Company[] | null>(null);
+  const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -28,6 +31,7 @@ export default function ProspectsPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
       setCompanies(body.companies);
+      setInterpretation(body.interpretation ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -66,6 +70,23 @@ export default function ProspectsPage() {
       </form>
 
       <FormError message={error} />
+
+      {interpretation && companies !== null && (
+        <div className="text-sm text-[var(--color-text-secondary)]">
+          <p>
+            Searching for:{" "}
+            <span className="text-[var(--color-text-primary)]">
+              {interpretation.searchedFor}
+            </span>
+          </p>
+          {interpretation.unsupportedIntents.length > 0 && (
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Outrun can&apos;t yet verify: {interpretation.unsupportedIntents.join(", ")} —
+              showing best-fit matches by what it can confirm.
+            </p>
+          )}
+        </div>
+      )}
 
       {companies === null && !error && (
         <p className="text-sm text-[var(--color-text-muted)]">

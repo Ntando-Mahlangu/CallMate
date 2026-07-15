@@ -4,6 +4,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { getCompanyDataProvider } from "@/lib/leads";
 import { scoreCompany } from "@/lib/leads/scoring";
+import { parseSearchQuery, applyPostFilters } from "@/lib/leads/query-parser";
 import * as companyRepository from "@/lib/repositories/company-repository";
 import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
@@ -46,8 +47,11 @@ export async function POST(request: NextRequest) {
     );
     await checkAndRecordUsage(organization.id, UsageEventType.COMPANY_SEARCH);
 
+    const parsedQuery = await parseSearchQuery(query.trim());
+
     const provider = getCompanyDataProvider();
-    const results = await provider.search(query.trim());
+    const rawResults = await provider.search(parsedQuery.placesQuery);
+    const results = applyPostFilters(rawResults, parsedQuery.postFilters);
 
     const latestBlueprint = await growthBlueprintRepository.findLatestIcpForOrg(organization.id);
     const icp = (latestBlueprint?.idealCustomerProfile ??
@@ -68,7 +72,13 @@ export async function POST(request: NextRequest) {
       `Searched "${query.trim()}" — ${companies.length} result${companies.length === 1 ? "" : "s"}.`,
     );
 
-    return NextResponse.json({ companies });
+    return NextResponse.json({
+      companies,
+      interpretation: {
+        searchedFor: parsedQuery.placesQuery,
+        unsupportedIntents: parsedQuery.unsupportedIntents,
+      },
+    });
   } catch (error) {
     if (error instanceof RateLimitError) {
       return NextResponse.json({ error: error.message }, { status: 429 });

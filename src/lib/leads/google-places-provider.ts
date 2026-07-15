@@ -29,8 +29,10 @@ export class GooglePlacesProvider implements CompanyDataProvider {
   constructor(private apiKey: string) {}
 
   async search(query: string): Promise<RawCompanyResult[]> {
-    // Text Search understands natural-language queries directly
-    // ("plumbers in Austin Texas") — no separate NL-parsing step needed.
+    // Expects an industry+location phrase, not a raw free-text request —
+    // src/lib/leads/query-parser.ts strips qualifiers Places can't
+    // search on (funding, hiring activity, tech stack, etc.) before
+    // this is called.
     const data = await withRetry(async () => {
       const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
         method: "POST",
