@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { getLeadListsForOrg, createLeadList } from "@/lib/prospects/lead-lists";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const createLeadListSchema = z.object({
+  name: z.string({ message: "Give the list a name." }),
+});
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -33,10 +39,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { name } = await request.json();
-  if (typeof name !== "string") {
-    return NextResponse.json({ error: "Give the list a name." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, createLeadListSchema);
+  if (parsed.error) return parsed.error;
+  const { name } = parsed.data;
 
   try {
     const list = await createLeadList(organization.id, name);

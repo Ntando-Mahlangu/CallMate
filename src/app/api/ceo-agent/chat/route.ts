@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { askCeoAgent } from "@/lib/ceo-agent/chat";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR =
   "The CEO Agent couldn't respond right now. Please try again in a moment.";
+
+const askCeoAgentSchema = z.object({
+  message: z.string({ message: "Type a question first." }).trim().min(1, "Type a question first."),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -20,10 +26,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { message } = await request.json();
-  if (typeof message !== "string" || !message.trim()) {
-    return NextResponse.json({ error: "Type a question first." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, askCeoAgentSchema);
+  if (parsed.error) return parsed.error;
+  const { message } = parsed.data;
 
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);

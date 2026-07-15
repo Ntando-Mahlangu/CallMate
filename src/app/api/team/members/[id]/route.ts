@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import type { MembershipRole } from "@prisma/client";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { removeMember, updateMemberRole } from "@/lib/teams/invite";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
-const ROLES: MembershipRole[] = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"];
 const GENERIC_ERROR = "We couldn't update that team member right now. Please try again in a moment.";
+
+const updateMemberRoleSchema = z.object({
+  role: z.enum(["ADMIN", "MANAGER", "MEMBER", "VIEWER"], { message: "Choose a valid role." }),
+});
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -54,10 +58,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const { role } = await request.json();
-  if (typeof role !== "string" || !ROLES.includes(role as MembershipRole)) {
-    return NextResponse.json({ error: "Choose a valid role." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, updateMemberRoleSchema);
+  if (parsed.error) return parsed.error;
+  const { role } = parsed.data;
 
   try {
     const updated = await updateMemberRole(
@@ -65,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       membership.role,
       session.user.id,
       id,
-      role as MembershipRole,
+      role,
     );
     return NextResponse.json({ member: updated });
   } catch (error) {

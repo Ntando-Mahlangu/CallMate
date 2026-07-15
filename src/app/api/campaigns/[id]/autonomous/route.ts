@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { setAutonomousSending } from "@/lib/campaigns/autonomous";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR =
   "We couldn't update autonomous sending right now. Please try again in a moment.";
+
+const setAutonomousSendingSchema = z.object({
+  enabled: z.boolean({ message: "Missing autonomous sending settings." }),
+  dailyLimit: z.number({ message: "Missing autonomous sending settings." }),
+});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -24,10 +31,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { id } = await params;
-  const { enabled, dailyLimit } = await request.json();
-  if (typeof enabled !== "boolean" || typeof dailyLimit !== "number") {
-    return NextResponse.json({ error: "Missing autonomous sending settings." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, setAutonomousSendingSchema);
+  if (parsed.error) return parsed.error;
+  const { enabled, dailyLimit } = parsed.data;
 
   try {
     const campaign = await setAutonomousSending(

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
-const IMPACTS = ["Low", "Medium", "High"] as const;
+
+const createTaskSchema = z.object({
+  title: z.string({ message: "Give the task a title." }).trim().min(1, "Give the task a title."),
+  description: z.string().trim().optional(),
+  impact: z.enum(["Low", "Medium", "High"], { message: "Choose a valid impact level." }),
+  dueDate: z.string().optional(),
+});
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -42,22 +50,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
 
-  const { title, description, impact, dueDate } = await request.json();
-  if (typeof title !== "string" || !title.trim()) {
-    return NextResponse.json({ error: "Give the task a title." }, { status: 400 });
-  }
-  if (!IMPACTS.includes(impact)) {
-    return NextResponse.json({ error: "Choose a valid impact level." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, createTaskSchema);
+  if (parsed.error) return parsed.error;
+  const { title, description, impact, dueDate } = parsed.data;
 
   try {
     const task = await prisma.task.create({
       data: {
         organizationId: organization.id,
-        title: title.trim(),
-        description: typeof description === "string" ? description.trim() : "",
+        title,
+        description: description ?? "",
         impact,
-        dueDate: typeof dueDate === "string" && dueDate ? new Date(dueDate) : null,
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
     return NextResponse.json({ task });

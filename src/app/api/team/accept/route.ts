@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { acceptInvitation } from "@/lib/teams/invite";
 import { ACTIVE_ORG_COOKIE } from "@/lib/org";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't accept that invitation right now. Please try again in a moment.";
+
+const acceptInvitationSchema = z.object({
+  token: z.string({ message: "Missing invitation token." }).min(1, "Missing invitation token."),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -14,10 +20,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
 
-  const { token } = await request.json();
-  if (typeof token !== "string" || !token) {
-    return NextResponse.json({ error: "Missing invitation token." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, acceptInvitationSchema);
+  if (parsed.error) return parsed.error;
+  const { token } = parsed.data;
 
   try {
     const organizationId = await acceptInvitation(token, {

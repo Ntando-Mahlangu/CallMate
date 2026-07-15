@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import * as companyRepository from "@/lib/repositories/company-repository";
@@ -9,6 +10,14 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
+import { parseJsonBody } from "@/lib/validate-request";
+
+const exportProspectsSchema = z.object({
+  companyIds: z
+    .array(z.string(), { message: "Select at least one prospect to export." })
+    .min(1, "Select at least one prospect to export."),
+  format: z.enum(["csv", "pdf"], { message: "Unsupported export format." }),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -41,13 +50,9 @@ export async function POST(request: NextRequest) {
     throw error;
   }
 
-  const { companyIds, format } = await request.json();
-  if (!Array.isArray(companyIds) || companyIds.length === 0) {
-    return NextResponse.json({ error: "Select at least one prospect to export." }, { status: 400 });
-  }
-  if (format !== "csv" && format !== "pdf") {
-    return NextResponse.json({ error: "Unsupported export format." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, exportProspectsSchema);
+  if (parsed.error) return parsed.error;
+  const { companyIds, format } = parsed.data;
 
   const companies = await companyRepository.findManyByIdsForOrg(organization.id, companyIds);
   if (companies.length === 0) {

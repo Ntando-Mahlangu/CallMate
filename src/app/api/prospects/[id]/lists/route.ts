@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import {
@@ -9,8 +10,13 @@ import {
 } from "@/lib/prospects/lead-lists";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const leadListMembershipSchema = z.object({
+  leadListId: z.string({ message: "Choose a list." }),
+});
 
 export async function GET(
   _request: NextRequest,
@@ -50,10 +56,9 @@ export async function POST(
   }
 
   const { id } = await params;
-  const { leadListId } = await request.json();
-  if (typeof leadListId !== "string") {
-    return NextResponse.json({ error: "Choose a list." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, leadListMembershipSchema);
+  if (parsed.error) return parsed.error;
+  const { leadListId } = parsed.data;
 
   try {
     await addCompanyToLeadList(organization.id, leadListId, id);
@@ -82,10 +87,9 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const { leadListId } = await request.json();
-  if (typeof leadListId !== "string") {
-    return NextResponse.json({ error: "Choose a list." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, leadListMembershipSchema);
+  if (parsed.error) return parsed.error;
+  const { leadListId } = parsed.data;
 
   try {
     await removeCompanyFromLeadList(organization.id, leadListId, id);

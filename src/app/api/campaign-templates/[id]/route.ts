@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import type { CampaignTemplateCategory } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { updateTemplate, deleteTemplate } from "@/lib/campaigns/templates";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const CATEGORIES: CampaignTemplateCategory[] = [
   "COLD_OUTREACH",
@@ -15,6 +17,15 @@ const CATEGORIES: CampaignTemplateCategory[] = [
   "PRODUCT_LAUNCHES",
 ];
 const GENERIC_ERROR = "We couldn't update that template right now. Please try again in a moment.";
+
+const updateCampaignTemplateSchema = z.object({
+  name: z.string({ message: "Give the template a name and objective." }),
+  objective: z.string({ message: "Give the template a name and objective." }),
+  category: z.enum(CATEGORIES as [CampaignTemplateCategory, ...CampaignTemplateCategory[]], {
+    message: "Choose a valid category.",
+  }),
+  abTest: z.unknown().optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -31,18 +42,14 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { name, category, objective, abTest } = await request.json();
-  if (typeof name !== "string" || typeof objective !== "string") {
-    return NextResponse.json({ error: "Give the template a name and objective." }, { status: 400 });
-  }
-  if (typeof category !== "string" || !CATEGORIES.includes(category as CampaignTemplateCategory)) {
-    return NextResponse.json({ error: "Choose a valid category." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, updateCampaignTemplateSchema);
+  if (parsed.error) return parsed.error;
+  const { name, category, objective, abTest } = parsed.data;
 
   try {
     const template = await updateTemplate(organization.id, id, {
       name,
-      category: category as CampaignTemplateCategory,
+      category,
       objective,
       abTest: abTest === true,
     });

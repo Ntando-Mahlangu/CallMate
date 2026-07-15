@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import type { ReviewPeriod } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
@@ -7,10 +8,17 @@ import { generateStrategicReview } from "@/lib/ceo-agent/strategic-review";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const PERIODS: ReviewPeriod[] = ["WEEKLY", "MONTHLY", "QUARTERLY"];
 const GENERIC_ERROR =
   "We couldn't generate that review right now. Please try again in a moment.";
+
+const generateStrategicReviewSchema = z.object({
+  period: z.enum(PERIODS as [ReviewPeriod, ...ReviewPeriod[]], {
+    message: "Choose a valid review period.",
+  }),
+});
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -42,14 +50,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { period } = await request.json();
-  if (typeof period !== "string" || !PERIODS.includes(period as ReviewPeriod)) {
-    return NextResponse.json({ error: "Choose a valid review period." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, generateStrategicReviewSchema);
+  if (parsed.error) return parsed.error;
+  const { period } = parsed.data;
 
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
-    const review = await generateStrategicReview(organization.id, period as ReviewPeriod);
+    const review = await generateStrategicReview(organization.id, period);
     return NextResponse.json({ review });
   } catch (error) {
     if (error instanceof RateLimitError) {

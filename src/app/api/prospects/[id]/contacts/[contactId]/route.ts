@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import * as companyRepository from "@/lib/repositories/company-repository";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const updateContactSchema = z.object({
+  relationshipStatus: z
+    .enum(["NEW", "CONTACTED", "RESPONDED", "QUALIFIED", "CUSTOMER", "LOST"], {
+      message: "Choose a valid relationship status.",
+    })
+    .optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -32,7 +42,9 @@ export async function PATCH(
     return NextResponse.json({ error: "That contact could not be found." }, { status: 404 });
   }
 
-  const { relationshipStatus } = await request.json();
+  const parsed = await parseJsonBody(request, updateContactSchema);
+  if (parsed.error) return parsed.error;
+  const { relationshipStatus } = parsed.data;
 
   try {
     const contact = await prisma.contact.update({

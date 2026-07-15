@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { UsageEventType } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
@@ -13,9 +14,17 @@ import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR =
   "We couldn't complete that search right now. Please try again in a moment.";
+
+const searchProspectsSchema = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(3, "Describe who you're looking for — e.g. \"plumbers in Austin, Texas\"."),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -31,13 +40,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { query } = await request.json();
-  if (typeof query !== "string" || query.trim().length < 3) {
-    return NextResponse.json(
-      { error: "Describe who you're looking for — e.g. \"plumbers in Austin, Texas\"." },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseJsonBody(request, searchProspectsSchema);
+  if (parsed.error) return parsed.error;
+  const { query } = parsed.data;
 
   try {
     await checkRateLimit(
@@ -47,7 +52,7 @@ export async function POST(request: NextRequest) {
     );
     await checkAndRecordUsage(organization.id, UsageEventType.COMPANY_SEARCH);
 
-    const parsedQuery = await parseSearchQuery(query.trim());
+    const parsedQuery = await parseSearchQuery(query);
 
     const provider = getCompanyDataProvider();
     const rawResults = await provider.search(parsedQuery.placesQuery);
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
     await logEvent(
       organization.id,
       EventType.COMPANY_SEARCHED,
-      `Searched "${query.trim()}" — ${companies.length} result${companies.length === 1 ? "" : "s"}.`,
+      `Searched "${query}" — ${companies.length} result${companies.length === 1 ? "" : "s"}.`,
     );
 
     return NextResponse.json({

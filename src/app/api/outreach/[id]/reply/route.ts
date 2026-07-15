@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { setOutreachReplyStatus } from "@/lib/outreach/send";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't update that right now. Please try again in a moment.";
+
+const setReplyStatusSchema = z.object({
+  gotReply: z.boolean({ message: "Missing reply status." }),
+});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -19,10 +25,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const { id } = await params;
-  const { gotReply } = await request.json();
-  if (typeof gotReply !== "boolean") {
-    return NextResponse.json({ error: "Missing reply status." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, setReplyStatusSchema);
+  if (parsed.error) return parsed.error;
+  const { gotReply } = parsed.data;
 
   try {
     const message = await setOutreachReplyStatus(organization.id, id, gotReply);

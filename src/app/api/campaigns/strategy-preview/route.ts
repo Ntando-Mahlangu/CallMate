@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
@@ -8,9 +9,20 @@ import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 import * as companyRepository from "@/lib/repositories/company-repository";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR =
   "We couldn't put together a strategy right now. Please try again in a moment.";
+
+const strategyPreviewSchema = z.object({
+  objective: z
+    .string({ message: "Choose a campaign objective." })
+    .trim()
+    .min(1, "Choose a campaign objective."),
+  companyIds: z
+    .array(z.string(), { message: "Select at least one prospect for this campaign." })
+    .min(1, "Select at least one prospect for this campaign."),
+});
 
 // docs/outrun/07 STEP 3 "AI CAMPAIGN STRATEGY" — a standalone preview
 // call so the user reviews the audience/channel/confidence before any
@@ -27,16 +39,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { objective, companyIds } = await request.json();
-  if (typeof objective !== "string" || !objective.trim()) {
-    return NextResponse.json({ error: "Choose a campaign objective." }, { status: 400 });
-  }
-  if (!Array.isArray(companyIds) || companyIds.length === 0) {
-    return NextResponse.json(
-      { error: "Select at least one prospect for this campaign." },
-      { status: 400 },
-    );
-  }
+  const parsed = await parseJsonBody(request, strategyPreviewSchema);
+  if (parsed.error) return parsed.error;
+  const { objective, companyIds } = parsed.data;
 
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);

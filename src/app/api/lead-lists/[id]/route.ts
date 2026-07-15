@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { renameLeadList, deleteLeadList } from "@/lib/prospects/lead-lists";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const renameLeadListSchema = z.object({
+  name: z.string({ message: "Give the list a name." }),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -22,10 +28,9 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { name } = await request.json();
-  if (typeof name !== "string") {
-    return NextResponse.json({ error: "Give the list a name." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, renameLeadListSchema);
+  if (parsed.error) return parsed.error;
+  const { name } = parsed.data;
 
   try {
     const list = await renameLeadList(organization.id, id, name);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { canManageBilling } from "@/lib/teams/permissions";
@@ -6,8 +7,13 @@ import { requestRefund, getRefundRequestsForOrg } from "@/lib/billing/refunds";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't submit that request right now. Please try again in a moment.";
+
+const refundRequestSchema = z.object({
+  reason: z.string({ message: "Tell us why you're requesting a refund." }),
+});
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -43,10 +49,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { reason } = await request.json();
-  if (typeof reason !== "string") {
-    return NextResponse.json({ error: "Tell us why you're requesting a refund." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, refundRequestSchema);
+  if (parsed.error) return parsed.error;
+  const { reason } = parsed.data;
 
   try {
     await checkRateLimit(

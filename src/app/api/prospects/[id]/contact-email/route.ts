@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import * as companyRepository from "@/lib/repositories/company-repository";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The prior route never hard-failed on a non-string `email` — it silently
+// treated anything but a string as "clear the email" — so this stays
+// permissive here rather than a strict z.string(), matching the pattern for
+// campaigns/route.ts's `strategy` field.
+const updateContactEmailSchema = z.object({
+  email: z.unknown().optional(),
+});
 
 export async function POST(
   request: NextRequest,
@@ -25,7 +35,9 @@ export async function POST(
     return NextResponse.json({ error: "Company not found." }, { status: 404 });
   }
 
-  const { email } = await request.json();
+  const parsed = await parseJsonBody(request, updateContactEmailSchema);
+  if (parsed.error) return parsed.error;
+  const { email } = parsed.data;
   const trimmed = typeof email === "string" ? email.trim() : "";
   if (trimmed && !EMAIL_RE.test(trimmed)) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });

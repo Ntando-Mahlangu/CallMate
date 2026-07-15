@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't update that goal right now. Please try again in a moment.";
 const STATUSES = ["ACTIVE", "COMPLETED", "ABANDONED"] as const;
+
+const updateGoalSchema = z.object({
+  currentValue: z.number().optional(),
+  status: z.enum(STATUSES, { message: "Choose a valid status." }).optional(),
+});
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -25,17 +32,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "That goal could not be found." }, { status: 404 });
   }
 
-  const { currentValue, status } = await request.json();
-  if (status !== undefined && !STATUSES.includes(status)) {
-    return NextResponse.json({ error: "Choose a valid status." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, updateGoalSchema);
+  if (parsed.error) return parsed.error;
+  const { currentValue, status } = parsed.data;
 
   try {
     const goal = await prisma.goal.update({
       where: { id },
       data: {
-        currentValue: typeof currentValue === "number" ? currentValue : undefined,
-        status: status ?? undefined,
+        currentValue,
+        status,
         completedAt: status === "COMPLETED" ? (existing.completedAt ?? new Date()) : existing.completedAt,
       },
     });

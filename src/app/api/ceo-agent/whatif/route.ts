@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { runWhatIfSimulation } from "@/lib/ceo-agent/whatif";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR =
   "We couldn't run that simulation right now. Please try again in a moment.";
+
+const runWhatIfSimulationSchema = z.object({
+  question: z
+    .string({ message: "Ask a what-if question first." })
+    .trim()
+    .min(1, "Ask a what-if question first."),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -20,10 +29,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { question } = await request.json();
-  if (typeof question !== "string" || !question.trim()) {
-    return NextResponse.json({ error: "Ask a what-if question first." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, runWhatIfSimulationSchema);
+  if (parsed.error) return parsed.error;
+  const { question } = parsed.data;
 
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { orgProfileTag } from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
+import { parseJsonBody } from "@/lib/validate-request";
+
+const updateWebsiteSchema = z.object({
+  website: z.string({ message: "Invalid website." }),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -16,10 +22,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
 
-  const { website } = await request.json();
-  if (typeof website !== "string") {
-    return NextResponse.json({ error: "Invalid website." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, updateWebsiteSchema);
+  if (parsed.error) return parsed.error;
+  const { website } = parsed.data;
 
   try {
     new URL(website);

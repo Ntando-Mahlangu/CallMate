@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { RecommendationRating } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { rateRecommendation } from "@/lib/ceo-agent/recommendation-feedback";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't save that right now. Please try again in a moment.";
-const RATINGS = Object.values(RecommendationRating);
+
+const provideFeedbackSchema = z.object({
+  itemId: z.string({ message: "That recommendation could not be found." }),
+  itemTitle: z.string({ message: "That recommendation could not be found." }),
+  rating: z.nativeEnum(RecommendationRating, { message: "Choose a valid rating." }),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -20,13 +27,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { itemId, itemTitle, rating } = await request.json();
-  if (typeof itemId !== "string" || typeof itemTitle !== "string") {
-    return NextResponse.json({ error: "That recommendation could not be found." }, { status: 400 });
-  }
-  if (!RATINGS.includes(rating)) {
-    return NextResponse.json({ error: "Choose a valid rating." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, provideFeedbackSchema);
+  if (parsed.error) return parsed.error;
+  const { itemId, itemTitle, rating } = parsed.data;
 
   try {
     await rateRecommendation(organization.id, itemId, itemTitle, rating);

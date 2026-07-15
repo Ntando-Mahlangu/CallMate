@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't update that task right now. Please try again in a moment.";
-const STATUSES = ["PENDING", "COMPLETED", "DISMISSED"] as const;
+
+const updateTaskSchema = z.object({
+  status: z.enum(["PENDING", "COMPLETED", "DISMISSED"], { message: "Choose a valid status." }),
+  completionNotes: z.string().optional(),
+});
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -20,10 +26,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const { id } = await params;
-  const { status, completionNotes } = await request.json();
-  if (!STATUSES.includes(status)) {
-    return NextResponse.json({ error: "Choose a valid status." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, updateTaskSchema);
+  if (parsed.error) return parsed.error;
+  const { status, completionNotes } = parsed.data;
 
   const existing = await prisma.task.findFirst({ where: { id, organizationId: organization.id } });
   if (!existing) {
@@ -36,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data: {
         status,
         ownerUserId: existing.ownerUserId ?? session.user.id,
-        completionNotes: typeof completionNotes === "string" ? completionNotes : existing.completionNotes,
+        completionNotes: completionNotes ?? existing.completionNotes,
         completedAt: status === "PENDING" ? null : (existing.completedAt ?? new Date()),
       },
     });
@@ -47,7 +52,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // timeline with duplicate entries.
     if (status !== existing.status) {
       if (status === "COMPLETED") {
-        const notes = typeof completionNotes === "string" ? completionNotes.trim() : "";
+        const notes = completionNotes?.trim() ?? "";
         await logEvent(
           organization.id,
           EventType.TASK_COMPLETED,

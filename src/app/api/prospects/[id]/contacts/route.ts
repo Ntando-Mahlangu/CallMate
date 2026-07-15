@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import * as companyRepository from "@/lib/repositories/company-repository";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const createContactSchema = z.object({
+  name: z.string({ message: "Give the contact a name." }).trim().min(1, "Give the contact a name."),
+  role: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+});
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession();
@@ -50,19 +59,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "That prospect could not be found." }, { status: 404 });
   }
 
-  const { name, role, email, phone } = await request.json();
-  if (typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "Give the contact a name." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, createContactSchema);
+  if (parsed.error) return parsed.error;
+  const { name, role, email, phone } = parsed.data;
 
   try {
     const contact = await prisma.contact.create({
       data: {
         companyId: id,
-        name: name.trim(),
-        role: typeof role === "string" && role ? role : null,
-        email: typeof email === "string" && email ? email : null,
-        phone: typeof phone === "string" && phone ? phone : null,
+        name,
+        role: role ? role : null,
+        email: email ? email : null,
+        phone: phone ? phone : null,
       },
     });
     return NextResponse.json({ contact });

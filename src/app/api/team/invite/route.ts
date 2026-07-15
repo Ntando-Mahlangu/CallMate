@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { createInvitation } from "@/lib/teams/invite";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 import type { MembershipRole } from "@prisma/client";
 
-const ROLES: MembershipRole[] = ["ADMIN", "MANAGER", "MEMBER", "VIEWER"];
 const GENERIC_ERROR = "We couldn't send that invitation right now. Please try again in a moment.";
+
+const inviteSchema = z.object({
+  email: z.string({ message: "Enter an email address." }).trim().min(1, "Enter an email address."),
+  role: z.enum(["ADMIN", "MANAGER", "MEMBER", "VIEWER"], { message: "Choose a valid role." }),
+});
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -24,13 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found for this account." }, { status: 404 });
   }
 
-  const { email, role } = await request.json();
-  if (typeof email !== "string" || !email.trim()) {
-    return NextResponse.json({ error: "Enter an email address." }, { status: 400 });
-  }
-  if (typeof role !== "string" || !ROLES.includes(role as MembershipRole)) {
-    return NextResponse.json({ error: "Choose a valid role." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, inviteSchema);
+  if (parsed.error) return parsed.error;
+  const { email, role } = parsed.data;
 
   try {
     const invitation = await createInvitation(

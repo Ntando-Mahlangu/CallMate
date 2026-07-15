@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { UserFacingError } from "@/lib/errors";
 import { captureError } from "@/lib/observability";
+import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't do that right now. Please try again in a moment.";
+
+const createGoalSchema = z.object({
+  title: z.string({ message: "Give the goal a title." }).trim().min(1, "Give the goal a title."),
+  targetMetric: z.string().optional(),
+  targetValue: z.number().optional(),
+  targetDate: z.string().optional(),
+});
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -42,19 +51,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
 
-  const { title, targetMetric, targetValue, targetDate } = await request.json();
-  if (typeof title !== "string" || !title.trim()) {
-    return NextResponse.json({ error: "Give the goal a title." }, { status: 400 });
-  }
+  const parsed = await parseJsonBody(request, createGoalSchema);
+  if (parsed.error) return parsed.error;
+  const { title, targetMetric, targetValue, targetDate } = parsed.data;
 
   try {
     const goal = await prisma.goal.create({
       data: {
         organizationId: organization.id,
-        title: title.trim(),
-        targetMetric: typeof targetMetric === "string" && targetMetric ? targetMetric : null,
-        targetValue: typeof targetValue === "number" ? targetValue : null,
-        targetDate: typeof targetDate === "string" && targetDate ? new Date(targetDate) : null,
+        title,
+        targetMetric: targetMetric || null,
+        targetValue: targetValue ?? null,
+        targetDate: targetDate ? new Date(targetDate) : null,
       },
     });
     await logEvent(organization.id, EventType.GOAL_CREATED, `Created goal "${goal.title}"`);
