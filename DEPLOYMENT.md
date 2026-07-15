@@ -69,6 +69,22 @@ emails the workspace owner via `src/lib/billing/notifications.ts` — this
 needs `RESEND_API_KEY` set to actually deliver; without it, notifications
 log to the server console like every other email in this app.
 
+Paddle itself sits behind a provider abstraction
+(`src/lib/billing/provider/`), mirroring the AI-provider
+(`src/lib/ai/`) and lead-data-provider (`src/lib/leads/`) pattern
+already used elsewhere: a `PaymentProvider` interface with one method to
+verify+parse a webhook into a normalized event and one to build a
+customer-portal URL, a single `PaddlePaymentProvider` implementation,
+and a `getPaymentProvider()` factory business logic calls instead of
+importing the Paddle SDK directly. `src/lib/billing/webhook-handler.ts`
+only ever sees the normalized event shape, not Paddle's own
+`EventEntity`/`EventName` types — swapping processors means writing one
+new class, not touching the plan-tier transition logic. Checkout itself
+stays outside this abstraction (see the comment in
+`src/components/billing/checkout-button.tsx`) since it's a browser-side
+hosted overlay with no server round-trip and no shared shape across
+processors to abstract.
+
 ## 5. Health check
 
 `GET /api/health` returns `200 {"status":"ok"}` when the app can reach the

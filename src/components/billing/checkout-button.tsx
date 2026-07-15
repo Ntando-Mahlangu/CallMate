@@ -1,5 +1,12 @@
 "use client";
 
+// docs/outrun/11 — checkout stays outside the src/lib/billing/provider
+// abstraction: it's a browser-side hosted overlay with no server
+// round-trip, and every processor's checkout UI/SDK is fundamentally
+// different (a redirect vs. an embedded overlay vs. a distinct SDK) — see
+// src/lib/billing/provider/types.ts's header comment for the full
+// reasoning. Swapping processors means swapping this one component.
+
 import { useState } from "react";
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 import { Button } from "@/components/ui/button";

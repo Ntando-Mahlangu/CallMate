@@ -1,4 +1,3 @@
-import { EventName, type EventEntity } from "@paddle/paddle-node-sdk";
 import type { PlanTier } from "@prisma/client";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -6,19 +5,16 @@ import { captureError } from "@/lib/observability";
 import { orgProfileTag } from "@/lib/cache-tags";
 import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
+import type { PaymentEvent, SubscriptionEvent } from "./provider";
 import { notifyBillingEvent } from "./notifications";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
-async function resolveOrganizationId(data: {
-  id: string;
-  customData?: Record<string, unknown> | null;
-}): Promise<string | null> {
-  const fromCustomData = data.customData?.organizationId;
-  if (typeof fromCustomData === "string") return fromCustomData;
+async function resolveOrganizationId(data: SubscriptionEvent): Promise<string | null> {
+  if (data.organizationId) return data.organizationId;
 
   const existing = await prisma.organization.findFirst({
-    where: { paddleSubscriptionId: data.id },
+    where: { paddleSubscriptionId: data.externalSubscriptionId },
     select: { id: true },
   });
   return existing?.id ?? null;
@@ -26,25 +22,18 @@ async function resolveOrganizationId(data: {
 
 /**
  * The ONLY code path that ever changes an Organization's planTier. It only
- * runs after Paddle's signature has been verified by the caller — no
- * client request can reach this (Article XII: never trust the frontend).
+ * runs after the payment provider has verified the webhook's signature
+ * (src/lib/billing/provider) — no client request can reach this (Article
+ * XII: never trust the frontend).
  */
-export async function handlePaddleEvent(event: EventEntity) {
-  switch (event.eventType) {
-    case EventName.SubscriptionCreated:
-    case EventName.SubscriptionActivated:
-    case EventName.SubscriptionTrialing:
-    case EventName.SubscriptionResumed:
-    case EventName.SubscriptionUpdated:
-    case EventName.SubscriptionPastDue:
-    case EventName.SubscriptionPaused:
-    case EventName.SubscriptionCanceled: {
+export async function handlePaymentEvent(event: PaymentEvent) {
+  switch (event.kind) {
+    case "subscription": {
       const organizationId = await resolveOrganizationId(event.data);
       if (!organizationId) {
         captureError(
           "billing.webhook.unresolved-org",
-          new Error(`Could not resolve an organization for subscription ${event.data.id}`),
-          { eventType: event.eventType },
+          new Error(`Could not resolve an organization for subscription ${event.data.externalSubscriptionId}`),
         );
         return;
       }
@@ -60,8 +49,8 @@ export async function handlePaddleEvent(event: EventEntity) {
       await prisma.organization.update({
         where: { id: organizationId },
         data: {
-          paddleCustomerId: event.data.customerId,
-          paddleSubscriptionId: event.data.id,
+          paddleCustomerId: event.data.externalCustomerId,
+          paddleSubscriptionId: event.data.externalSubscriptionId,
           subscriptionStatus: status,
           planTier: newPlanTier,
         },

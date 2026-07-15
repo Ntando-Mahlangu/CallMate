@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaddleClient } from "@/lib/billing/paddle-client";
-import { handlePaddleEvent } from "@/lib/billing/webhook-handler";
+import { getPaymentProvider, isBillingConfigured } from "@/lib/billing/provider";
+import { handlePaymentEvent } from "@/lib/billing/webhook-handler";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("paddle-signature");
-  const secret = process.env.PADDLE_WEBHOOK_SECRET;
 
-  if (!signature || !secret) {
+  if (!isBillingConfigured()) {
     return NextResponse.json({ error: "Webhook not configured." }, { status: 501 });
   }
 
@@ -29,13 +28,12 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text();
 
   try {
-    const paddle = getPaddleClient();
-    const event = await paddle.webhooks.unmarshal(rawBody, secret, signature);
+    const event = await getPaymentProvider().verifyWebhook(rawBody, signature);
     if (!event) {
       return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
     }
 
-    await handlePaddleEvent(event);
+    await handlePaymentEvent(event);
     return NextResponse.json({ received: true });
   } catch (error) {
     captureError("billing.webhook", error);

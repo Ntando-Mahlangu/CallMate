@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { getPaddleClient } from "@/lib/billing/paddle-client";
+import { getPaymentProvider } from "@/lib/billing/provider";
 import { captureError } from "@/lib/observability";
 
 export async function POST() {
@@ -19,12 +19,11 @@ export async function POST() {
   }
 
   try {
-    const paddle = getPaddleClient();
-    const portalSession = await paddle.customerPortalSessions.create(
+    const url = await getPaymentProvider().createCustomerPortalUrl(
       organization.paddleCustomerId,
-      organization.paddleSubscriptionId ? [organization.paddleSubscriptionId] : [],
+      organization.paddleSubscriptionId,
     );
-    return NextResponse.json({ url: portalSession.urls.general.overview });
+    return NextResponse.json({ url });
   } catch (error) {
     captureError("billing.portal", error, { organizationId: organization.id });
     return NextResponse.json(
