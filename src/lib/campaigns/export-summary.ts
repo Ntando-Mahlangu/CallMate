@@ -77,6 +77,12 @@ export function campaignToSummaryMarkdown(
     lines.push("");
     lines.push(message.body);
     lines.push("");
+    if (message.linkedinMessage) {
+      lines.push("**LinkedIn Message:**");
+      lines.push("");
+      lines.push(message.linkedinMessage);
+      lines.push("");
+    }
   }
 
   return lines.join("\n");

@@ -9,12 +9,15 @@ import { createNotification, NotificationType } from "@/lib/notifications/create
 import { generateSecondWow } from "@/lib/onboarding/second-wow";
 import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import type { CampaignStrategyData } from "@/lib/campaigns/strategy-schema";
 
 export type CampaignGenerationPayload = {
   name: string;
   objective: string;
   companyIds: string[];
   abTest?: boolean;
+  strategy?: CampaignStrategyData;
+  audienceSource?: string;
 };
 
 type JobPayloads = {

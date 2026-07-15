@@ -203,6 +203,16 @@ export function CampaignSendPanel({
                 <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
                   {message.body}
                 </p>
+                {message.linkedinMessage && (
+                  <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-3">
+                    <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                      LinkedIn Message
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">
+                      {message.linkedinMessage}
+                    </p>
+                  </div>
+                )}
                 <div className="mt-3 flex items-center gap-2">
                   <Button
                     size="sm"

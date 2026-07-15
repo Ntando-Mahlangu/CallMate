@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { NewCampaignForm } from "@/components/campaigns/new-campaign-form";
 import * as companyRepository from "@/lib/repositories/company-repository";
+import { getLeadListsWithResearchedCompaniesForOrg } from "@/lib/prospects/lead-lists";
+import { isBrandVoice } from "@/lib/org/brand-voice";
 
 export default async function NewCampaignPage({
   searchParams,
@@ -21,9 +23,10 @@ export default async function NewCampaignPage({
   const { templateId } = await searchParams;
   const COMPANY_LIMIT = 200;
 
-  const [companies, researchedCount, template] = await Promise.all([
+  const [companies, researchedCount, leadLists, template] = await Promise.all([
     companyRepository.findResearchedForOrg(organization.id, { take: COMPANY_LIMIT }),
     companyRepository.countResearchedForOrg(organization.id),
+    getLeadListsWithResearchedCompaniesForOrg(organization.id),
     templateId
       ? prisma.campaignTemplate.findFirst({
           where: { id: templateId, organizationId: organization.id },
@@ -56,12 +59,15 @@ export default async function NewCampaignPage({
         <>
           {researchedCount > COMPANY_LIMIT && (
             <p className="text-sm text-[var(--color-text-muted)]">
-              Showing your top {COMPANY_LIMIT} researched prospects by Fit Score, out of{" "}
-              {researchedCount} total. Use a saved list to target a specific subset.
+              Your Manual Selection and Custom Filters tabs show your top {COMPANY_LIMIT} researched
+              prospects by Fit Score, out of {researchedCount} total. Use a Saved List to target a
+              specific subset beyond that.
             </p>
           )}
           <NewCampaignForm
             companies={companies}
+            leadLists={leadLists}
+            brandVoice={isBrandVoice(organization.brandVoice) ? organization.brandVoice : null}
             initialValues={
               template
                 ? { name: template.name, objective: template.objective, abTest: template.abTest }

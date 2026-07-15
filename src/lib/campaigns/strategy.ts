@@ -12,11 +12,20 @@ business — referencing the actual company count and fit scores given to
 you, never generic campaign advice.
 
 Rules:
-- One short paragraph, 2-4 sentences.
+- rationale: one short paragraph, 2-4 sentences.
 - Base confidence on how well the audience matches the business's ideal
   customer profile and how much research is available — not on
   optimism. If the audience is small or the fit is mixed, say so and use
-  Low or Medium confidence.`;
+  Low or Medium confidence.
+- recommendedChannel: choose "Cold Email" or "LinkedIn" — whichever
+  suits this objective and audience better. Outrun can only generate
+  content for these two channels today, so pick one even if a different
+  channel would be ideal in principle.
+- expectedStrengths: 1-3 short, concrete reasons this campaign should
+  work, grounded in the audience/objective given.
+- potentialWeaknesses: 1-3 short, honest risks or limitations — e.g. a
+  small audience, mixed fit scores, or a channel mismatch. Never leave
+  this empty just to sound positive.`;
 
 export async function generateCampaignStrategy(input: {
   objective: string;

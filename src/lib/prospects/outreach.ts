@@ -7,6 +7,20 @@ import * as outreachMessageRepository from "@/lib/repositories/outreach-message-
 import type { CompanyResearchData } from "./research-schema";
 import { outreachSchema, outreachJsonSchema, type OutreachData } from "./outreach-schema";
 
+const LINKEDIN_MESSAGE_MAX_CHARS = 500;
+
+// The model is instructed to stay under docs/outrun/07's 500-character
+// LinkedIn limit, but nothing enforces that at generation time — this is
+// a formatting safeguard (never send an over-length draft), not a
+// content change.
+function enforceLinkedinLength(data: OutreachData): OutreachData {
+  if (data.linkedinMessage.length <= LINKEDIN_MESSAGE_MAX_CHARS) return data;
+  return {
+    ...data,
+    linkedinMessage: `${data.linkedinMessage.slice(0, LINKEDIN_MESSAGE_MAX_CHARS - 1).trimEnd()}…`,
+  };
+}
+
 const SYSTEM_PROMPT = `You are Outrun's AI Outreach engine (docs/outrun/07). Write ONE cold email
 from the requesting business to one specific prospect, using only their
 existing research profile.
@@ -21,7 +35,11 @@ Rules you must follow (non-negotiable):
   thoughtful note a real person would send, not a mass blast.
 - End with a single, low-friction call to action.
 - Explain, in openingRationale, why you chose that specific opening line
-  — referencing the concrete research fact it is based on.`;
+  — referencing the concrete research fact it is based on.
+- linkedinMessage: a separate, shorter draft for LinkedIn (docs/outrun/07
+  "LINKEDIN MESSAGE") — under 500 characters, natural, conversation-first,
+  no hard selling. Not a shortened copy of the email; write it as its own
+  opening message.`;
 
 // docs/outrun/07 "A/B TESTING" — two distinct angles a campaign can split
 // its audience across, so results are genuinely comparable rather than
@@ -77,7 +95,7 @@ export async function generateOutreach(
   }
 
   const ai = getAIProvider();
-  const data = await ai.generateObject<OutreachData>({
+  const rawData = await ai.generateObject<OutreachData>({
     system: variant ? `${SYSTEM_PROMPT}\n\n${VARIANT_INSTRUCTIONS[variant]}` : SYSTEM_PROMPT,
     messages: [
       {
@@ -94,6 +112,7 @@ export async function generateOutreach(
     jsonSchema: outreachJsonSchema,
     toolName: "outreach_message",
   });
+  const data = enforceLinkedinLength(rawData);
 
   const message = await outreachMessageRepository.create({
     companyId: company.id,

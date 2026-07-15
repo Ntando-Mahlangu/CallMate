@@ -11,6 +11,7 @@ import { CampaignSendPanel } from "@/components/campaigns/campaign-send-panel";
 import { AutonomousSendPanel } from "@/components/campaigns/autonomous-send-panel";
 import { CampaignExportPanel } from "@/components/campaigns/campaign-export-panel";
 import { SaveAsTemplateButton } from "@/components/campaigns/save-as-template-button";
+import { CampaignWarningsPanel } from "@/components/campaigns/campaign-warnings-panel";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -91,8 +92,44 @@ export default async function CampaignDetailPage({
           <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
             {campaign.strategyRationale}
           </p>
+          <dl className="mt-3 space-y-1 text-sm">
+            {campaign.strategyChannel && (
+              <div className="flex gap-2">
+                <dt className="text-[var(--color-text-muted)]">Channel:</dt>
+                <dd className="text-[var(--color-text-primary)]">{campaign.strategyChannel}</dd>
+              </div>
+            )}
+            {campaign.audienceSource && (
+              <div className="flex gap-2">
+                <dt className="text-[var(--color-text-muted)]">Audience source:</dt>
+                <dd className="text-[var(--color-text-primary)]">{campaign.audienceSource}</dd>
+              </div>
+            )}
+          </dl>
+          {Array.isArray(campaign.strategyStrengths) && campaign.strategyStrengths.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-[var(--color-text-muted)]">Expected strengths</p>
+              <ul className="mt-1 list-inside list-disc text-sm text-[var(--color-text-secondary)]">
+                {(campaign.strategyStrengths as string[]).map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {Array.isArray(campaign.strategyWeaknesses) && campaign.strategyWeaknesses.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-[var(--color-text-muted)]">Potential weaknesses</p>
+              <ul className="mt-1 list-inside list-disc text-sm text-[var(--color-text-secondary)]">
+                {(campaign.strategyWeaknesses as string[]).map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </Card>
       )}
+
+      <CampaignWarningsPanel messages={campaign.messages} />
 
       {campaign.status === "READY" && (
         <AutonomousSendPanel

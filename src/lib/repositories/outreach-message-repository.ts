@@ -14,6 +14,7 @@ export function create(input: {
       subject: input.data.subject,
       body: input.data.body,
       openingRationale: input.data.openingRationale,
+      linkedinMessage: input.data.linkedinMessage,
       variantLabel: input.variant ?? null,
     },
   });

@@ -47,16 +47,31 @@ export function findAllForOrg(organizationId: string) {
   return prisma.company.findMany({ where: { organizationId } });
 }
 
-export function findResearchedForOrg(
+export async function findResearchedForOrg(
   organizationId: string,
   options: { take?: number } = {},
 ) {
-  return prisma.company.findMany({
+  const companies = await prisma.company.findMany({
     where: { organizationId, research: { not: Prisma.DbNull } },
     orderBy: { fitScore: "desc" },
     take: options.take,
-    select: { id: true, name: true, category: true, fitScore: true, fitReason: true, isSaved: true },
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      fitScore: true,
+      fitReason: true,
+      isSaved: true,
+      rating: true,
+      reviewCount: true,
+      website: true,
+      _count: { select: { outreachMessages: true } },
+    },
   });
+  // docs/outrun/07 STEP 2 "AI Recommended Prospects" needs to know which
+  // companies have never been sent outreach yet — flattened here so
+  // callers don't need to reach into Prisma's _count shape.
+  return companies.map(({ _count, ...c }) => ({ ...c, hasOutreach: _count.outreachMessages > 0 }));
 }
 
 export function countResearchedForOrg(organizationId: string) {

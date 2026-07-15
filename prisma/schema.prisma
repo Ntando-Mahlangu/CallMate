@@ -433,6 +433,12 @@ model OutreachMessage {
   body             String
   openingRationale String
 
+  // docs/outrun/07 "LINKEDIN MESSAGE" — a shorter (<=500 char) draft
+  // generated alongside the email. Text only: there's no LinkedIn API
+  // integration in this app, so it's copied out manually, never sent
+  // automatically (same "standalone draft" pattern as SeoContentPiece).
+  linkedinMessage String?
+
   // A/B testing (docs/outrun/07 "A/B TESTING"): set only when a campaign
   // generates more than one opening/CTA angle. There's no inbound-email
   // integration to detect opens/replies automatically, so gotReply is a
@@ -485,6 +491,20 @@ model Campaign {
 
   strategyRationale  String?
   strategyConfidence String?
+  // docs/outrun/07 STEP 3 "AI CAMPAIGN STRATEGY" — Recommended Channel,
+  // Expected Strengths, Potential Weaknesses, alongside the existing
+  // rationale/confidence. Generated once at the Strategy Review step and
+  // persisted so the campaign detail page can show the same explanation
+  // later rather than re-deriving it.
+  strategyChannel    String?
+  strategyStrengths  Json?
+  strategyWeaknesses Json?
+
+  // docs/outrun/07 STEP 2 "SELECT AUDIENCE" — which audience source tab
+  // (Saved List name, Custom Filters, Manual Selection, AI Recommended)
+  // this campaign's companyIds came from. Display-only, for the Campaign
+  // Preview; never re-derives membership from it.
+  audienceSource String?
 
   // Autonomous Growth Mode (docs/outrun/07), scoped deliberately narrow:
   // only auto-sends messages already generated within this reviewed,

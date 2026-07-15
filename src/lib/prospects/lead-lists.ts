@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
@@ -14,6 +15,43 @@ function validateName(name: string) {
     throw new UserFacingError(`List names must be ${MAX_NAME_LENGTH} characters or fewer.`);
   }
   return trimmed;
+}
+
+/**
+ * docs/outrun/07 STEP 2 "SELECT AUDIENCE" — Saved Lists tab. Only
+ * companies with a research profile are included, since campaign
+ * creation requires research; a list that mixes researched and
+ * unresearched companies just shows a smaller usable count than its
+ * total, rather than blocking on it.
+ */
+export async function getLeadListsWithResearchedCompaniesForOrg(organizationId: string) {
+  const lists = await prisma.leadList.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: "asc" },
+    include: {
+      companies: {
+        where: { company: { research: { not: Prisma.DbNull } } },
+        include: { company: { include: { outreachMessages: { select: { id: true }, take: 1 } } } },
+        orderBy: { addedAt: "desc" },
+      },
+    },
+  });
+  return lists.map((list) => ({
+    id: list.id,
+    name: list.name,
+    companies: list.companies.map(({ company }) => ({
+      id: company.id,
+      name: company.name,
+      category: company.category,
+      fitScore: company.fitScore,
+      fitReason: company.fitReason,
+      isSaved: company.isSaved,
+      rating: company.rating,
+      reviewCount: company.reviewCount,
+      website: company.website,
+      hasOutreach: company.outreachMessages.length > 0,
+    })),
+  }));
 }
 
 export async function getLeadListsForOrg(organizationId: string) {

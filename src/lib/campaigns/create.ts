@@ -4,6 +4,7 @@ import { UserFacingError } from "@/lib/errors";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { generateOutreach } from "@/lib/prospects/outreach";
 import { generateCampaignStrategy } from "./strategy";
+import { type CampaignStrategyData } from "./strategy-schema";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { captureError } from "@/lib/observability";
 import * as campaignRepository from "@/lib/repositories/campaign-repository";
@@ -11,7 +12,18 @@ import * as companyRepository from "@/lib/repositories/company-repository";
 
 export async function createCampaign(
   organizationId: string,
-  input: { name: string; objective: string; companyIds: string[]; abTest?: boolean },
+  input: {
+    name: string;
+    objective: string;
+    companyIds: string[];
+    abTest?: boolean;
+    /** Precomputed at the Strategy Review step (docs/outrun/07 STEP 3) so
+     * launching doesn't silently re-run — and potentially change — the
+     * strategy the user already reviewed. Falls back to generating fresh
+     * if the caller didn't go through that step. */
+    strategy?: CampaignStrategyData;
+    audienceSource?: string;
+  },
 ) {
   const organization = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
@@ -31,16 +43,18 @@ export async function createCampaign(
     );
   }
 
-  const strategy = await generateCampaignStrategy({
-    objective: input.objective,
-    businessDescription: organization.businessProfile.description,
-    idealCustomer: organization.businessProfile.idealCustomer,
-    companies: companies.map((c) => ({
-      name: c.name,
-      category: c.category,
-      fitScore: c.fitScore,
-    })),
-  });
+  const strategy =
+    input.strategy ??
+    (await generateCampaignStrategy({
+      objective: input.objective,
+      businessDescription: organization.businessProfile.description,
+      idealCustomer: organization.businessProfile.idealCustomer,
+      companies: companies.map((c) => ({
+        name: c.name,
+        category: c.category,
+        fitScore: c.fitScore,
+      })),
+    }));
 
   const campaign = await campaignRepository.create({
     organizationId,
@@ -48,6 +62,10 @@ export async function createCampaign(
     objective: input.objective,
     strategyRationale: strategy.rationale,
     strategyConfidence: strategy.confidence,
+    strategyChannel: strategy.recommendedChannel,
+    strategyStrengths: strategy.expectedStrengths,
+    strategyWeaknesses: strategy.potentialWeaknesses,
+    audienceSource: input.audienceSource ?? "Manual Selection",
   });
 
   let generatedCount = 0;

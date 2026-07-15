@@ -6,6 +6,7 @@ import { enqueueJob, runJob } from "@/lib/jobs/queue";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { campaignStrategySchema } from "@/lib/campaigns/strategy-schema";
 
 const GENERIC_ERROR =
   "We couldn't start building this campaign right now. Please try again in a moment.";
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, objective, companyIds, abTest } = await request.json();
+  const { name, objective, companyIds, abTest, strategy, audienceSource } = await request.json();
   if (typeof name !== "string" || !name.trim()) {
     return NextResponse.json({ error: "Give your campaign a name." }, { status: 400 });
   }
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Reviewed at the Strategy Review step (docs/outrun/07 STEP 3) just
+  // before this call — re-validated here rather than trusted outright,
+  // and simply regenerated if missing or malformed.
+  const parsedStrategy = campaignStrategySchema.safeParse(strategy);
+
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
 
@@ -50,6 +56,8 @@ export async function POST(request: NextRequest) {
       objective: objective.trim(),
       companyIds,
       abTest: abTest === true,
+      strategy: parsedStrategy.success ? parsedStrategy.data : undefined,
+      audienceSource: typeof audienceSource === "string" ? audienceSource : undefined,
     });
     after(() => runJob(job.id));
 

@@ -7,6 +7,10 @@ export function create(input: {
   objective: string;
   strategyRationale: string;
   strategyConfidence: string;
+  strategyChannel: string;
+  strategyStrengths: string[];
+  strategyWeaknesses: string[];
+  audienceSource: string;
 }) {
   return prisma.campaign.create({
     data: {
@@ -15,6 +19,10 @@ export function create(input: {
       objective: input.objective,
       strategyRationale: input.strategyRationale,
       strategyConfidence: input.strategyConfidence,
+      strategyChannel: input.strategyChannel,
+      strategyStrengths: input.strategyStrengths,
+      strategyWeaknesses: input.strategyWeaknesses,
+      audienceSource: input.audienceSource,
     },
   });
 }
