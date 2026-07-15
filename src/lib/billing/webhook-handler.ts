@@ -4,6 +4,8 @@ import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
 import { orgProfileTag } from "@/lib/cache-tags";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
+import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 import { notifyBillingEvent } from "./notifications";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -66,6 +68,17 @@ export async function handlePaddleEvent(event: EventEntity) {
       });
       revalidateTag(orgProfileTag(organizationId), "max");
 
+      // docs/outrun/12 "AUDIT LOG" — "Record: Billing Changes." No acting
+      // user here: Paddle's webhook is the only path that ever changes
+      // planTier, so actorUserId is left null (a system-initiated change).
+      if (previous && previous.planTier !== newPlanTier) {
+        await logAuditEvent(organizationId, AuditAction.BILLING_CHANGED, {
+          targetType: "organization",
+          targetId: organizationId,
+          metadata: { fromTier: previous.planTier, toTier: newPlanTier, subscriptionStatus: status },
+        });
+      }
+
       // docs/outrun/14 "BILLING NOTIFICATIONS" — only on a real state
       // transition, so a duplicate/replayed webhook with the same status
       // doesn't send a second email. A status change among active variants
@@ -74,12 +87,40 @@ export async function handlePaddleEvent(event: EventEntity) {
       if (previous && status !== previous.subscriptionStatus) {
         if (status === "canceled") {
           await notifyBillingEvent(organizationId, { type: "canceled" });
+          await createNotification(
+            organizationId,
+            NotificationType.BILLING_EVENT,
+            "Subscription canceled",
+            "Your Outrun subscription was canceled and the workspace has moved to the Free plan.",
+            "/billing",
+          );
         } else if (status === "past_due") {
           await notifyBillingEvent(organizationId, { type: "payment_failed" });
+          await createNotification(
+            organizationId,
+            NotificationType.BILLING_EVENT,
+            "Payment failed",
+            "We couldn't process your latest payment. Update your payment method to avoid losing access.",
+            "/billing",
+          );
         } else if (status === "paused") {
           await notifyBillingEvent(organizationId, { type: "paused" });
+          await createNotification(
+            organizationId,
+            NotificationType.BILLING_EVENT,
+            "Subscription paused",
+            "Your Outrun subscription is currently paused.",
+            "/billing",
+          );
         } else if (ACTIVE_STATUSES.has(status) && previous.planTier !== newPlanTier) {
           await notifyBillingEvent(organizationId, { type: "activated", planTier: newPlanTier });
+          await createNotification(
+            organizationId,
+            NotificationType.BILLING_EVENT,
+            "Plan activated",
+            `Your ${newPlanTier} plan is now active.`,
+            "/billing",
+          );
         }
       }
       return;

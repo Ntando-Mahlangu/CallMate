@@ -1,0 +1,201 @@
+"use client";
+
+import { useState } from "react";
+import type { Task, TaskImpact } from "@prisma/client";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
+import { ImpactBadge } from "@/components/ui/badge";
+
+const IMPACTS: TaskImpact[] = ["High", "Medium", "Low"];
+
+export function TasksPageClient({ initialTasks }: { initialTasks: Task[] }) {
+  const [tasks, setTasks] = useState(initialTasks);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [impact, setImpact] = useState<TaskImpact>("Medium");
+  const [error, setError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const pending = tasks.filter((t) => t.status === "PENDING");
+  const done = tasks.filter((t) => t.status !== "PENDING");
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsAdding(true);
+
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description, impact }),
+    });
+    const body = await res.json();
+    setIsAdding(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "We couldn't add that task.");
+      return;
+    }
+
+    setTasks((prev) => [body.task, ...prev]);
+    setTitle("");
+    setDescription("");
+    setImpact("Medium");
+  }
+
+  async function updateStatus(id: string, status: "COMPLETED" | "DISMISSED" | "PENDING") {
+    setBusyId(id);
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    const body = await res.json();
+    setBusyId(null);
+    if (res.ok) {
+      setTasks((prev) => prev.map((t) => (t.id === id ? body.task : t)));
+    }
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Growth Tasks
+        </h1>
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+          Every roadmap recommendation lives here as a completable task, alongside anything you add
+          yourself.
+        </p>
+      </div>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">Add a task</h2>
+        <form onSubmit={handleAdd} className="space-y-4">
+          <FormError message={error} />
+          <div className="space-y-2">
+            <Label htmlFor="task-title">Title</Label>
+            <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="task-description">Description</Label>
+            <Input
+              id="task-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="task-impact">Impact</Label>
+            <Select
+              id="task-impact"
+              value={impact}
+              onChange={(e) => setImpact(e.target.value as TaskImpact)}
+              className="max-w-40"
+            >
+              {IMPACTS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button type="submit" disabled={isAdding}>
+            {isAdding ? "Adding…" : "Add task"}
+          </Button>
+        </form>
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Pending ({pending.length})
+        </h2>
+        {pending.length === 0 ? (
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Nothing pending — generate a Growth Blueprint to get a full list of recommendations.
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {pending.map((task) => (
+              <li
+                key={task.id}
+                className="border-b border-[var(--color-border)] pb-4 last:border-0 last:pb-0"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-[var(--color-text-primary)]">{task.title}</p>
+                    {task.description && (
+                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                        {task.description}
+                      </p>
+                    )}
+                    {task.effort && (
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                        Estimated effort: {task.effort}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ImpactBadge level={task.impact} label={`${task.impact} impact`} />
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    className="h-9 px-3 text-sm"
+                    disabled={busyId === task.id}
+                    onClick={() => updateStatus(task.id, "COMPLETED")}
+                  >
+                    Mark complete
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="h-9 px-3 text-sm"
+                    disabled={busyId === task.id}
+                    onClick={() => updateStatus(task.id, "DISMISSED")}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {done.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+            Completed &amp; dismissed
+          </h2>
+          <ul className="space-y-3">
+            {done.map((task) => (
+              <li
+                key={task.id}
+                className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3 text-sm last:border-0 last:pb-0"
+              >
+                <span
+                  className={
+                    task.status === "COMPLETED"
+                      ? "text-[var(--color-text-primary)]"
+                      : "text-[var(--color-text-muted)] line-through"
+                  }
+                >
+                  {task.title}
+                </span>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {task.status === "COMPLETED" ? "Completed" : "Dismissed"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
+  );
+}

@@ -230,6 +230,38 @@ through JSON, which turns `Date` fields into strings — both cached
 reads explicitly revive them back into real `Date` instances before
 returning, so callers see identical types to an uncached Prisma call.
 
+## 9d. Audit log, notifications, tasks, goals, contacts
+
+docs/outrun/12 named five core tables that didn't exist yet — each ships
+with a real read/write path, not just an empty schema addition:
+
+- **AuditLog** (`src/lib/audit/log-audit-event.ts`) — a security/admin
+  trail, separate from the Event log's growth timeline. Written at every
+  role change and member removal (`src/lib/teams/invite.ts`), every
+  Paddle plan-tier change (`src/lib/billing/webhook-handler.ts`), and
+  every data export (Blueprint, campaign, strategic review, memory).
+  Viewable at Settings → Team, Owner/Admin only.
+- **Notification** (`src/lib/notifications/create-notification.ts`) —
+  org-scoped (not per-user) in-app notifications, surfaced by the bell in
+  the app top bar. Written when a background job succeeds (Blueprint,
+  SEO analysis, campaign — `src/lib/jobs/queue.ts`), when a Strategic
+  Review finishes, on billing state changes, and when a team member
+  joins.
+- **Task** (`src/lib/tasks/generate-from-blueprint.ts`) — every roadmap
+  item from a freshly generated Growth Blueprint becomes a completable
+  row at `/tasks`; users can also add their own. Deliberately additive to
+  — not a replacement for — the ephemeral single "Today's Mission" on the
+  dashboard (`src/lib/dashboard/mission.ts`), which still answers "what's
+  the one next thing" while Tasks answers "what's the whole list and
+  what's done."
+- **Goal** (`/goals`) — supersedes `BusinessProfile.mainGoal` (a single
+  free-text field) with a real, trackable list. Active goals are read
+  into the Business Brain context (`src/lib/memory/context.ts`) so every
+  CEO Agent response and Strategic Review is generated with them in view.
+- **Contact** (`ContactsPanel` on a prospect's detail page) — a named
+  person at a Company, distinct from `Company.contactEmail` (a generic
+  inbox).
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

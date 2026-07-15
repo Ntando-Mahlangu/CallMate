@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { sendEmail } from "@/lib/email";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
+import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 import { canManageTeam } from "./permissions";
 
 const INVITATION_TTL_DAYS = 7;
@@ -64,6 +66,12 @@ export async function createInvitation(
 
   await sendInvitationEmail(invitation.token, normalizedEmail, organization.name);
   await logEvent(organizationId, EventType.TEAM_MEMBER_INVITED, `Invited ${normalizedEmail} as ${role}`);
+  await logAuditEvent(organizationId, AuditAction.MEMBER_INVITED, {
+    actorUserId: actingUserId,
+    targetType: "invitation",
+    targetId: invitation.id,
+    metadata: { email: normalizedEmail, role },
+  });
 
   return invitation;
 }
@@ -150,6 +158,13 @@ export async function acceptInvitation(token: string, user: { id: string; email:
       data: { userId: user.id, organizationId: invitation.organizationId, role: invitation.role },
     });
     await logEvent(invitation.organizationId, EventType.TEAM_MEMBER_JOINED, `${user.email} joined the workspace`);
+    await createNotification(
+      invitation.organizationId,
+      NotificationType.TEAM_MEMBER_JOINED,
+      "New team member",
+      `${user.email} joined the workspace as ${invitation.role}.`,
+      "/settings/team",
+    );
   }
 
   if (invitation.status !== "ACCEPTED") {
@@ -181,11 +196,18 @@ export async function removeMember(
   }
 
   await prisma.membership.delete({ where: { id: target.id } });
+  await logAuditEvent(organizationId, AuditAction.MEMBER_REMOVED, {
+    actorUserId: actingUserId,
+    targetType: "membership",
+    targetId: target.id,
+    metadata: { removedUserId: target.userId, role: target.role },
+  });
 }
 
 export async function updateMemberRole(
   organizationId: string,
   actingRole: MembershipRole,
+  actingUserId: string,
   targetMembershipId: string,
   newRole: MembershipRole,
 ) {
@@ -205,5 +227,15 @@ export async function updateMemberRole(
     throw new UserFacingError("The workspace owner's role can't be changed.");
   }
 
-  return prisma.membership.update({ where: { id: target.id }, data: { role: newRole } });
+  const updated = await prisma.membership.update({
+    where: { id: target.id },
+    data: { role: newRole },
+  });
+  await logAuditEvent(organizationId, AuditAction.ROLE_CHANGED, {
+    actorUserId: actingUserId,
+    targetType: "membership",
+    targetId: target.id,
+    metadata: { targetUserId: target.userId, fromRole: target.role, toRole: newRole },
+  });
+  return updated;
 }

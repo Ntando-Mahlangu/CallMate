@@ -11,6 +11,8 @@ import { cn } from "@/lib/cn";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Mission Control" },
   { href: "/blueprint", label: "Growth Blueprint" },
+  { href: "/tasks", label: "Tasks" },
+  { href: "/goals", label: "Goals" },
   { href: "/prospects", label: "Prospects" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/seo", label: "SEO" },

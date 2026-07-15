@@ -5,6 +5,7 @@ import { getBusinessContext, formatBusinessContext } from "@/lib/memory/context"
 import { getRisksAndOpportunities } from "./risks";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 import { captureError } from "@/lib/observability";
 import {
   strategicReviewSchema,
@@ -154,6 +155,13 @@ export async function generateStrategicReview(organizationId: string, period: Re
     organizationId,
     EventType.STRATEGIC_REVIEW_GENERATED,
     `Generated a ${period.toLowerCase()} strategic review.`,
+  );
+  await createNotification(
+    organizationId,
+    NotificationType.STRATEGIC_REVIEW_READY,
+    "Strategic Review ready",
+    `Your ${period.toLowerCase()} strategic review has finished generating.`,
+    "/ceo-agent/reviews",
   );
 
   return review;

@@ -6,6 +6,7 @@ import { campaignToSummaryMarkdown } from "@/lib/campaigns/export-summary";
 import { campaignToCallScriptsMarkdown } from "@/lib/campaigns/export-call-scripts";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 
 export async function GET(
   request: NextRequest,
@@ -46,6 +47,13 @@ export async function GET(
   }
 
   const filenameBase = `${campaign.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+
+  await logAuditEvent(organization.id, AuditAction.DATA_EXPORTED, {
+    actorUserId: session.user.id,
+    targetType: "campaign",
+    targetId: campaign.id,
+    metadata: { format },
+  });
 
   if (format === "call-scripts") {
     const companies = Array.from(

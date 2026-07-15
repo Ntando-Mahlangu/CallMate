@@ -4,6 +4,7 @@ import { getCurrentOrganization, getUserMemberships } from "@/lib/org";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { WorkspaceSwitcher } from "@/components/team/workspace-switcher";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
               activeOrgId={organization.id}
             />
           )}
+          {organization && <NotificationBell />}
           <span className="text-sm text-[var(--color-text-secondary)]">
             {session.user.name}
           </span>

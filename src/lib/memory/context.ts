@@ -12,7 +12,7 @@ import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
  * feature that needs cross-cutting context reads through this one place.
  */
 export async function getBusinessContext(organizationId: string) {
-  const [organization, latestBlueprint, campaigns, companyStats, recentEvents] =
+  const [organization, latestBlueprint, campaigns, companyStats, recentEvents, activeGoals] =
     await Promise.all([
       prisma.organization.findUniqueOrThrow({
         where: { id: organizationId },
@@ -26,6 +26,10 @@ export async function getBusinessContext(organizationId: string) {
         orderBy: { createdAt: "desc" },
         take: 15,
       }),
+      prisma.goal.findMany({
+        where: { organizationId, status: "ACTIVE" },
+        orderBy: { createdAt: "asc" },
+      }),
     ]);
 
   const researchedCount = await companyRepository.countResearchedForOrg(organizationId);
@@ -37,6 +41,7 @@ export async function getBusinessContext(organizationId: string) {
     campaigns,
     companyStats: { total: companyStats._count.id, researched: researchedCount },
     recentEvents,
+    activeGoals,
   };
 }
 
@@ -78,6 +83,21 @@ export function formatBusinessContext(context: BusinessContext): string {
   lines.push(
     `Prospects: ${context.companyStats.total} found, ${context.companyStats.researched} researched.`,
   );
+
+  // docs/outrun/10 "GOAL MANAGEMENT" — "Every recommendation should align
+  // with active goals. Never recommend actions unrelated to the user's
+  // objectives."
+  if (context.activeGoals.length > 0) {
+    lines.push(
+      `Active goals (align every recommendation with these): ${context.activeGoals
+        .map((g) =>
+          g.targetMetric && g.targetValue != null
+            ? `${g.title} (${g.currentValue ?? 0}/${g.targetValue} ${g.targetMetric})`
+            : g.title,
+        )
+        .join("; ")}`,
+    );
+  }
 
   if (context.recentEvents.length > 0) {
     lines.push("Recent activity:");

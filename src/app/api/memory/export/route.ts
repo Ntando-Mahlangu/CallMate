@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import * as companyRepository from "@/lib/repositories/company-repository";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 
 // docs/outrun/08 Privacy — "Allow users to view, edit, delete, export memory."
 export async function GET() {
@@ -57,6 +58,12 @@ export async function GET() {
     companies,
     events,
   };
+
+  await logAuditEvent(organization.id, AuditAction.DATA_EXPORTED, {
+    actorUserId: session.user.id,
+    targetType: "business_memory",
+    targetId: organization.id,
+  });
 
   return new NextResponse(JSON.stringify(exportData, null, 2), {
     headers: {

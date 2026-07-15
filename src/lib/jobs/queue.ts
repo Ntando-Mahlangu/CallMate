@@ -4,6 +4,8 @@ import { captureError } from "@/lib/observability";
 import { generateGrowthBlueprint } from "@/lib/growth-blueprint/generate";
 import { analyzeSEO } from "@/lib/seo/analyze";
 import { createCampaign } from "@/lib/campaigns/create";
+import { createTasksFromBlueprint } from "@/lib/tasks/generate-from-blueprint";
+import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 
 export type CampaignGenerationPayload = {
   name: string;
@@ -38,15 +40,37 @@ async function runHandler(job: Job): Promise<string | null> {
   switch (job.type) {
     case "BLUEPRINT_GENERATION": {
       const blueprint = await generateGrowthBlueprint(job.organizationId);
+      await createTasksFromBlueprint(blueprint);
+      await createNotification(
+        job.organizationId,
+        NotificationType.BLUEPRINT_READY,
+        "Growth Blueprint ready",
+        `Version ${blueprint.version} of your Growth Blueprint has finished generating.`,
+        "/blueprint",
+      );
       return blueprint.id;
     }
     case "SEO_ANALYSIS": {
       const analysis = await analyzeSEO(job.organizationId);
+      await createNotification(
+        job.organizationId,
+        NotificationType.SEO_ANALYSIS_READY,
+        "SEO analysis ready",
+        "Your website's SEO analysis has finished.",
+        "/seo",
+      );
       return analysis.id;
     }
     case "CAMPAIGN_GENERATION": {
       const payload = job.payload as unknown as CampaignGenerationPayload;
       const result = await createCampaign(job.organizationId, payload);
+      await createNotification(
+        job.organizationId,
+        NotificationType.CAMPAIGN_FINISHED,
+        "Campaign ready",
+        `"${payload.name}" has finished generating.`,
+        `/campaigns/${result.campaignId}`,
+      );
       return result.campaignId;
     }
   }

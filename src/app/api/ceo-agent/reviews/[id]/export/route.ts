@@ -6,6 +6,7 @@ import { strategicReviewToPdfBuffer } from "@/lib/ceo-agent/strategic-review-pdf
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 
 export async function GET(
   request: NextRequest,
@@ -41,6 +42,13 @@ export async function GET(
   if (!review) {
     return NextResponse.json({ error: "That review could not be found." }, { status: 404 });
   }
+
+  await logAuditEvent(organization.id, AuditAction.DATA_EXPORTED, {
+    actorUserId: session.user.id,
+    targetType: "strategic_review",
+    targetId: review.id,
+    metadata: { period: review.period },
+  });
 
   try {
     const buffer = await strategicReviewToPdfBuffer(organization.name, review);

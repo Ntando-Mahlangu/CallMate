@@ -60,7 +60,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    const updated = await updateMemberRole(organization.id, membership.role, id, role as MembershipRole);
+    const updated = await updateMemberRole(
+      organization.id,
+      membership.role,
+      session.user.id,
+      id,
+      role as MembershipRole,
+    );
     return NextResponse.json({ member: updated });
   } catch (error) {
     if (error instanceof UserFacingError) {

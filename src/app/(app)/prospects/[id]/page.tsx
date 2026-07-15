@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { isEmailSendingConfigured } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
 import * as companyRepository from "@/lib/repositories/company-repository";
 import { Card } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/prospects/score-badge";
@@ -10,6 +11,7 @@ import { ResearchPanel } from "@/components/prospects/research-panel";
 import { OutreachPanel } from "@/components/prospects/outreach-panel";
 import { CallScriptPanel } from "@/components/prospects/call-script-panel";
 import { AddToListMenu } from "@/components/prospects/add-to-list-menu";
+import { ContactsPanel } from "@/components/prospects/contacts-panel";
 import type { CompanyResearchData } from "@/lib/prospects/research-schema";
 import type { CallScriptData } from "@/lib/prospects/call-script-schema";
 
@@ -27,6 +29,11 @@ export default async function ProspectDetailPage({
   const { id } = await params;
   const company = await companyRepository.findByIdForOrgWithMessages(organization.id, id);
   if (!company) notFound();
+
+  const contacts = await prisma.contact.findMany({
+    where: { companyId: id },
+    orderBy: { createdAt: "asc" },
+  });
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -64,6 +71,11 @@ export default async function ProspectDetailPage({
           />
         </div>
       </div>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">Contacts</h2>
+        <ContactsPanel companyId={company.id} initialContacts={contacts} />
+      </Card>
 
       <Card>
         <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">

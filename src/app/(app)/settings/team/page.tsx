@@ -3,6 +3,9 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { TeamPageClient } from "@/components/team/team-page-client";
+import { AuditLogSection } from "@/components/team/audit-log-section";
+
+const AUDIT_LOG_LIMIT = 50;
 
 export default async function TeamSettingsPage() {
   const session = await getCurrentSession();
@@ -14,7 +17,9 @@ export default async function TeamSettingsPage() {
   const membership = await getMembershipFor(session.user.id, organization.id);
   if (!membership) redirect("/sign-in");
 
-  const [members, invitations] = await Promise.all([
+  const canManage = membership.role === "OWNER" || membership.role === "ADMIN";
+
+  const [members, invitations, auditLogEntries] = await Promise.all([
     prisma.membership.findMany({
       where: { organizationId: organization.id },
       include: { user: { select: { id: true, name: true, email: true } } },
@@ -24,14 +29,26 @@ export default async function TeamSettingsPage() {
       where: { organizationId: organization.id, status: "PENDING" },
       orderBy: { createdAt: "desc" },
     }),
+    canManage
+      ? prisma.auditLog.findMany({
+          where: { organizationId: organization.id },
+          orderBy: { createdAt: "desc" },
+          take: AUDIT_LOG_LIMIT,
+        })
+      : Promise.resolve([]),
   ]);
 
+  const actorNames = new Map(members.map((m) => [m.userId, m.user.name]));
+
   return (
-    <TeamPageClient
-      currentUserId={session.user.id}
-      canManage={membership.role === "OWNER" || membership.role === "ADMIN"}
-      members={members}
-      invitations={invitations}
-    />
+    <div className="space-y-8">
+      <TeamPageClient
+        currentUserId={session.user.id}
+        canManage={canManage}
+        members={members}
+        invitations={invitations}
+      />
+      {canManage && <AuditLogSection entries={auditLogEntries} actorNames={actorNames} />}
+    </div>
   );
 }

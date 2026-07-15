@@ -166,6 +166,10 @@ model Organization {
   strategicReviews StrategicReview[]
   campaignTemplates CampaignTemplate[]
   jobs             Job[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  tasks            Task[]
+  goals            Goal[]
 
   @@map("organization")
 }
@@ -332,6 +336,7 @@ model Company {
 
   outreachMessages OutreachMessage[]
   leadListEntries  LeadListCompany[]
+  contacts         Contact[]
 
   @@unique([organizationId, source, sourceId])
   @@map("company")
@@ -572,6 +577,8 @@ enum EventType {
   DECISION_REQUESTED
   AUTONOMOUS_SEND_RUN
   STRATEGIC_REVIEW_GENERATED
+  GOAL_CREATED
+  GOAL_ACHIEVED
 }
 
 enum ReviewPeriod {
@@ -741,4 +748,191 @@ model AppRateLimitBucket {
 
   @@id([key, windowStart])
   @@map("app_rate_limit_bucket")
+}
+
+// docs/outrun/12 "AUDIT LOG" — "Record: Logins, Role Changes, Billing
+// Changes, Workspace Invites, Data Exports, Integration Changes, Security
+// Events. Never allow silent administrative actions." Deliberately a
+// separate model from Event/EventType (the Business Brain's growth
+// timeline in src/lib/memory/log-event.ts) — that log tracks growth
+// activity for the AI to reason about; this one tracks who-did-what for
+// security/accountability, and is never fed into an AI prompt.
+enum AuditAction {
+  ROLE_CHANGED
+  MEMBER_REMOVED
+  MEMBER_INVITED
+  BILLING_CHANGED
+  DATA_EXPORTED
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Null for system-initiated actions (e.g. a Paddle webhook changing plan
+  // tier) — there's no acting user to attribute it to.
+  actorUserId String?
+
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("audit_log")
+}
+
+// docs/outrun/04 "NOTIFICATIONS" — "Campaign finished. Reply received.
+// Growth Review ready. New opportunity discovered." / "Never notify users
+// for trivial events." Org-scoped (not per-user) since Outrun workspaces
+// are small teams where everyone should see the same growth-relevant
+// events; a per-recipient read receipt would be overkill for V1's scope.
+enum NotificationType {
+  BLUEPRINT_READY
+  CAMPAIGN_FINISHED
+  SEO_ANALYSIS_READY
+  STRATEGIC_REVIEW_READY
+  BILLING_EVENT
+  TEAM_MEMBER_JOINED
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type  NotificationType
+  title String
+  body  String
+  link  String?
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("notification")
+}
+
+// docs/outrun/12 "TASK MODEL" — "Every recommendation becomes an optional
+// task." / docs/outrun/10 "AI COACH" — "After every completed task:
+// celebrate progress... recommend the next action." Generated automatically
+// from a new Growth Blueprint's roadmap (src/lib/growth-blueprint/generate.ts)
+// so recommendations become durable and completable, not just the single
+// ephemeral "Today's Mission" derived at render time
+// (src/lib/dashboard/mission.ts, kept as-is — it answers "what's the one
+// next thing", this answers "what's the whole list and what's done").
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  DISMISSED
+}
+
+enum TaskImpact {
+  High
+  Medium
+  Low
+}
+
+model Task {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  impact      TaskImpact
+  effort      String?
+  status      TaskStatus @default(PENDING)
+
+  ownerUserId String?
+  dueDate     DateTime?
+
+  // Which Blueprint version this was generated from, if any — null for a
+  // manually-added task.
+  sourceBlueprintVersion Int?
+  completionNotes        String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([organizationId, status, createdAt])
+  @@map("task")
+}
+
+// docs/outrun/10 "GOAL MANAGEMENT" — "Users define goals... Every
+// recommendation should align with active goals." Supersedes
+// BusinessProfile.mainGoal (a single free-text field set once at
+// onboarding) with a real, trackable, multi-goal list that feeds into
+// Business Brain context (src/lib/memory/context.ts) for the CEO Agent
+// and future recommendation generation.
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+model Goal {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title        String
+  targetMetric String?
+  targetValue  Float?
+  currentValue Float?
+  targetDate   DateTime?
+  status       GoalStatus @default(ACTIVE)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([organizationId, status])
+  @@map("goal")
+}
+
+// docs/outrun/12 "CONTACT MODEL" — a named person at a prospected Company,
+// distinct from Company.contactEmail (a generic inbox, not a person).
+enum ContactVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  BOUNCED
+}
+
+enum ContactRelationshipStatus {
+  NEW
+  CONTACTED
+  RESPONDED
+  QUALIFIED
+  CUSTOMER
+  LOST
+}
+
+model Contact {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name  String
+  role  String?
+  email String?
+  phone String?
+
+  verificationStatus ContactVerificationStatus @default(UNVERIFIED)
+  relationshipStatus ContactRelationshipStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("contact")
 }

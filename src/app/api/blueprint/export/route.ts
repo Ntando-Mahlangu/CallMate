@@ -7,6 +7,7 @@ import { blueprintToPdfBuffer } from "@/lib/growth-blueprint/export-pdf";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
+import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 
 export async function GET(request: NextRequest) {
   const session = await getCurrentSession();
@@ -47,6 +48,13 @@ export async function GET(request: NextRequest) {
   }
 
   const filenameBase = `${organization.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-blueprint-v${blueprint.version}`;
+
+  await logAuditEvent(organization.id, AuditAction.DATA_EXPORTED, {
+    actorUserId: session.user.id,
+    targetType: "growth_blueprint",
+    targetId: blueprint.id,
+    metadata: { format, version: blueprint.version },
+  });
 
   if (format === "pdf") {
     try {
