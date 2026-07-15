@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 export async function POST(
   request: NextRequest,
@@ -21,17 +21,12 @@ export async function POST(
   }
 
   const { id } = await params;
-  const company = await prisma.company.findFirst({
-    where: { id, organizationId: organization.id },
-  });
+  const company = await companyRepository.findByIdForOrg(organization.id, id);
   if (!company) {
     return NextResponse.json({ error: "Company not found." }, { status: 404 });
   }
 
-  const updated = await prisma.company.update({
-    where: { id: company.id },
-    data: { isSaved: !company.isSaved },
-  });
+  const updated = await companyRepository.setSaved(company.id, !company.isSaved);
 
   return NextResponse.json({ isSaved: updated.isSaved });
 }

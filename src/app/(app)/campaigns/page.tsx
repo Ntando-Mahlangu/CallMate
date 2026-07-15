@@ -2,12 +2,12 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { analyzeOutreachPatterns } from "@/lib/campaigns/improvement-loop";
+import * as campaignRepository from "@/lib/repositories/campaign-repository";
 import { ImprovementLoopPanel } from "@/components/campaigns/improvement-loop-panel";
 
 const STATUS_TONE = {
@@ -34,14 +34,11 @@ export default async function CampaignsPage({
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
 
   const [campaigns, totalCount, improvementLoopResult] = await Promise.all([
-    prisma.campaign.findMany({
-      where: { organizationId: organization.id },
-      orderBy: { createdAt: "desc" },
-      include: { _count: { select: { messages: true } } },
+    campaignRepository.findManyByOrgPaginated(organization.id, {
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
-    prisma.campaign.count({ where: { organizationId: organization.id } }),
+    campaignRepository.countForOrg(organization.id),
     analyzeOutreachPatterns(organization.id),
   ]);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

@@ -2,8 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
 import { isEmailSendingConfigured } from "@/lib/email";
+import * as companyRepository from "@/lib/repositories/company-repository";
 import { Card } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/prospects/score-badge";
 import { ResearchPanel } from "@/components/prospects/research-panel";
@@ -25,10 +25,7 @@ export default async function ProspectDetailPage({
   if (!organization) redirect("/sign-in");
 
   const { id } = await params;
-  const company = await prisma.company.findFirst({
-    where: { id, organizationId: organization.id },
-    include: { outreachMessages: { orderBy: { createdAt: "desc" } } },
-  });
+  const company = await companyRepository.findByIdForOrgWithMessages(organization.id, id);
   if (!company) notFound();
 
   return (

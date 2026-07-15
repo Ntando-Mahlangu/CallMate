@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { UsageEventType } from "@prisma/client";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
 import { getCompanyDataProvider } from "@/lib/leads";
 import { scoreCompany } from "@/lib/leads/scoring";
+import * as companyRepository from "@/lib/repositories/company-repository";
+import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
@@ -48,55 +49,14 @@ export async function POST(request: NextRequest) {
     const provider = getCompanyDataProvider();
     const results = await provider.search(query.trim());
 
-    const latestBlueprint = await prisma.growthBlueprint.findFirst({
-      where: { organizationId: organization.id },
-      orderBy: { version: "desc" },
-      select: { idealCustomerProfile: true },
-    });
+    const latestBlueprint = await growthBlueprintRepository.findLatestIcpForOrg(organization.id);
     const icp = (latestBlueprint?.idealCustomerProfile ??
       null) as GrowthBlueprintData["idealCustomerProfile"] | null;
 
     const companies = await Promise.all(
       results.map((result) => {
         const score = scoreCompany(result, icp);
-        return prisma.company.upsert({
-          where: {
-            organizationId_source_sourceId: {
-              organizationId: organization.id,
-              source: result.source,
-              sourceId: result.sourceId,
-            },
-          },
-          create: {
-            organizationId: organization.id,
-            source: result.source,
-            sourceId: result.sourceId,
-            name: result.name,
-            category: result.category,
-            website: result.website,
-            phone: result.phone,
-            formattedAddress: result.formattedAddress,
-            rating: result.rating,
-            reviewCount: result.reviewCount,
-            fitScore: score.fitScore,
-            fitReason: score.fitReason,
-            confidenceScore: score.confidenceScore,
-            confidenceReason: score.confidenceReason,
-          },
-          update: {
-            name: result.name,
-            category: result.category,
-            website: result.website,
-            phone: result.phone,
-            formattedAddress: result.formattedAddress,
-            rating: result.rating,
-            reviewCount: result.reviewCount,
-            fitScore: score.fitScore,
-            fitReason: score.fitReason,
-            confidenceScore: score.confidenceScore,
-            confidenceReason: score.confidenceReason,
-          },
-        });
+        return companyRepository.upsertFromSearchResult(organization.id, result, score);
       }),
     );
 

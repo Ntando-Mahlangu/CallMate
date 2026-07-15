@@ -1,4 +1,4 @@
-import { Prisma, UsageEventType } from "@prisma/client";
+import { UsageEventType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { checkAndRecordUsage } from "@/lib/billing/usage";
@@ -6,6 +6,8 @@ import { generateOutreach } from "@/lib/prospects/outreach";
 import { generateCampaignStrategy } from "./strategy";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { captureError } from "@/lib/observability";
+import * as campaignRepository from "@/lib/repositories/campaign-repository";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 export async function createCampaign(
   organizationId: string,
@@ -19,13 +21,10 @@ export async function createCampaign(
     throw new UserFacingError("Finish Business Discovery before launching a campaign.");
   }
 
-  const companies = await prisma.company.findMany({
-    where: {
-      id: { in: input.companyIds },
-      organizationId,
-      research: { not: Prisma.DbNull },
-    },
-  });
+  const companies = await companyRepository.findManyByIdsForOrgWithResearch(
+    organizationId,
+    input.companyIds,
+  );
   if (companies.length === 0) {
     throw new UserFacingError(
       "Select at least one researched prospect to build a campaign around.",
@@ -43,14 +42,12 @@ export async function createCampaign(
     })),
   });
 
-  const campaign = await prisma.campaign.create({
-    data: {
-      organizationId,
-      name: input.name,
-      objective: input.objective,
-      strategyRationale: strategy.rationale,
-      strategyConfidence: strategy.confidence,
-    },
+  const campaign = await campaignRepository.create({
+    organizationId,
+    name: input.name,
+    objective: input.objective,
+    strategyRationale: strategy.rationale,
+    strategyConfidence: strategy.confidence,
   });
 
   let generatedCount = 0;
@@ -79,10 +76,7 @@ export async function createCampaign(
     }
   }
 
-  await prisma.campaign.update({
-    where: { id: campaign.id },
-    data: { status: generatedCount > 0 ? "READY" : "DRAFT" },
-  });
+  await campaignRepository.updateStatus(campaign.id, generatedCount > 0 ? "READY" : "DRAFT");
 
   await logEvent(
     organizationId,

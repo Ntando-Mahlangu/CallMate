@@ -1,5 +1,7 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import * as campaignRepository from "@/lib/repositories/campaign-repository";
+import * as companyRepository from "@/lib/repositories/company-repository";
+import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 /**
@@ -16,20 +18,9 @@ export async function getBusinessContext(organizationId: string) {
         where: { id: organizationId },
         include: { businessProfile: true },
       }),
-      prisma.growthBlueprint.findFirst({
-        where: { organizationId },
-        orderBy: { version: "desc" },
-      }),
-      prisma.campaign.findMany({
-        where: { organizationId },
-        select: { name: true, objective: true, status: true, _count: { select: { messages: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      prisma.company.aggregate({
-        where: { organizationId },
-        _count: { id: true },
-      }),
+      growthBlueprintRepository.findLatestForOrg(organizationId),
+      campaignRepository.findRecentForOrg(organizationId, 5),
+      companyRepository.countForOrg(organizationId),
       prisma.event.findMany({
         where: { organizationId },
         orderBy: { createdAt: "desc" },
@@ -37,9 +28,7 @@ export async function getBusinessContext(organizationId: string) {
       }),
     ]);
 
-  const researchedCount = await prisma.company.count({
-    where: { organizationId, research: { not: Prisma.DbNull } },
-  });
+  const researchedCount = await companyRepository.countResearchedForOrg(organizationId);
 
   return {
     organization,

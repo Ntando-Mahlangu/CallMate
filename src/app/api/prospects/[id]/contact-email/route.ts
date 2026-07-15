@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { prisma } from "@/lib/prisma";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -20,9 +20,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const company = await prisma.company.findFirst({
-    where: { id, organizationId: organization.id },
-  });
+  const company = await companyRepository.findByIdForOrg(organization.id, id);
   if (!company) {
     return NextResponse.json({ error: "Company not found." }, { status: 404 });
   }
@@ -33,10 +31,7 @@ export async function POST(
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
 
-  const updated = await prisma.company.update({
-    where: { id: company.id },
-    data: { contactEmail: trimmed || null },
-  });
+  const updated = await companyRepository.updateContactEmail(company.id, trimmed || null);
 
   return NextResponse.json({ contactEmail: updated.contactEmail });
 }

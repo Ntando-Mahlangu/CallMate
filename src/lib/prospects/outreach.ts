@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import * as companyRepository from "@/lib/repositories/company-repository";
+import * as outreachMessageRepository from "@/lib/repositories/outreach-message-repository";
 import type { CompanyResearchData } from "./research-schema";
 import { outreachSchema, outreachJsonSchema, type OutreachData } from "./outreach-schema";
 
@@ -58,9 +60,7 @@ export async function generateOutreach(
   campaignId?: string,
   variant?: "A" | "B",
 ) {
-  const company = await prisma.company.findFirst({
-    where: { id: companyId, organizationId },
-  });
+  const company = await companyRepository.findByIdForOrg(organizationId, companyId);
   if (!company) {
     throw new UserFacingError("That prospect could not be found.");
   }
@@ -95,15 +95,11 @@ export async function generateOutreach(
     toolName: "outreach_message",
   });
 
-  const message = await prisma.outreachMessage.create({
-    data: {
-      companyId: company.id,
-      campaignId,
-      subject: data.subject,
-      body: data.body,
-      openingRationale: data.openingRationale,
-      variantLabel: variant ?? null,
-    },
+  const message = await outreachMessageRepository.create({
+    companyId: company.id,
+    campaignId,
+    data,
+    variant,
   });
 
   await logEvent(

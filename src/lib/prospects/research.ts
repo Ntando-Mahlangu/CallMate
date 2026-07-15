@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import * as companyRepository from "@/lib/repositories/company-repository";
 import {
   companyResearchSchema,
   companyResearchJsonSchema,
@@ -54,9 +55,7 @@ function buildUserMessage(input: {
 }
 
 export async function researchCompany(companyId: string, organizationId: string) {
-  const company = await prisma.company.findFirst({
-    where: { id: companyId, organizationId },
-  });
+  const company = await companyRepository.findByIdForOrg(organizationId, companyId);
   if (!company) {
     throw new UserFacingError("That prospect could not be found.");
   }
@@ -93,10 +92,7 @@ export async function researchCompany(companyId: string, organizationId: string)
     toolName: "company_research",
   });
 
-  const updated = await prisma.company.update({
-    where: { id: company.id },
-    data: { research: data },
-  });
+  const updated = await companyRepository.updateResearch(company.id, data);
 
   await logEvent(
     organizationId,

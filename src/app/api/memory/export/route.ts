@@ -4,6 +4,7 @@ import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 // docs/outrun/08 Privacy — "Allow users to view, edit, delete, export memory."
 export async function GET() {
@@ -37,7 +38,7 @@ export async function GET() {
       where: { organizationId: organization.id },
       include: { messages: true },
     }),
-    prisma.company.findMany({ where: { organizationId: organization.id } }),
+    companyRepository.findAllForOrg(organization.id),
     prisma.event.findMany({ where: { organizationId: organization.id } }),
   ]);
 

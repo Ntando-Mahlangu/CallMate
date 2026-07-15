@@ -3,9 +3,9 @@ import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { Card } from "@/components/ui/card";
 import { NewCampaignForm } from "@/components/campaigns/new-campaign-form";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 export default async function NewCampaignPage({
   searchParams,
@@ -22,15 +22,8 @@ export default async function NewCampaignPage({
   const COMPANY_LIMIT = 200;
 
   const [companies, researchedCount, template] = await Promise.all([
-    prisma.company.findMany({
-      where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
-      orderBy: { fitScore: "desc" },
-      take: COMPANY_LIMIT,
-      select: { id: true, name: true, category: true, fitScore: true, fitReason: true, isSaved: true },
-    }),
-    prisma.company.count({
-      where: { organizationId: organization.id, research: { not: Prisma.DbNull } },
-    }),
+    companyRepository.findResearchedForOrg(organization.id, { take: COMPANY_LIMIT }),
+    companyRepository.countResearchedForOrg(organization.id),
     templateId
       ? prisma.campaignTemplate.findFirst({
           where: { id: templateId, organizationId: organization.id },

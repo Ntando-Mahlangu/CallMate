@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import * as companyRepository from "@/lib/repositories/company-repository";
 
 const MAX_NAME_LENGTH = 60;
 
@@ -99,7 +100,7 @@ export async function addCompanyToLeadList(
 ) {
   const [list, company] = await Promise.all([
     prisma.leadList.findFirst({ where: { id: leadListId, organizationId } }),
-    prisma.company.findFirst({ where: { id: companyId, organizationId } }),
+    companyRepository.findByIdForOrg(organizationId, companyId),
   ]);
   if (!list) throw new UserFacingError("That list could not be found.");
   if (!company) throw new UserFacingError("That prospect could not be found.");
