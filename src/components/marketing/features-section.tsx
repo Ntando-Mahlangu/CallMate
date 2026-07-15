@@ -1,8 +1,5 @@
 import { Card } from "@/components/ui/card";
 
-// Only features that exist and work today — doc 02 lists a few more
-// (Campaign Builder, Weekly Growth Reviews) that aren't built yet, and a
-// marketing page shouldn't promise those (Article XIII "Honest Marketing").
 const FEATURES = [
   {
     title: "AI Growth Blueprint",
@@ -20,21 +17,25 @@ const FEATURES = [
     title: "AI Outreach",
     body: "Generate a personalized first message from that research, with the reasoning behind every opening line.",
   },
+  {
+    title: "Campaign Builder",
+    body: "Turn a list of researched prospects into a ready-to-send campaign, with follow-ups sequenced automatically.",
+  },
+  {
+    title: "Weekly Growth Reviews",
+    body: "A recurring strategic review of what changed, what worked, and what to prioritize next.",
+  },
 ];
 
 export function FeaturesSection() {
   return (
     <section id="features" className="mx-auto max-w-5xl px-6 py-20">
       <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-        Meet Your AI Growth Partner
+        Everything Outrun Does For You
       </h2>
-      <p className="mx-auto mt-4 max-w-xl text-center text-[var(--color-text-secondary)]">
-        Instead of another dashboard, you get a partner that learns your
-        business, finds opportunities, and does the research for you.
-      </p>
       <div className="mt-12 grid gap-6 sm:grid-cols-2">
         {FEATURES.map((feature) => (
-          <Card key={feature.title}>
+          <Card key={feature.title} className="p-8">
             <h3 className="text-lg font-medium text-[var(--color-text-primary)]">
               {feature.title}
             </h3>

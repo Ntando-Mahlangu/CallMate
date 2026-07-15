@@ -1,11 +1,17 @@
 import type { PlanTier } from "@prisma/client";
 
-// docs/outrun/14 — only Free and Starter are wired up in this build phase.
-// Growth/Unlimited stay defined in the PlanTier enum for forward
-// compatibility but have no Paddle price yet; add one and a card here when
-// they're ready to sell.
+// docs/outrun/14 — only Free and Starter have a real Paddle price today;
+// every organization is created on Free and Starter is the only paid tier
+// actually purchasable from src/app/(app)/billing/page.tsx (it only renders
+// a CheckoutButton for HIGHLIGHTED_TIER). Growth and Unlimited are
+// described here — and shown on the marketing pricing table — with a
+// `paddlePriceId: null` because docs/outrun/02 requires all four tiers to
+// be presented, but neither can be checked out yet: the billing page
+// already renders no action for a tier with no price ID, so adding them
+// here doesn't create a broken buy button, just an honest "not sold yet"
+// plan card.
 export const PLANS: Record<
-  "FREE" | "STARTER",
+  PlanTier,
   {
     name: string;
     priceLabel: string;
@@ -21,6 +27,7 @@ export const PLANS: Record<
       "10 company searches",
       "5 AI company reports",
       "5 outreach generations",
+      "1 campaign",
     ],
     paddlePriceId: null,
   },
@@ -37,10 +44,40 @@ export const PLANS: Record<
     ],
     paddlePriceId: process.env.NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID ?? null,
   },
+  GROWTH: {
+    name: "Growth",
+    priceLabel: "$149/month",
+    features: [
+      "Everything in Starter",
+      "More usage across searches, reports, and outreach",
+      "Team collaboration",
+      "Priority AI processing",
+      "Advanced recommendations",
+      "Integrations",
+      "Priority support",
+    ],
+    paddlePriceId: null,
+  },
+  UNLIMITED: {
+    name: "Unlimited",
+    priceLabel: "$499/month",
+    features: [
+      "Unlimited Growth Blueprints",
+      "Unlimited prospect searches",
+      "Unlimited campaigns and outreach generation",
+      "Unlimited saved businesses and workspaces",
+      "Unlimited team members",
+      "Premium AI models",
+      "Priority infrastructure",
+      "API access",
+      "Dedicated onboarding",
+    ],
+    paddlePriceId: null,
+  },
 };
 
 export function planLabel(tier: PlanTier): string {
-  return PLANS[tier as "FREE" | "STARTER"]?.name ?? tier;
+  return PLANS[tier]?.name ?? tier;
 }
 
 // The one place that defines "has a paid subscription" — every other
