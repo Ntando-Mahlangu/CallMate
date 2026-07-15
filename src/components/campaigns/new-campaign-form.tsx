@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { SelectablePill } from "@/components/ui/selectable-pill";
 import { ScoreBadge } from "@/components/prospects/score-badge";
+import { pollJob } from "@/lib/jobs/poll-job";
 
 const OBJECTIVES = [
   "Book meetings",
@@ -78,7 +79,12 @@ export function NewCampaignForm({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
-      router.push(`/campaigns/${body.campaignId}`);
+
+      const job = await pollJob(body.jobId, { timeoutMs: 300_000 });
+      if (job.status === "FAILED") {
+        throw new Error(job.errorMessage ?? "Something went wrong.");
+      }
+      router.push(`/campaigns/${job.resultId}`);
     } catch (err) {
       setIsSubmitting(false);
       setError(err instanceof Error ? err.message : "Something went wrong.");

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
-import { createCampaign } from "@/lib/campaigns/create";
+import { enqueueJob, runJob } from "@/lib/jobs/queue";
 import { UserFacingError, RateLimitError } from "@/lib/errors";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability";
 
 const GENERIC_ERROR =
-  "We couldn't build this campaign right now. Please try again in a moment.";
+  "We couldn't start building this campaign right now. Please try again in a moment.";
+
+// A campaign generates one message per selected company sequentially —
+// see src/app/api/blueprint/generate/route.ts for why this is raised.
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const session = await getCurrentSession();
@@ -39,13 +44,16 @@ export async function POST(request: NextRequest) {
 
   try {
     await checkRateLimit(`ai:${organization.id}`, RATE_LIMITS.AI.limit, RATE_LIMITS.AI.windowSeconds);
-    const result = await createCampaign(organization.id, {
+
+    const job = await enqueueJob(organization.id, "CAMPAIGN_GENERATION", {
       name: name.trim(),
       objective: objective.trim(),
       companyIds,
       abTest: abTest === true,
     });
-    return NextResponse.json(result);
+    after(() => runJob(job.id));
+
+    return NextResponse.json({ jobId: job.id });
   } catch (error) {
     if (error instanceof RateLimitError) {
       return NextResponse.json({ error: error.message }, { status: 429 });

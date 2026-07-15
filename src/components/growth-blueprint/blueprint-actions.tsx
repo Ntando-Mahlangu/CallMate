@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { pollJob } from "@/lib/jobs/poll-job";
 
 export function BlueprintActions({
   hasHistory,
@@ -58,6 +59,11 @@ export function BlueprintActions({
       const res = await fetch("/api/blueprint/generate", { method: "POST" });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
+
+      const job = await pollJob(body.jobId);
+      if (job.status === "FAILED") {
+        throw new Error(job.errorMessage ?? "Something went wrong.");
+      }
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

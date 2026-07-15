@@ -157,6 +157,39 @@ period's last one, so a daily cadence is enough even for weekly reviews.
 Without `CRON_SECRET` set, this endpoint also refuses every request
 (`501`) — reviews can still be generated manually from the UI regardless.
 
+## 9b. Background job queue
+
+docs/outrun/11-13 "BACKGROUND JOBS" — Growth Blueprint generation, SEO
+analysis, and campaign generation (strategy + one outreach message per
+selected company) all run as background jobs instead of blocking the
+HTTP request that starts them, so a slow AI call can't time out the
+request or make the UI look frozen.
+
+There's no separate worker process or Redis/BullMQ here — this is a
+serverless app, so `src/lib/jobs/queue.ts` is a Postgres-backed job table
+plus Next's `after()`: the route that starts a job (`POST
+/api/blueprint/generate`, `POST /api/seo/analyze`, `POST /api/campaigns`)
+creates a `Job` row and returns a `jobId` immediately; `after()` then runs
+the actual generation once the response has already been sent. The client
+polls `GET /api/jobs/[id]` (via `src/lib/jobs/poll-job.ts`) until the job
+reaches `SUCCEEDED` or `FAILED`.
+
+Because `after()` still runs within the same invocation, each of these
+routes sets `maxDuration` higher than the framework default (120s for
+Blueprint/SEO, 300s for campaigns, since those generate one message per
+company sequentially) — this needs a Vercel plan that allows raising
+`maxDuration` past the Hobby tier's cap; on Hobby the actual ceiling is
+still 60s regardless of what the route requests.
+
+A second scheduler hits `GET /api/cron/job-queue` every 10 minutes to
+sweep jobs that never got picked up (the serverless instance that
+enqueued them was recycled before `after()` fired) or that have been
+`RUNNING` for more than 10 minutes (the instance running them died
+mid-flight) — same `vercel.json` cron / `.github/workflows/job-queue-sweep.yml`
+/ `CRON_SECRET` pattern as the crons above. Without `CRON_SECRET` set,
+jobs still normally complete via `after()`; the sweep is a safety net, not
+the primary mechanism.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

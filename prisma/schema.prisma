@@ -165,8 +165,50 @@ model Organization {
   refundRequests   RefundRequest[]
   strategicReviews StrategicReview[]
   campaignTemplates CampaignTemplate[]
+  jobs             Job[]
 
   @@map("organization")
+}
+
+enum JobType {
+  BLUEPRINT_GENERATION
+  SEO_ANALYSIS
+  CAMPAIGN_GENERATION
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// docs/outrun/11-13 "BACKGROUND JOBS" — a Postgres-backed queue rather
+// than a Redis/BullMQ setup, matching every other cross-cutting concern
+// in this app (rate limiting, cron ticks). The route that enqueues a job
+// kicks off its execution via Next's `after()` so the HTTP response
+// returns immediately with a jobId, and the actual AI work runs after
+// the response is sent instead of holding the request open for however
+// long generation takes — the client polls /api/jobs/[id] for status.
+model Job {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type   JobType
+  status JobStatus @default(PENDING)
+
+  payload      Json
+  resultId     String?
+  errorMessage String?
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([organizationId, type, createdAt])
+  @@map("job")
 }
 
 enum UsageEventType {

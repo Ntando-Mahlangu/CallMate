@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { FormError } from "@/components/ui/form-error";
 import { Button } from "@/components/ui/button";
+import { pollJob } from "@/lib/jobs/poll-job";
 
 // docs/outrun/03 "AI ANALYSIS" — never a spinner, always a sense of progress.
 const MESSAGES = [
@@ -31,13 +32,19 @@ export default function GeneratingBlueprintPage() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/api/blueprint/generate", { method: "POST" })
-      .then(async (res) => {
+    (async () => {
+      try {
+        const res = await fetch("/api/blueprint/generate", { method: "POST" });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
-        if (!cancelled) router.push("/blueprint");
-      })
-      .catch((err) => {
+
+        const job = await pollJob(body.jobId);
+        if (cancelled) return;
+        if (job.status === "FAILED") {
+          throw new Error(job.errorMessage ?? "We couldn't build your Growth Blueprint. Please try again.");
+        }
+        router.push("/blueprint");
+      } catch (err) {
         if (!cancelled) {
           setError(
             err instanceof Error
@@ -45,7 +52,8 @@ export default function GeneratingBlueprintPage() {
               : "We couldn't build your Growth Blueprint. Please try again.",
           );
         }
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;

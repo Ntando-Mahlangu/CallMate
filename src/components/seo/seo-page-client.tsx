@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { ImpactBadge, Badge } from "@/components/ui/badge";
 import { ScoreGauge } from "@/components/growth-blueprint/score-gauge";
+import { pollJob } from "@/lib/jobs/poll-job";
 import type { SEOAnalysisData } from "@/lib/seo/schema";
 
 type Analysis = {
@@ -62,7 +63,18 @@ export function SeoPageClient({
       const res = await fetch("/api/seo/analyze", { method: "POST" });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
-      setAnalysis({ ...body.analysis, version: body.analysis.version });
+
+      const job = await pollJob(body.jobId);
+      if (job.status === "FAILED") {
+        throw new Error(job.errorMessage ?? "Something went wrong.");
+      }
+
+      const latestRes = await fetch("/api/seo/analyze");
+      const latestBody = await latestRes.json();
+      if (!latestRes.ok || !latestBody.analysis) {
+        throw new Error(latestBody.error ?? "Something went wrong.");
+      }
+      setAnalysis({ ...latestBody.analysis, version: latestBody.analysis.version });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
