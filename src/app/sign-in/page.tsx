@@ -12,6 +12,7 @@ import { FormError } from "@/components/ui/form-error";
 import { GoogleIcon } from "@/components/icons/google-icon";
 import { MicrosoftIcon } from "@/components/icons/microsoft-icon";
 import { MagicLinkPanel } from "@/components/auth/magic-link-panel";
+import { TwoFactorChallenge } from "@/components/auth/two-factor-challenge";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function SignInPage() {
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [microsoftEnabled, setMicrosoftEnabled] = useState(false);
   const [useMagicLink, setUseMagicLink] = useState(false);
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/config")
@@ -42,7 +44,7 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
 
-    const { error: signInError } = await authClient.signIn.email({
+    const { data, error: signInError } = await authClient.signIn.email({
       email,
       password,
       rememberMe,
@@ -58,6 +60,15 @@ export default function SignInPage() {
       return;
     }
 
+    // Better Auth's twoFactor plugin swaps the usual { token, user } sign-in
+    // response for this shape when the account has 2FA enabled — its type
+    // isn't threaded through signIn.email's generic result, so this reads
+    // the field off the runtime response rather than the inferred type.
+    if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
+      setNeedsTwoFactor(true);
+      return;
+    }
+
     router.push("/welcome");
   }
 
@@ -67,6 +78,22 @@ export default function SignInPage() {
 
   async function handleMicrosoft() {
     await authClient.signIn.oauth2({ providerId: "microsoft", callbackURL: "/welcome" });
+  }
+
+  if (needsTwoFactor) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg-primary)] px-4 py-16">
+        <Card className="w-full max-w-md animate-fade-in">
+          <CardHeader>
+            <CardTitle>Verify it&apos;s you.</CardTitle>
+            <CardDescription>
+              Enter the code from your authenticator app to finish signing in.
+            </CardDescription>
+          </CardHeader>
+          <TwoFactorChallenge onVerified={() => router.push("/welcome")} />
+        </Card>
+      </main>
+    );
   }
 
   return (

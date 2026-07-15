@@ -12,19 +12,40 @@ datasource db {
 // adapter (email/password + Google OAuth + session management).
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  emailVerified Boolean  @default(false)
-  image         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  emailVerified    Boolean  @default(false)
+  image            String?
+  twoFactorEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   sessions    Session[]
   accounts    Account[]
   memberships Membership[]
+  twoFactors  TwoFactor[]
 
   @@map("user")
+}
+
+// Shape matches better-auth's twoFactor plugin (docs/outrun/15 "AUTHENTICATION
+// SECURITY — Optional MFA"). One row per user; re-enrolling replaces it
+// rather than accumulating rows, since a user has exactly one TOTP secret.
+model TwoFactor {
+  id                      String    @id @default(uuid())
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
 }
 
 model Session {

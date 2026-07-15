@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { genericOAuth, microsoftEntraId } from "better-auth/plugins/generic-oauth";
+import { twoFactor } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 
@@ -89,6 +90,12 @@ export const auth = betterAuth({
           }),
         ]
       : []),
+    // docs/outrun/15 "AUTHENTICATION SECURITY — Optional MFA". TOTP only
+    // (no email-OTP factor) — an authenticator app is the strongest
+    // factor an owner-run business can adopt without extra infrastructure.
+    twoFactor({
+      issuer: "Outrun",
+    }),
   ],
 
   session: {
