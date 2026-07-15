@@ -330,6 +330,54 @@ button instead of a stat block with invented numbers. A failure here
 never fails the Blueprint job itself, since the Blueprint already
 succeeded.
 
+## 9g. Mission Control dashboard rebuild
+
+docs/outrun/04 rebuild of `/dashboard` — everything the spec calls for
+that wasn't there before:
+
+- **Campaign Overview** (`src/lib/dashboard/campaign-overview.ts`) —
+  groups campaigns by status. This schema's `CampaignStatus` is
+  DRAFT/READY/PAUSED/COMPLETED (no separate "scheduled" state), so READY
+  is shown as "Running" and DRAFT as its own bucket rather than
+  inventing a "Scheduled" one. Per-campaign cards show real company/
+  sent/reply counts only — meetings and pipeline value aren't tracked
+  anywhere in this schema, so they're never estimated here.
+- **Business Snapshot** (`src/lib/dashboard/business-snapshot.ts`) —
+  Revenue Goal reads the org's `Goal` row whose `targetMetric` contains
+  "revenue"; Meetings Booked and Pipeline Value render literally as "Not
+  tracked yet" rather than a fabricated number, since neither has a
+  backing field anywhere in the schema.
+- **Streaks** (`src/lib/dashboard/streaks.ts`) — the "Growth Streak" is
+  honestly defined as consecutive days with at least one logged
+  Business Brain `Event`, not literal daily-mission completion (nothing
+  persists that signal today). Weekly Reviews Completed and Campaigns
+  Launched are real counts (`StrategicReview` rows, non-DRAFT
+  campaigns).
+- **Right sidebar** (`src/components/dashboard/right-sidebar.tsx`, data
+  from `src/lib/dashboard/right-sidebar-data.ts`) — AI Assistant links
+  to `/ceo-agent` with a teaser drawn from the same risk/opportunity
+  signals already shown on the dashboard; Recent Notifications and
+  Upcoming Tasks are real queries (tasks without a due date sort by
+  impact, since blueprint-generated tasks rarely have one); Growth Tip
+  surfaces the lowest-scoring Business Health category's own
+  `fastestImprovement` text — never a generic tip.
+- **Global search** (`src/app/api/search/route.ts`,
+  `src/components/dashboard/global-search.tsx`) — a plain, real
+  substring search across the org's own Prospects/Campaigns/Tasks/Goals.
+  Deliberately labeled "Search," not "AI Search" — there's no
+  intent-routing engine behind the doc's natural-language examples yet,
+  and claiming one would be dishonest.
+- **Loading/error states** — `src/components/ui/skeleton.tsx` plus
+  `src/app/(app)/dashboard/loading.tsx` for the skeleton, and
+  `src/app/(app)/dashboard/error.tsx` as a route-scoped error boundary
+  (reports to `/api/observability/client-error` like the existing global
+  one, but renders with the real design system instead of inline styles).
+
+`EVENT_LABELS` was extracted to `src/lib/memory/event-labels.ts` (now
+covering every `EventType`, not just the subset `/memory` originally
+had) so the Recent Activity widget and the AI Memory timeline never
+disagree on how an event is labeled.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

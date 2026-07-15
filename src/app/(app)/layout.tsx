@@ -5,6 +5,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { WorkspaceSwitcher } from "@/components/team/workspace-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { GlobalSearch } from "@/components/dashboard/global-search";
 
 export default async function DashboardLayout({
   children,
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
           Outrun
         </span>
         <div className="flex items-center gap-4">
+          {organization && <GlobalSearch />}
           {organization && memberships.length > 1 && (
             <WorkspaceSwitcher
               workspaces={memberships.map((m) => m.organization)}

@@ -4,19 +4,7 @@ import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const EVENT_LABELS: Record<string, string> = {
-  BLUEPRINT_GENERATED: "Growth Blueprint",
-  COMPANY_SEARCHED: "Search",
-  COMPANY_RESEARCHED: "Research",
-  OUTREACH_GENERATED: "Outreach",
-  CAMPAIGN_CREATED: "Campaign",
-  SEO_ANALYZED: "SEO",
-  SEO_CONTENT_GENERATED: "SEO Content",
-  TEAM_MEMBER_INVITED: "Team",
-  TEAM_MEMBER_JOINED: "Team",
-  PATTERN_IDENTIFIED: "Improvement Loop",
-};
+import { eventLabel } from "@/lib/memory/event-labels";
 
 export default async function MemoryPage() {
   const session = await getCurrentSession();
@@ -64,7 +52,7 @@ export default async function MemoryPage() {
             {events.map((event) => (
               <li key={event.id} className="flex items-start gap-3">
                 <Badge tone="accent" className="mt-0.5 shrink-0">
-                  {EVENT_LABELS[event.type] ?? event.type}
+                  {eventLabel(event.type)}
                 </Badge>
                 <div>
                   <p className="text-sm text-[var(--color-text-secondary)]">{event.summary}</p>
