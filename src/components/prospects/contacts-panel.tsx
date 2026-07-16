@@ -1,10 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import type { Contact } from "@prisma/client";
+import type { Contact, ContactRelationshipStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { FormError } from "@/components/ui/form-error";
+
+const RELATIONSHIP_STATUS_LABEL: Record<ContactRelationshipStatus, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  RESPONDED: "Responded",
+  QUALIFIED: "Qualified",
+  CUSTOMER: "Customer",
+  LOST: "Lost",
+};
+
+const RELATIONSHIP_STATUS_OPTIONS = Object.keys(
+  RELATIONSHIP_STATUS_LABEL,
+) as ContactRelationshipStatus[];
 
 export function ContactsPanel({
   companyId,
@@ -58,6 +72,23 @@ export function ContactsPanel({
     }
   }
 
+  async function handleStatusChange(contactId: string, relationshipStatus: ContactRelationshipStatus) {
+    setBusyId(contactId);
+    setError(null);
+    const res = await fetch(`/api/prospects/${companyId}/contacts/${contactId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ relationshipStatus }),
+    });
+    const body = await res.json();
+    setBusyId(null);
+    if (!res.ok) {
+      setError(body.error ?? "We couldn't update that contact.");
+      return;
+    }
+    setContacts((prev) => prev.map((c) => (c.id === contactId ? body.contact : c)));
+  }
+
   return (
     <div className="space-y-4">
       {contacts.length === 0 ? (
@@ -82,14 +113,31 @@ export function ContactsPanel({
                   {[contact.email, contact.phone].filter(Boolean).join(" · ") || "No contact details"}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                className="h-8 px-3 text-xs"
-                disabled={busyId === contact.id}
-                onClick={() => handleDelete(contact.id)}
-              >
-                Remove
-              </Button>
+              <div className="flex shrink-0 items-center gap-2">
+                <Select
+                  aria-label={`Relationship status for ${contact.name}`}
+                  className="h-8 w-36 px-2 text-xs"
+                  value={contact.relationshipStatus}
+                  disabled={busyId === contact.id}
+                  onChange={(e) =>
+                    handleStatusChange(contact.id, e.target.value as ContactRelationshipStatus)
+                  }
+                >
+                  {RELATIONSHIP_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {RELATIONSHIP_STATUS_LABEL[status]}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  variant="secondary"
+                  className="h-8 px-3 text-xs"
+                  disabled={busyId === contact.id}
+                  onClick={() => handleDelete(contact.id)}
+                >
+                  Remove
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

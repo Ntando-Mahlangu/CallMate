@@ -299,7 +299,22 @@ export default async function DashboardPage() {
               <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
                 Pipeline Value
               </p>
-              <p className="text-sm text-[var(--color-text-muted)]">Not tracked yet</p>
+              {snapshot.pipelineValue ? (
+                <>
+                  <p className="text-sm text-[var(--color-text-primary)]">
+                    ${snapshot.pipelineValue.estimate.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Estimate: {snapshot.pipelineValue.qualifiedCount} qualified lead
+                    {snapshot.pipelineValue.qualifiedCount === 1 ? "" : "s"} × $
+                    {snapshot.pipelineValue.avgCustomerValue.toLocaleString()} avg deal size
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  Not tracked yet — needs an average deal size and at least one Qualified contact
+                </p>
+              )}
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">

@@ -7,18 +7,20 @@ export type BusinessSnapshot = {
   replyRate: number | null;
   positiveReplies: number;
   customersWon: number;
-  pipelineValue: null;
+  pipelineValue: { estimate: number; qualifiedCount: number; avgCustomerValue: number } | null;
 };
 
 // docs/outrun/04 "BUSINESS SNAPSHOT" lists Meetings Booked and Pipeline
-// Value alongside the other metrics, but nothing in this schema tracks a
-// meeting or a deal amount (docs/outrun/12's Contact model only carries a
-// relationship *status*, not a monetary value or a booked-meeting flag).
-// Rather than invent a number, both fields are typed `null` here and the
-// dashboard renders them as "Not tracked yet" — Article IV/VIII: never
-// present a fabricated figure as a real one.
+// Value alongside the other metrics. Nothing in this schema tracks a
+// booked meeting, so meetingsBooked stays `null` (Article IV/VIII: never
+// invent a figure). Pipeline Value IS honestly computable, though: it's
+// the business's own stated avgCustomerValue (BusinessProfile, set during
+// onboarding) times how many contacts have actually been qualified as a
+// real opportunity (Contact.relationshipStatus === "QUALIFIED", a plain
+// user-reported signal set from the prospect detail page) — a procedural
+// estimate, not an AI guess, and null whenever either input is missing.
 export async function getBusinessSnapshot(organizationId: string): Promise<BusinessSnapshot> {
-  const [revenueGoal, campaignsRunning, sentMessages, positiveReplies, customersWon] =
+  const [revenueGoal, campaignsRunning, sentMessages, positiveReplies, customersWon, businessProfile, qualifiedCount] =
     await Promise.all([
       prisma.goal.findFirst({
         where: {
@@ -38,7 +40,20 @@ export async function getBusinessSnapshot(organizationId: string): Promise<Busin
       prisma.contact.count({
         where: { company: { organizationId }, relationshipStatus: "CUSTOMER" },
       }),
+      prisma.businessProfile.findUnique({
+        where: { organizationId },
+        select: { avgCustomerValue: true },
+      }),
+      prisma.contact.count({
+        where: { company: { organizationId }, relationshipStatus: "QUALIFIED" },
+      }),
     ]);
+
+  const avgCustomerValue = businessProfile?.avgCustomerValue ?? null;
+  const pipelineValue =
+    avgCustomerValue != null && qualifiedCount > 0
+      ? { estimate: avgCustomerValue * qualifiedCount, qualifiedCount, avgCustomerValue }
+      : null;
 
   return {
     revenueGoal: revenueGoal
@@ -54,6 +69,6 @@ export async function getBusinessSnapshot(organizationId: string): Promise<Busin
     replyRate: sentMessages > 0 ? Math.round((positiveReplies / sentMessages) * 100) : null,
     positiveReplies,
     customersWon,
-    pipelineValue: null,
+    pipelineValue,
   };
 }
