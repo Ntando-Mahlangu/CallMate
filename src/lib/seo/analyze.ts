@@ -5,6 +5,7 @@ import { logEvent, EventType } from "@/lib/memory/log-event";
 import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import { crawlWebsite, type WebsiteSignals } from "./crawl";
 import { analyzeLocalSeoSignals, type LocalSeoVerifiedFindings } from "./local-seo";
+import { getSeoMemory, type SeoMemory } from "./memory";
 import { seoAnalysisSchema, seoAnalysisJsonSchema, type SEOAnalysisData } from "./schema";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
@@ -28,13 +29,20 @@ Rules you must follow (non-negotiable):
   about local citations or map-pack visibility, those aren't built yet.
   You'll be given verified findings (e.g. whether the site has a Google
   Maps embed) — reference them in your suggestions rather than repeating
-  them as if they were your own discovery.`;
+  them as if they were your own discovery.
+- SEO Memory (docs/outrun/09 "SEO MEMORY"): you'll be told which
+  keywords past analyses already suggested and which keywords already
+  have drafted content. Don't re-suggest those — find new keyword and
+  content opportunities instead. It's fine to keep a prior keyword only
+  if it's still clearly the single most important one for this business,
+  but the majority of keywordSuggestions and contentIdeas should be new.`;
 
 function buildUserMessage(
   signals: WebsiteSignals,
   businessDescription: string,
   idealCustomer: string,
   localSeo: LocalSeoVerifiedFindings,
+  memory: SeoMemory,
 ) {
   return [
     `Business: ${businessDescription}`,
@@ -54,6 +62,13 @@ function buildUserMessage(
     localSeo.applicable
       ? `This business serves a specific local area. Verified findings:\n${localSeo.findings.map((f) => `- ${f}`).join("\n")}`
       : "This business does not serve a specific local area (sells nationally, internationally, or remote/online only) — set localSeo to null.",
+    "",
+    memory.priorKeywords.length > 0
+      ? `Keywords already suggested in past analyses (avoid repeating): ${memory.priorKeywords.join(", ")}`
+      : "No past analyses yet — no prior keyword suggestions to avoid repeating.",
+    memory.draftedContentKeywords.length > 0
+      ? `Keywords that already have drafted content (strongly avoid duplicating): ${memory.draftedContentKeywords.join(", ")}`
+      : "No content has been drafted yet.",
     "",
     "Produce a complete SEO analysis from this information alone.",
   ].join("\n");
@@ -83,6 +98,7 @@ export async function analyzeSEO(organizationId: string) {
     inferredLocation: icp?.location ?? null,
     signals,
   });
+  const memory = await getSeoMemory(organizationId);
 
   const ai = getAIProvider();
   const data = await ai.generateObject<SEOAnalysisData>({
@@ -95,6 +111,7 @@ export async function analyzeSEO(organizationId: string) {
           organization.businessProfile.description,
           organization.businessProfile.idealCustomer,
           localSeo,
+          memory,
         ),
       },
     ],
