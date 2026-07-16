@@ -3,8 +3,10 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { genericOAuth, microsoftEntraId } from "better-auth/plugins/generic-oauth";
 import { twoFactor } from "better-auth/plugins";
+import { createAuthMiddleware, isAPIError } from "better-auth/api";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { logLoginForUser, logFailedLoginForEmail } from "@/lib/audit/log-login-events";
 
 const googleConfigured = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
@@ -134,6 +136,37 @@ export const auth = betterAuth({
         },
       },
     },
+  },
+
+  // docs/outrun/12 "AUDIT LOG" / docs/outrun/15 "AUTHENTICATION SECURITY" —
+  // both list logins as a required audit category. This runs after every
+  // request regardless of path, so it has to filter itself rather than
+  // relying on a plugin-style matcher.
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const newSession = ctx.context.newSession;
+      if (newSession) {
+        // The credential handler creates a session unconditionally, then
+        // the twoFactor plugin's own after-hook deletes it and nulls this
+        // out when the account has 2FA enabled — but that plugin hook runs
+        // AFTER this one in the chain, so at this point the doomed session
+        // is still visible here. Recognize the same pending-2FA case
+        // directly (matching that plugin's own check) rather than logging
+        // a login that hasn't actually completed yet.
+        const user = newSession.user as { id: string; twoFactorEnabled?: boolean };
+        const pendingTwoFactor = ctx.path === "/sign-in/email" && Boolean(user.twoFactorEnabled);
+        if (!pendingTwoFactor) {
+          await logLoginForUser(user.id);
+        }
+      }
+
+      if (ctx.path === "/sign-in/email" && isAPIError(ctx.context.returned)) {
+        const email = (ctx.body as { email?: unknown } | undefined)?.email;
+        if (typeof email === "string") {
+          await logFailedLoginForEmail(email);
+        }
+      }
+    }),
   },
 });
 

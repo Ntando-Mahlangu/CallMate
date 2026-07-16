@@ -810,6 +810,8 @@ enum AuditAction {
   MEMBER_INVITED
   BILLING_CHANGED
   DATA_EXPORTED
+  LOGIN
+  LOGIN_FAILED
 }
 
 model AuditLog {

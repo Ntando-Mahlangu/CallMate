@@ -17,6 +17,8 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   MEMBER_INVITED: "Member invited",
   BILLING_CHANGED: "Billing changed",
   DATA_EXPORTED: "Data exported",
+  LOGIN: "Signed in",
+  LOGIN_FAILED: "Failed sign-in",
 };
 
 function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string {
@@ -34,6 +36,10 @@ function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string
       return `Plan changed from ${meta.fromTier} to ${meta.toTier}`;
     case "DATA_EXPORTED":
       return `${actor} exported ${(entry.targetType ?? "data").replace(/_/g, " ")}${meta.format ? ` as ${meta.format}` : ""}`;
+    case "LOGIN":
+      return `${actor} signed in`;
+    case "LOGIN_FAILED":
+      return `Failed sign-in attempt for ${actor}`;
   }
 }
 
