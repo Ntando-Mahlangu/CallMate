@@ -71,10 +71,17 @@ export function GlobalSearch() {
                   <button
                     type="button"
                     onClick={() => handleSelect(r.href)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)]"
+                    className="flex w-full flex-col gap-0.5 px-4 py-2 text-left text-sm hover:bg-[var(--color-bg-secondary)]"
                   >
-                    <span className="text-[var(--color-text-primary)]">{r.label}</span>
-                    <span className="text-xs text-[var(--color-text-muted)]">{r.type}</span>
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="text-[var(--color-text-primary)]">{r.label}</span>
+                      <span className="whitespace-nowrap text-xs text-[var(--color-text-muted)]">
+                        {r.type}
+                      </span>
+                    </span>
+                    {r.sublabel && (
+                      <span className="text-xs text-[var(--color-text-muted)]">{r.sublabel}</span>
+                    )}
                   </button>
                 </li>
               ))}

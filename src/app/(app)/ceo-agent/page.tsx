@@ -11,12 +11,18 @@ import { DecisionPanel } from "@/components/ceo-agent/decision-panel";
 import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
 import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
 
-export default async function CeoAgentPage() {
+export default async function CeoAgentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ask?: string }>;
+}) {
   const session = await getCurrentSession();
   if (!session) redirect("/sign-in");
 
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
+
+  const { ask } = await searchParams;
 
   const [history, signals, opportunities] = await Promise.all([
     prisma.chatMessage.findMany({
@@ -56,6 +62,7 @@ export default async function CeoAgentPage() {
 
       <ChatPanel
         initialMessages={history.map((m) => ({ role: m.role, content: m.content }))}
+        autoAsk={ask}
       />
     </div>
   );

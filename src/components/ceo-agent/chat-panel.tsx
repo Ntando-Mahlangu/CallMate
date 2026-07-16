@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,20 +10,29 @@ import { cn } from "@/lib/cn";
 
 type Message = { role: "USER" | "ASSISTANT"; content: string };
 
-export function ChatPanel({ initialMessages }: { initialMessages: Message[] }) {
+// autoAsk carries a question in from Global Search (docs/outrun/04
+// "GLOBAL SEARCH" — question/command-shaped queries route here rather
+// than a useless name lookup). Sent exactly once per mount, guarded by
+// autoAskedRef so React's dev-mode double-invoke and any re-render don't
+// fire it twice, then the ?ask= param is stripped from the URL so a
+// refresh or back-navigation doesn't resend the same question.
+export function ChatPanel({
+  initialMessages,
+  autoAsk,
+}: {
+  initialMessages: Message[];
+  autoAsk?: string;
+}) {
+  const router = useRouter();
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const autoAskedRef = useRef(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const question = input.trim();
-    if (!question) return;
-
+  async function send(question: string) {
     setError(null);
     setMessages((prev) => [...prev, { role: "USER", content: question }]);
-    setInput("");
     setIsSending(true);
 
     try {
@@ -39,6 +49,22 @@ export function ChatPanel({ initialMessages }: { initialMessages: Message[] }) {
     } finally {
       setIsSending(false);
     }
+  }
+
+  useEffect(() => {
+    if (!autoAsk || autoAskedRef.current) return;
+    autoAskedRef.current = true;
+    router.replace("/ceo-agent");
+    void send(autoAsk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAsk]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const question = input.trim();
+    if (!question) return;
+    setInput("");
+    await send(question);
   }
 
   return (
