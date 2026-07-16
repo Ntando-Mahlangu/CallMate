@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
-import { getCurrentOrganization } from "@/lib/org";
+import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
+import { canManageCampaigns } from "@/lib/teams/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import * as campaignRepository from "@/lib/repositories/campaign-repository";
 import { ImprovementLoopPanel } from "@/components/campaigns/improvement-loop-panel";
 import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
 import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-panel";
+import { CampaignActions } from "@/components/campaigns/campaign-actions";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -31,6 +33,10 @@ export default async function CampaignsPage({
 
   const organization = await getCurrentOrganization(session.user.id);
   if (!organization) redirect("/sign-in");
+
+  const membership = await getMembershipFor(session.user.id, organization.id);
+  if (!membership) redirect("/sign-in");
+  const canManage = canManageCampaigns(membership.role);
 
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
@@ -83,27 +89,30 @@ export default async function CampaignsPage({
       ) : (
         <div className="space-y-4">
           {campaigns.map((campaign) => (
-            <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-              <Card className="transition-colors hover:border-[var(--color-accent)]/40">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-[var(--color-text-primary)]">
-                      {campaign.name}
-                    </p>
-                    <p className="text-sm text-[var(--color-text-secondary)]">
-                      {campaign.objective}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-[var(--color-text-muted)]">
-                      {campaign._count.messages} message
-                      {campaign._count.messages === 1 ? "" : "s"}
-                    </span>
-                    <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
-                  </div>
+            <Card key={campaign.id} className="transition-colors hover:border-[var(--color-accent)]/40">
+              <div className="flex items-center justify-between gap-4">
+                <Link href={`/campaigns/${campaign.id}`} className="min-w-0">
+                  <p className="font-medium text-[var(--color-text-primary)] hover:underline">
+                    {campaign.name}
+                  </p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {campaign.objective}
+                  </p>
+                </Link>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-sm text-[var(--color-text-muted)]">
+                    {campaign._count.messages} message
+                    {campaign._count.messages === 1 ? "" : "s"}
+                  </span>
+                  <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
+                  <CampaignActions
+                    campaignId={campaign.id}
+                    status={campaign.status}
+                    canManage={canManage}
+                  />
                 </div>
-              </Card>
-            </Link>
+              </div>
+            </Card>
           ))}
         </div>
       )}

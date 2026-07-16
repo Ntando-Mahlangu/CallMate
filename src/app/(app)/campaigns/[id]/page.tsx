@@ -12,6 +12,7 @@ import { AutonomousSendPanel } from "@/components/campaigns/autonomous-send-pane
 import { CampaignExportPanel } from "@/components/campaigns/campaign-export-panel";
 import { SaveAsTemplateButton } from "@/components/campaigns/save-as-template-button";
 import { CampaignWarningsPanel } from "@/components/campaigns/campaign-warnings-panel";
+import { CampaignActions } from "@/components/campaigns/campaign-actions";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -66,6 +67,11 @@ export default async function CampaignDetailPage({
             abTest={campaign.messages.some((m) => m.variantLabel !== null)}
           />
           <Badge tone={STATUS_TONE[campaign.status]}>{campaign.status}</Badge>
+          <CampaignActions
+            campaignId={campaign.id}
+            status={campaign.status}
+            canManage={canManageCampaigns(membership.role)}
+          />
         </div>
       </div>
 

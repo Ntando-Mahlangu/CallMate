@@ -18,7 +18,7 @@ export async function sendOutreachMessage(organizationId: string, messageId: str
 
   const message = await prisma.outreachMessage.findFirst({
     where: { id: messageId, company: { organizationId } },
-    include: { company: true, followUpTo: true },
+    include: { company: true, followUpTo: true, campaign: true },
   });
   if (!message) {
     throw new UserFacingError("That message could not be found.");
@@ -27,6 +27,12 @@ export async function sendOutreachMessage(organizationId: string, messageId: str
     throw new UserFacingError(
       "Add a contact email for this prospect before sending.",
     );
+  }
+  // docs/outrun/04 "Pause" — a paused campaign shouldn't quietly keep
+  // sending. This is the single choke point (see below), so pausing here
+  // covers manual sends, "Send All", and autonomous sending in one place.
+  if (message.campaign?.status === "PAUSED") {
+    throw new UserFacingError("This campaign is paused. Resume it before sending.");
   }
 
   // docs/outrun/07 "FOLLOW-UP SEQUENCES" — a follow-up can't jump its
@@ -91,6 +97,9 @@ export async function sendCampaignOutreach(organizationId: string, campaignId: s
   });
   if (!campaign) {
     throw new UserFacingError("That campaign could not be found.");
+  }
+  if (campaign.status === "PAUSED") {
+    throw new UserFacingError("This campaign is paused. Resume it before sending.");
   }
 
   if (!isEmailSendingConfigured()) {
