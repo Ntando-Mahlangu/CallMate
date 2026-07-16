@@ -8,7 +8,7 @@ import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import type { SEOAnalysisData } from "@/lib/seo/schema";
+import type { SEOAnalysisData, LocalSeoPersisted } from "@/lib/seo/schema";
 
 export default async function SeoPage() {
   const session = await getCurrentSession();
@@ -58,6 +58,7 @@ export default async function SeoPage() {
               quickWins: analysis.quickWins as SEOAnalysisData["quickWins"],
               keywordSuggestions: analysis.keywordSuggestions as SEOAnalysisData["keywordSuggestions"],
               contentIdeas: analysis.contentIdeas as SEOAnalysisData["contentIdeas"],
+              localSeo: analysis.localSeo as LocalSeoPersisted | null,
               version: analysis.version,
             }
           : null

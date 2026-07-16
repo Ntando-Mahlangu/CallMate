@@ -10,7 +10,7 @@ import { FormError } from "@/components/ui/form-error";
 import { ImpactBadge, Badge } from "@/components/ui/badge";
 import { ScoreGauge } from "@/components/growth-blueprint/score-gauge";
 import { pollJob } from "@/lib/jobs/poll-job";
-import type { SEOAnalysisData } from "@/lib/seo/schema";
+import type { SEOAnalysisData, LocalSeoPersisted } from "@/lib/seo/schema";
 
 type Analysis = {
   healthScore: number;
@@ -19,6 +19,7 @@ type Analysis = {
   quickWins: SEOAnalysisData["quickWins"];
   keywordSuggestions: SEOAnalysisData["keywordSuggestions"];
   contentIdeas: SEOAnalysisData["contentIdeas"];
+  localSeo: LocalSeoPersisted | null;
   version: number;
 };
 
@@ -198,6 +199,76 @@ export function SeoPageClient({
               ))}
             </div>
           </Card>
+
+          {analysis.localSeo && (
+            <Card>
+              <h2 className="mb-1 text-lg font-medium text-[var(--color-text-primary)]">
+                Local SEO
+              </h2>
+              <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+                Based on where you told us you sell.
+              </p>
+
+              <div className="mb-4">
+                <p className="mb-2 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Verified findings
+                </p>
+                <ul className="space-y-1.5">
+                  {analysis.localSeo.verifiedFindings.map((finding) => (
+                    <li key={finding} className="flex items-start gap-2 text-sm">
+                      <Badge tone="low" className="mt-0.5 shrink-0">
+                        verified
+                      </Badge>
+                      <span className="text-[var(--color-text-secondary)]">{finding}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Location pages
+                  </p>
+                  <ul className="list-inside list-disc space-y-1 text-sm text-[var(--color-text-secondary)]">
+                    {analysis.localSeo.locationPageRecommendations.map((rec) => (
+                      <li key={rec}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Local keywords
+                  </p>
+                  <ul className="list-inside list-disc space-y-1 text-sm text-[var(--color-text-secondary)]">
+                    {analysis.localSeo.localKeywordRecommendations.map((rec) => (
+                      <li key={rec}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Google Business Profile
+                  </p>
+                  <ul className="list-inside list-disc space-y-1 text-sm text-[var(--color-text-secondary)]">
+                    {analysis.localSeo.googleBusinessProfileTips.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Review strategy
+                  </p>
+                  <ul className="list-inside list-disc space-y-1 text-sm text-[var(--color-text-secondary)]">
+                    {analysis.localSeo.reviewStrategyTips.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          )}
 
           <Card>
             <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">

@@ -2,8 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import * as growthBlueprintRepository from "@/lib/repositories/growth-blueprint-repository";
 import { crawlWebsite, type WebsiteSignals } from "./crawl";
+import { analyzeLocalSeoSignals, type LocalSeoVerifiedFindings } from "./local-seo";
 import { seoAnalysisSchema, seoAnalysisJsonSchema, type SEOAnalysisData } from "./schema";
+import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 const SYSTEM_PROMPT = `You are Outrun's AI SEO Growth Consultant (docs/outrun/09). Explain SEO in
 plain English for a business owner, not an SEO professional.
@@ -17,9 +20,22 @@ Rules you must follow (non-negotiable):
   have yet.
 - Every category score needs a reason grounded in the actual signals.
 - Executive summary: under 300 words, plain English, no jargon.
-- Quick wins should be genuinely quick — things fixable in under an hour.`;
+- Quick wins should be genuinely quick — things fixable in under an hour.
+- Local SEO (docs/outrun/09 "LOCAL SEO"): fill in localSeo ONLY when told
+  the business serves a specific local area — set it to null otherwise.
+  When filling it in, only recommend location pages, local keywords,
+  Google Business Profile optimization, and a review strategy — nothing
+  about local citations or map-pack visibility, those aren't built yet.
+  You'll be given verified findings (e.g. whether the site has a Google
+  Maps embed) — reference them in your suggestions rather than repeating
+  them as if they were your own discovery.`;
 
-function buildUserMessage(signals: WebsiteSignals, businessDescription: string, idealCustomer: string) {
+function buildUserMessage(
+  signals: WebsiteSignals,
+  businessDescription: string,
+  idealCustomer: string,
+  localSeo: LocalSeoVerifiedFindings,
+) {
   return [
     `Business: ${businessDescription}`,
     `Ideal customer: ${idealCustomer}`,
@@ -34,6 +50,10 @@ function buildUserMessage(signals: WebsiteSignals, businessDescription: string, 
     `Form found: ${signals.hasForm ? "yes" : "no"}`,
     `Link count: ${signals.linkCount}`,
     `Images: ${signals.imageCount} (${signals.imagesMissingAlt} missing alt text)`,
+    "",
+    localSeo.applicable
+      ? `This business serves a specific local area. Verified findings:\n${localSeo.findings.map((f) => `- ${f}`).join("\n")}`
+      : "This business does not serve a specific local area (sells nationally, internationally, or remote/online only) — set localSeo to null.",
     "",
     "Produce a complete SEO analysis from this information alone.",
   ].join("\n");
@@ -55,6 +75,15 @@ export async function analyzeSEO(organizationId: string) {
 
   const signals = await crawlWebsite(organization.website);
 
+  const latestBlueprint = await growthBlueprintRepository.findLatestIcpForOrg(organizationId);
+  const icp = (latestBlueprint?.idealCustomerProfile ??
+    null) as GrowthBlueprintData["idealCustomerProfile"] | null;
+  const localSeo = analyzeLocalSeoSignals({
+    sellingLocations: organization.businessProfile.sellingLocations,
+    inferredLocation: icp?.location ?? null,
+    signals,
+  });
+
   const ai = getAIProvider();
   const data = await ai.generateObject<SEOAnalysisData>({
     system: SYSTEM_PROMPT,
@@ -65,6 +94,7 @@ export async function analyzeSEO(organizationId: string) {
           signals,
           organization.businessProfile.description,
           organization.businessProfile.idealCustomer,
+          localSeo,
         ),
       },
     ],
@@ -78,6 +108,20 @@ export async function analyzeSEO(organizationId: string) {
     orderBy: { version: "desc" },
   });
 
+  // `localSeo.applicable` (computed from sellingLocations, not asked of
+  // the model) is the source of truth for whether this section exists at
+  // all — the AI's own null/non-null choice on data.localSeo is only
+  // trusted for the suggestions inside it, not for this decision.
+  const persistedLocalSeo = localSeo.applicable
+    ? {
+        verifiedFindings: localSeo.findings,
+        locationPageRecommendations: data.localSeo?.locationPageRecommendations ?? [],
+        localKeywordRecommendations: data.localSeo?.localKeywordRecommendations ?? [],
+        googleBusinessProfileTips: data.localSeo?.googleBusinessProfileTips ?? [],
+        reviewStrategyTips: data.localSeo?.reviewStrategyTips ?? [],
+      }
+    : null;
+
   const analysis = await prisma.seoAnalysis.create({
     data: {
       organizationId,
@@ -88,6 +132,7 @@ export async function analyzeSEO(organizationId: string) {
       quickWins: data.quickWins,
       keywordSuggestions: data.keywordSuggestions,
       contentIdeas: data.contentIdeas,
+      localSeo: persistedLocalSeo ?? undefined,
     },
   });
 

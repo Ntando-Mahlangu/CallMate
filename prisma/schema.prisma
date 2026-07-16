@@ -723,6 +723,11 @@ model SeoAnalysis {
   quickWins          Json
   keywordSuggestions Json
   contentIdeas       Json
+  // docs/outrun/09 "LOCAL SEO" — null when the business doesn't serve a
+  // specific local area. Shape: { verifiedFindings: string[],
+  // locationPageRecommendations, localKeywordRecommendations,
+  // googleBusinessProfileTips, reviewStrategyTips: string[] }.
+  localSeo           Json?
 
   createdAt DateTime @default(now())
 

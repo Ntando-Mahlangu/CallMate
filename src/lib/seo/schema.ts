@@ -41,6 +41,18 @@ const contentIdeaSchema = z.object({
   estimatedDifficulty: impact,
 });
 
+// docs/outrun/09 "LOCAL SEO" — only these four are in scope; "Local
+// citations" and "Map visibility improvements" are explicitly marked
+// "(future)" in that doc section. Suggestions only, never asserted as
+// fact — verified findings are computed separately in
+// src/lib/seo/local-seo.ts, not by the model.
+const localSeoSchema = z.object({
+  locationPageRecommendations: z.array(z.string()).min(1).max(4),
+  localKeywordRecommendations: z.array(z.string()).min(1).max(6),
+  googleBusinessProfileTips: z.array(z.string()).min(1).max(4),
+  reviewStrategyTips: z.array(z.string()).min(1).max(4),
+});
+
 export const seoAnalysisSchema = z.object({
   healthScore: z.number().min(0).max(100),
   executiveSummary: z.string(),
@@ -48,9 +60,18 @@ export const seoAnalysisSchema = z.object({
   quickWins: z.array(z.string()).min(1).max(6),
   keywordSuggestions: z.array(keywordSchema).min(3).max(10),
   contentIdeas: z.array(contentIdeaSchema).min(2).max(6),
+  // null when the business doesn't serve a specific local area.
+  localSeo: localSeoSchema.nullable(),
 });
 
 export type SEOAnalysisData = z.infer<typeof seoAnalysisSchema>;
+
+// The shape actually persisted on SeoAnalysis.localSeo — the AI's
+// suggestions plus src/lib/seo/local-seo.ts's procedurally-computed
+// verifiedFindings, merged at generation time (see src/lib/seo/analyze.ts).
+export type LocalSeoPersisted = z.infer<typeof localSeoSchema> & {
+  verifiedFindings: string[];
+};
 
 export const seoAnalysisJsonSchema = {
   type: "object",
@@ -120,6 +141,43 @@ export const seoAnalysisJsonSchema = {
         required: ["headline", "targetKeyword", "searchIntent", "businessGoal", "estimatedDifficulty"],
       },
     },
+    localSeo: {
+      type: ["object", "null"],
+      description:
+        "Only fill this in when told the business serves a specific local area — set it to null otherwise.",
+      properties: {
+        locationPageRecommendations: {
+          type: "array",
+          minItems: 1,
+          maxItems: 4,
+          items: { type: "string" },
+        },
+        localKeywordRecommendations: {
+          type: "array",
+          minItems: 1,
+          maxItems: 6,
+          items: { type: "string" },
+        },
+        googleBusinessProfileTips: {
+          type: "array",
+          minItems: 1,
+          maxItems: 4,
+          items: { type: "string" },
+        },
+        reviewStrategyTips: {
+          type: "array",
+          minItems: 1,
+          maxItems: 4,
+          items: { type: "string" },
+        },
+      },
+      required: [
+        "locationPageRecommendations",
+        "localKeywordRecommendations",
+        "googleBusinessProfileTips",
+        "reviewStrategyTips",
+      ],
+    },
   },
   required: [
     "healthScore",
@@ -128,5 +186,6 @@ export const seoAnalysisJsonSchema = {
     "quickWins",
     "keywordSuggestions",
     "contentIdeas",
+    "localSeo",
   ],
 } as const;
