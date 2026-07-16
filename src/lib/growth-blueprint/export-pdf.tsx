@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { GrowthBlueprint } from "@prisma/client";
-import type { GrowthBlueprintData } from "./schema";
+import type { BusinessSnapshot, GrowthBlueprintData, WebsiteAnalysis } from "./schema";
 
 // docs/outrun/05 "EXPORTS — Exports should preserve premium formatting."
 // A restrained dark-on-light print layout (PDF renderers don't do the
@@ -28,6 +28,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function buildBlueprintPdfDocument(organizationName: string, blueprint: GrowthBlueprint) {
+  const snapshot = blueprint.businessSnapshot as BusinessSnapshot;
   const strengths = blueprint.strengths as GrowthBlueprintData["strengths"];
   const weaknesses = blueprint.weaknesses as GrowthBlueprintData["weaknesses"];
   const bottleneck = blueprint.biggestBottleneck as GrowthBlueprintData["biggestBottleneck"];
@@ -35,6 +36,7 @@ export function buildBlueprintPdfDocument(organizationName: string, blueprint: G
   const growthStrategy = blueprint.growthStrategy as GrowthBlueprintData["growthStrategy"];
   const icp = blueprint.idealCustomerProfile as GrowthBlueprintData["idealCustomerProfile"];
   const roadmap = blueprint.roadmap as GrowthBlueprintData["roadmap"];
+  const websiteAnalysis = blueprint.websiteAnalysis as WebsiteAnalysis | null;
   const scoreCategories = blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"];
 
   return (
@@ -45,6 +47,26 @@ export function buildBlueprintPdfDocument(organizationName: string, blueprint: G
 
         <Text style={styles.score}>{blueprint.growthScore}/100</Text>
         <Text style={styles.paragraph}>{blueprint.executiveSummary}</Text>
+
+        <Section title="Business Snapshot">
+          <Text style={styles.itemBody}>Industry: {snapshot.industry}</Text>
+          <Text style={styles.itemBody}>Target market: {snapshot.targetMarket}</Text>
+          <Text style={styles.itemBody}>Ideal customer: {snapshot.idealCustomer}</Text>
+          <Text style={styles.itemBody}>Business model: {snapshot.businessModel}</Text>
+          <Text style={styles.itemBody}>Primary goal: {snapshot.primaryGoal}</Text>
+          <Text style={styles.itemBody}>
+            Primary acquisition channel: {snapshot.primaryAcquisitionChannel}
+          </Text>
+          <Text style={styles.itemBody}>Growth stage: {snapshot.growthStage}</Text>
+          <Text style={styles.itemBody}>
+            Estimated customer value:{" "}
+            {snapshot.estimatedCustomerValue != null
+              ? `$${snapshot.estimatedCustomerValue}`
+              : "Not known"}
+          </Text>
+          <Text style={styles.itemBody}>Website status: {snapshot.websiteStatus}</Text>
+          <Text style={styles.itemBody}>Campaign status: {snapshot.campaignStatus}</Text>
+        </Section>
 
         <Section title="Strengths">
           {strengths.map((s) => (
@@ -145,6 +167,22 @@ export function buildBlueprintPdfDocument(organizationName: string, blueprint: G
             </View>
           ))}
         </Section>
+
+        {websiteAnalysis && (
+          <Section title="Website Analysis">
+            <Text style={styles.itemBody}>Headline clarity: {websiteAnalysis.headlineClarity}</Text>
+            <Text style={styles.itemBody}>Offer clarity: {websiteAnalysis.offerClarity}</Text>
+            <Text style={styles.itemBody}>Calls-to-action: {websiteAnalysis.callsToAction}</Text>
+            <Text style={styles.itemBody}>Trust signals: {websiteAnalysis.trustSignals}</Text>
+            <Text style={styles.itemBody}>Messaging: {websiteAnalysis.messaging}</Text>
+            <Text style={styles.muted}>
+              Contact info: {websiteAnalysis.hasContactInfo ? "found" : "not found"} · Title:{" "}
+              {websiteAnalysis.hasTitle ? "present" : "missing"} · Meta description:{" "}
+              {websiteAnalysis.hasMetaDescription ? "present" : "missing"} · {websiteAnalysis.wordCount}{" "}
+              words · {websiteAnalysis.imagesMissingAlt} images missing alt text
+            </Text>
+          </Section>
+        )}
 
         <Section title="AI Confidence Notes">
           <Text style={styles.itemBody}>{blueprint.confidenceNotes}</Text>

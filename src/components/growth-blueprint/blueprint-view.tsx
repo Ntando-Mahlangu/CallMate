@@ -1,13 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { ImpactBadge, Badge } from "@/components/ui/badge";
 import { ScoreGauge } from "@/components/growth-blueprint/score-gauge";
-import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import type { BusinessSnapshot, GrowthBlueprintData, WebsiteAnalysis } from "@/lib/growth-blueprint/schema";
 
 type BlueprintFields = {
   version: number;
   growthScore: number;
   executiveSummary: string;
   confidenceNotes: string;
+  businessSnapshot: BusinessSnapshot;
   strengths: GrowthBlueprintData["strengths"];
   weaknesses: GrowthBlueprintData["weaknesses"];
   biggestBottleneck: GrowthBlueprintData["biggestBottleneck"];
@@ -15,6 +16,7 @@ type BlueprintFields = {
   growthStrategy: GrowthBlueprintData["growthStrategy"];
   idealCustomerProfile: GrowthBlueprintData["idealCustomerProfile"];
   roadmap: GrowthBlueprintData["roadmap"];
+  websiteAnalysis: WebsiteAnalysis | null;
   scoreCategories: GrowthBlueprintData["scoreCategories"];
 };
 
@@ -39,6 +41,7 @@ export function BlueprintView({
   blueprint: BlueprintFields;
 }) {
   const {
+    businessSnapshot: snapshot,
     strengths,
     weaknesses,
     biggestBottleneck: bottleneck,
@@ -46,6 +49,7 @@ export function BlueprintView({
     growthStrategy,
     idealCustomerProfile: icp,
     roadmap,
+    websiteAnalysis,
     scoreCategories,
   } = blueprint;
 
@@ -68,6 +72,60 @@ export function BlueprintView({
           </h2>
           <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
             {blueprint.executiveSummary}
+          </p>
+        </div>
+      </Card>
+
+      <Card className="animate-fade-in">
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Business Snapshot
+        </h2>
+        <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <p>
+            <span className="text-[var(--color-text-muted)]">Industry: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.industry}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Target market: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.targetMarket}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Ideal customer: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.idealCustomer}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Business model: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.businessModel}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Primary goal: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.primaryGoal}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Primary acquisition channel: </span>
+            <span className="text-[var(--color-text-primary)]">
+              {snapshot.primaryAcquisitionChannel}
+            </span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Growth stage: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.growthStage}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Estimated customer value: </span>
+            <span className="text-[var(--color-text-primary)]">
+              {snapshot.estimatedCustomerValue != null
+                ? `$${snapshot.estimatedCustomerValue.toLocaleString()}`
+                : "Not known"}
+            </span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Website status: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.websiteStatus}</span>
+          </p>
+          <p>
+            <span className="text-[var(--color-text-muted)]">Campaign status: </span>
+            <span className="text-[var(--color-text-primary)]">{snapshot.campaignStatus}</span>
           </p>
         </div>
       </Card>
@@ -300,6 +358,69 @@ export function BlueprintView({
           ))}
         </div>
       </Card>
+
+      {websiteAnalysis && (
+        <Card className="animate-fade-in">
+          <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+            Website Analysis
+          </h2>
+          <div className="grid gap-4 text-sm sm:grid-cols-2">
+            <p>
+              <span className="font-medium text-[var(--color-text-primary)]">
+                Headline clarity:{" "}
+              </span>
+              <span className="text-[var(--color-text-secondary)]">
+                {websiteAnalysis.headlineClarity}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium text-[var(--color-text-primary)]">
+                Offer clarity:{" "}
+              </span>
+              <span className="text-[var(--color-text-secondary)]">
+                {websiteAnalysis.offerClarity}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium text-[var(--color-text-primary)]">
+                Calls-to-action:{" "}
+              </span>
+              <span className="text-[var(--color-text-secondary)]">
+                {websiteAnalysis.callsToAction}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium text-[var(--color-text-primary)]">
+                Trust signals:{" "}
+              </span>
+              <span className="text-[var(--color-text-secondary)]">
+                {websiteAnalysis.trustSignals}
+              </span>
+            </p>
+            <p className="sm:col-span-2">
+              <span className="font-medium text-[var(--color-text-primary)]">Messaging: </span>
+              <span className="text-[var(--color-text-secondary)]">
+                {websiteAnalysis.messaging}
+              </span>
+            </p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge tone={websiteAnalysis.hasContactInfo ? "high" : "low"}>
+              {websiteAnalysis.hasContactInfo ? "Contact info found" : "No contact info found"}
+            </Badge>
+            <Badge tone={websiteAnalysis.hasTitle ? "high" : "low"}>
+              {websiteAnalysis.hasTitle ? "Page title present" : "No page title"}
+            </Badge>
+            <Badge tone={websiteAnalysis.hasMetaDescription ? "high" : "low"}>
+              {websiteAnalysis.hasMetaDescription ? "Meta description present" : "No meta description"}
+            </Badge>
+            <Badge tone="accent">{websiteAnalysis.wordCount} words</Badge>
+            {websiteAnalysis.imagesMissingAlt > 0 && (
+              <Badge tone="medium">{websiteAnalysis.imagesMissingAlt} images missing alt text</Badge>
+            )}
+          </div>
+        </Card>
+      )}
 
       <Card className="animate-fade-in bg-[var(--color-bg-secondary)]">
         <p className="text-sm text-[var(--color-text-muted)]">

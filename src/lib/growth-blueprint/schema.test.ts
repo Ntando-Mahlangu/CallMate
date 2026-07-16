@@ -16,6 +16,11 @@ function validBlueprint(overrides: Record<string, unknown> = {}): Record<string,
   return {
     growthScore: 62,
     executiveSummary: "A plumbing company with steady referrals but no outbound engine.",
+    businessSnapshot: {
+      industry: "Home services / plumbing",
+      businessModel: "Service-based, per-job pricing",
+    },
+    websiteAnalysis: null,
     scoreCategories: CATEGORIES.map((category) => ({
       category,
       score: 50,

@@ -99,10 +99,60 @@ const roadmapItemSchema = z.object({
   expectedImpact: impact,
 });
 
+// docs/outrun/05 "BUSINESS SNAPSHOT" — most of its fields (target market,
+// ideal customer, primary goal/channel, growth stage, customer value,
+// website/campaign status) are already known facts sitting in
+// BusinessProfile/Organization/Campaign, so they're computed procedurally
+// in generate.ts rather than asked of the model (Article IV: never let an
+// AI restate a stored number and risk it drifting). Only industry and
+// businessModel genuinely require reading the business description, so
+// those two are the only AI-authored fields here.
+const businessSnapshotAiSchema = z.object({
+  industry: z.string(),
+  businessModel: z.string(),
+});
+
+export type BusinessSnapshot = z.infer<typeof businessSnapshotAiSchema> & {
+  targetMarket: string;
+  idealCustomer: string;
+  primaryGoal: string;
+  primaryAcquisitionChannel: string;
+  growthStage: string;
+  estimatedCustomerValue: number | null;
+  websiteStatus: "Not provided" | "Provided, analyzed" | "Provided, could not be analyzed";
+  campaignStatus: string;
+};
+
+// docs/outrun/05 "WEBSITE ANALYSIS (IF AVAILABLE)" — headline/offer
+// clarity, CTAs, trust signals, and messaging genuinely require judgment,
+// so those stay AI-authored, but only ever from the real crawled signals
+// (src/lib/seo/crawl.ts) passed into the prompt — "never guess unavailable
+// metrics" per the doc, e.g. Speed is explicitly out (future integration,
+// same exclusion already applied to Local SEO's citations/map-pack).
+// Contact info and SEO fundamentals are plain procedural facts from the
+// crawl, not AI-authored, matching src/lib/seo/local-seo.ts's split
+// between verified findings and AI suggestions.
+const websiteAnalysisAiSchema = z.object({
+  headlineClarity: z.string(),
+  offerClarity: z.string(),
+  callsToAction: z.string(),
+  trustSignals: z.string(),
+  messaging: z.string(),
+});
+
+export type WebsiteAnalysis = z.infer<typeof websiteAnalysisAiSchema> & {
+  hasContactInfo: boolean;
+  hasTitle: boolean;
+  hasMetaDescription: boolean;
+  wordCount: number;
+  imagesMissingAlt: number;
+};
+
 export const growthBlueprintSchema = z.object({
   growthScore: z.number().min(0).max(100),
   executiveSummary: z.string(),
   scoreCategories: z.array(scoreCategorySchema).length(8),
+  businessSnapshot: businessSnapshotAiSchema,
   strengths: z.array(strengthSchema).min(2).max(4),
   weaknesses: z.array(weaknessSchema).min(2).max(4),
   biggestBottleneck: bottleneckSchema,
@@ -110,6 +160,7 @@ export const growthBlueprintSchema = z.object({
   growthStrategy: z.array(growthStrategySchema).min(1).max(3),
   idealCustomerProfile: idealCustomerProfileSchema,
   roadmap: z.array(roadmapItemSchema).min(4),
+  websiteAnalysis: websiteAnalysisAiSchema.nullable(),
   confidenceNotes: z.string(),
   overallConfidence: confidenceLevel,
 });
@@ -123,6 +174,16 @@ export const growthBlueprintJsonSchema = {
   properties: {
     growthScore: { type: "integer", minimum: 0, maximum: 100 },
     executiveSummary: { type: "string" },
+    businessSnapshot: {
+      type: "object",
+      description:
+        "Only industry and businessModel — everything else in the Business Snapshot section is a known fact filled in separately, not asked of you.",
+      properties: {
+        industry: { type: "string" },
+        businessModel: { type: "string" },
+      },
+      required: ["industry", "businessModel"],
+    },
     scoreCategories: {
       type: "array",
       minItems: 8,
@@ -330,12 +391,26 @@ export const growthBlueprintJsonSchema = {
         required: ["horizon", "action", "reason", "estimatedTime", "expectedImpact"],
       },
     },
+    websiteAnalysis: {
+      type: ["object", "null"],
+      description:
+        "Fill this in only when website signals were given to you below (title, h1s, meta description, word count, form/contact-info presence). Set to null if no website was provided or it couldn't be crawled — never guess at a website you weren't shown.",
+      properties: {
+        headlineClarity: { type: "string" },
+        offerClarity: { type: "string" },
+        callsToAction: { type: "string" },
+        trustSignals: { type: "string" },
+        messaging: { type: "string" },
+      },
+      required: ["headlineClarity", "offerClarity", "callsToAction", "trustSignals", "messaging"],
+    },
     confidenceNotes: { type: "string" },
     overallConfidence: { type: "string", enum: ["Low", "Medium", "High"] },
   },
   required: [
     "growthScore",
     "executiveSummary",
+    "businessSnapshot",
     "scoreCategories",
     "strengths",
     "weaknesses",
@@ -344,6 +419,7 @@ export const growthBlueprintJsonSchema = {
     "growthStrategy",
     "idealCustomerProfile",
     "roadmap",
+    "websiteAnalysis",
     "confidenceNotes",
     "overallConfidence",
   ],

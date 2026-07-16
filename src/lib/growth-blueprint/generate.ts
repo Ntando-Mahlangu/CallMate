@@ -5,6 +5,9 @@ import { UserFacingError } from "@/lib/errors";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { getPriorRecommendationOutcomes } from "@/lib/memory/recommendation-outcomes";
 import { growthBlueprintTag, orgProfileTag } from "@/lib/cache-tags";
+import { crawlWebsite, type WebsiteSignals } from "@/lib/seo/crawl";
+import { captureError } from "@/lib/observability";
+import { buildBusinessSnapshot, buildWebsiteAnalysis } from "./snapshot";
 import {
   growthBlueprintSchema,
   growthBlueprintJsonSchema,
@@ -39,7 +42,16 @@ Rules you must follow (non-negotiable):
   Not Helpful, and acknowledge genuine completed progress where it's
   relevant to the current bottleneck or opportunities. If no prior
   outcomes are provided, this is the business's first Blueprint —
-  proceed without referencing history that doesn't exist.`;
+  proceed without referencing history that doesn't exist.
+- For businessSnapshot: only industry and businessModel are yours to
+  fill in — every other Business Snapshot field is already a known fact
+  supplied separately. Infer industry and businessModel directly from
+  the business description; don't invent details beyond it.
+- For websiteAnalysis: only fill this in when real website signals
+  (title, headings, meta description, word count, form/contact-info
+  presence) are given to you below. If none are given, set it to null —
+  never guess at a website you weren't shown, and never comment on page
+  speed or anything else you weren't given a signal for.`;
 
 function buildUserMessage(input: {
   organizationName: string;
@@ -54,6 +66,7 @@ function buildUserMessage(input: {
   mainGoal: string;
   competitors: string[];
   priorRecommendationOutcomes: string | null;
+  websiteSignals: WebsiteSignals | null;
 }) {
   const lines = [
     `Business name: ${input.organizationName}`,
@@ -73,12 +86,30 @@ function buildUserMessage(input: {
     `Known competitors: ${input.competitors.join(", ") || "none provided"}`,
   ];
 
+  const websiteSection = input.websiteSignals
+    ? [
+        `Page title: ${input.websiteSignals.title ?? "none found"}`,
+        `Meta description: ${input.websiteSignals.metaDescription ?? "none found"}`,
+        `H1 headings: ${input.websiteSignals.h1s.join(" | ") || "none found"}`,
+        `H2 headings: ${input.websiteSignals.h2s.join(" | ") || "none found"}`,
+        `Word count: ${input.websiteSignals.wordCount}`,
+        `Has a form on the page: ${input.websiteSignals.hasForm ? "yes" : "no"}`,
+        `Has contact info (mailto/tel link or the word 'contact'): ${
+          input.websiteSignals.hasContactInfo ? "yes" : "no"
+        }`,
+      ].join("\n")
+    : null;
+
   return [
     lines.join("\n"),
     "",
     input.priorRecommendationOutcomes
       ? `What happened after previous Blueprints: ${input.priorRecommendationOutcomes}`
       : "This is this business's first Growth Blueprint — there is no recommendation history yet.",
+    "",
+    websiteSection
+      ? `Website signals actually crawled from the site above:\n${websiteSection}`
+      : "No website could be crawled — set websiteAnalysis to null.",
     "",
     "Produce a complete Growth Blueprint from this information alone.",
   ].join("\n");
@@ -100,6 +131,32 @@ export async function generateGrowthBlueprint(organizationId: string) {
   const ai = getAIProvider();
   const priorRecommendationOutcomes = await getPriorRecommendationOutcomes(organizationId);
 
+  // "Website Analysis (if available)" (docs/outrun/05) — genuinely optional:
+  // crawl failures (unreachable site, blocked, invalid URL) just mean the
+  // section doesn't exist this time, not a hard failure of the Blueprint.
+  let websiteSignals: WebsiteSignals | null = null;
+  if (organization.website) {
+    try {
+      websiteSignals = await crawlWebsite(organization.website);
+    } catch (error) {
+      captureError("growth-blueprint.website-crawl", error, { organizationId });
+    }
+  }
+
+  const [campaignStatusRows] = await Promise.all([
+    prisma.campaign.groupBy({
+      by: ["status"],
+      where: { organizationId },
+      _count: { _all: true },
+    }),
+  ]);
+  const campaignStatusCounts = {
+    ready: campaignStatusRows.find((r) => r.status === "READY")?._count._all ?? 0,
+    draft: campaignStatusRows.find((r) => r.status === "DRAFT")?._count._all ?? 0,
+    paused: campaignStatusRows.find((r) => r.status === "PAUSED")?._count._all ?? 0,
+    completed: campaignStatusRows.find((r) => r.status === "COMPLETED")?._count._all ?? 0,
+  };
+
   const data = await ai.generateObject<GrowthBlueprintData>({
     system: SYSTEM_PROMPT,
     messages: [
@@ -118,6 +175,7 @@ export async function generateGrowthBlueprint(organizationId: string) {
           mainGoal: profile.mainGoal,
           competitors: profile.competitors,
           priorRecommendationOutcomes,
+          websiteSignals,
         }),
       },
     ],
@@ -125,6 +183,20 @@ export async function generateGrowthBlueprint(organizationId: string) {
     jsonSchema: growthBlueprintJsonSchema,
     toolName: "growth_blueprint",
   });
+
+  const businessSnapshot = buildBusinessSnapshot({
+    aiFields: data.businessSnapshot,
+    sellingLocations: profile.sellingLocations,
+    idealCustomer: profile.idealCustomer,
+    mainGoal: profile.mainGoal,
+    acquisitionChannels: profile.acquisitionChannels,
+    growthStage: organization.growthStage,
+    avgCustomerValue: profile.avgCustomerValue,
+    website: organization.website,
+    websiteCrawlSucceeded: websiteSignals !== null,
+    campaignStatusCounts,
+  });
+  const websiteAnalysis = buildWebsiteAnalysis(data.websiteAnalysis, websiteSignals);
 
   const previous = await prisma.growthBlueprint.findFirst({
     where: { organizationId },
@@ -139,6 +211,7 @@ export async function generateGrowthBlueprint(organizationId: string) {
         version: nextVersion,
         growthScore: data.growthScore,
         executiveSummary: data.executiveSummary,
+        businessSnapshot,
         strengths: data.strengths,
         weaknesses: data.weaknesses,
         biggestBottleneck: data.biggestBottleneck,
@@ -146,6 +219,7 @@ export async function generateGrowthBlueprint(organizationId: string) {
         growthStrategy: data.growthStrategy,
         idealCustomerProfile: data.idealCustomerProfile,
         roadmap: data.roadmap,
+        websiteAnalysis: websiteAnalysis ?? undefined,
         scoreCategories: data.scoreCategories,
         confidenceNotes: `${data.overallConfidence} confidence — ${data.confidenceNotes}`,
       },

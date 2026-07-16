@@ -10,7 +10,7 @@ import { BlueprintActions } from "@/components/growth-blueprint/blueprint-action
 import { SecondWowSection } from "@/components/growth-blueprint/second-wow-section";
 import { isFeatureEnabled, FEATURE_FLAGS } from "@/lib/billing/feature-flags";
 import * as companyRepository from "@/lib/repositories/company-repository";
-import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import type { BusinessSnapshot, GrowthBlueprintData, WebsiteAnalysis } from "@/lib/growth-blueprint/schema";
 
 export default async function BlueprintPage() {
   const session = await getCurrentSession();
@@ -83,6 +83,7 @@ export default async function BlueprintPage() {
             growthScore: blueprint.growthScore,
             executiveSummary: blueprint.executiveSummary,
             confidenceNotes: blueprint.confidenceNotes,
+            businessSnapshot: blueprint.businessSnapshot as BusinessSnapshot,
             strengths: blueprint.strengths as GrowthBlueprintData["strengths"],
             weaknesses: blueprint.weaknesses as GrowthBlueprintData["weaknesses"],
             biggestBottleneck: blueprint.biggestBottleneck as GrowthBlueprintData["biggestBottleneck"],
@@ -91,6 +92,7 @@ export default async function BlueprintPage() {
             idealCustomerProfile:
               blueprint.idealCustomerProfile as GrowthBlueprintData["idealCustomerProfile"],
             roadmap: blueprint.roadmap as GrowthBlueprintData["roadmap"],
+            websiteAnalysis: blueprint.websiteAnalysis as WebsiteAnalysis | null,
             scoreCategories: blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"],
           }}
         />

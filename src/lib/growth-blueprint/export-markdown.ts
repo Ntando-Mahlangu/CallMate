@@ -1,8 +1,9 @@
 import type { GrowthBlueprint } from "@prisma/client";
-import type { GrowthBlueprintData } from "./schema";
+import type { BusinessSnapshot, GrowthBlueprintData, WebsiteAnalysis } from "./schema";
 
 /** docs/outrun/05 "EXPORTS" — Markdown. Mirrors src/components/growth-blueprint/blueprint-view.tsx section by section. */
 export function blueprintToMarkdown(organizationName: string, blueprint: GrowthBlueprint): string {
+  const snapshot = blueprint.businessSnapshot as BusinessSnapshot;
   const strengths = blueprint.strengths as GrowthBlueprintData["strengths"];
   const weaknesses = blueprint.weaknesses as GrowthBlueprintData["weaknesses"];
   const bottleneck = blueprint.biggestBottleneck as GrowthBlueprintData["biggestBottleneck"];
@@ -10,6 +11,7 @@ export function blueprintToMarkdown(organizationName: string, blueprint: GrowthB
   const growthStrategy = blueprint.growthStrategy as GrowthBlueprintData["growthStrategy"];
   const icp = blueprint.idealCustomerProfile as GrowthBlueprintData["idealCustomerProfile"];
   const roadmap = blueprint.roadmap as GrowthBlueprintData["roadmap"];
+  const websiteAnalysis = blueprint.websiteAnalysis as WebsiteAnalysis | null;
   const scoreCategories = blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"];
 
   const lines: string[] = [];
@@ -19,6 +21,23 @@ export function blueprintToMarkdown(organizationName: string, blueprint: GrowthB
 
   h("Growth Score");
   lines.push(`**${blueprint.growthScore}/100**`, "", blueprint.executiveSummary, "");
+
+  h("Business Snapshot");
+  lines.push(
+    `- Industry: ${snapshot.industry}`,
+    `- Target market: ${snapshot.targetMarket}`,
+    `- Ideal customer: ${snapshot.idealCustomer}`,
+    `- Business model: ${snapshot.businessModel}`,
+    `- Primary goal: ${snapshot.primaryGoal}`,
+    `- Primary acquisition channel: ${snapshot.primaryAcquisitionChannel}`,
+    `- Growth stage: ${snapshot.growthStage}`,
+    `- Estimated customer value: ${
+      snapshot.estimatedCustomerValue != null ? `$${snapshot.estimatedCustomerValue}` : "Not known"
+    }`,
+    `- Website status: ${snapshot.websiteStatus}`,
+    `- Campaign status: ${snapshot.campaignStatus}`,
+    "",
+  );
 
   h("Strengths");
   strengths.forEach((s) => lines.push(`- **${s.title}** — ${s.reason}`));
@@ -85,6 +104,23 @@ export function blueprintToMarkdown(organizationName: string, blueprint: GrowthB
   h("Score Breakdown");
   scoreCategories.forEach((c) => lines.push(`- **${c.category}**: ${c.score}/100 — ${c.reason}`));
   lines.push("");
+
+  if (websiteAnalysis) {
+    h("Website Analysis");
+    lines.push(
+      `- Headline clarity: ${websiteAnalysis.headlineClarity}`,
+      `- Offer clarity: ${websiteAnalysis.offerClarity}`,
+      `- Calls-to-action: ${websiteAnalysis.callsToAction}`,
+      `- Trust signals: ${websiteAnalysis.trustSignals}`,
+      `- Messaging: ${websiteAnalysis.messaging}`,
+      `- Contact info found: ${websiteAnalysis.hasContactInfo ? "yes" : "no"}`,
+      `- Page title present: ${websiteAnalysis.hasTitle ? "yes" : "no"}`,
+      `- Meta description present: ${websiteAnalysis.hasMetaDescription ? "yes" : "no"}`,
+      `- Word count: ${websiteAnalysis.wordCount}`,
+      `- Images missing alt text: ${websiteAnalysis.imagesMissingAlt}`,
+      "",
+    );
+  }
 
   h("AI Confidence Notes");
   lines.push(blueprint.confidenceNotes, "");

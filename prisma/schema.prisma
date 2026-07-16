@@ -300,6 +300,7 @@ model GrowthBlueprint {
 
   growthScore          Int
   executiveSummary     String
+  businessSnapshot     Json
   strengths            Json
   weaknesses           Json
   biggestBottleneck    Json
@@ -307,6 +308,9 @@ model GrowthBlueprint {
   growthStrategy       Json
   idealCustomerProfile Json
   roadmap              Json
+  // docs/outrun/05 "WEBSITE ANALYSIS (IF AVAILABLE)" — null whenever no
+  // website was crawled, never a fabricated placeholder.
+  websiteAnalysis      Json?
   scoreCategories      Json
   confidenceNotes      String
 

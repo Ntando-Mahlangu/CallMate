@@ -4,7 +4,7 @@ import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { BlueprintView } from "@/components/growth-blueprint/blueprint-view";
-import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
+import type { BusinessSnapshot, GrowthBlueprintData, WebsiteAnalysis } from "@/lib/growth-blueprint/schema";
 
 export default async function BlueprintHistoryVersionPage({
   params,
@@ -45,6 +45,7 @@ export default async function BlueprintHistoryVersionPage({
             growthScore: blueprint.growthScore,
             executiveSummary: blueprint.executiveSummary,
             confidenceNotes: blueprint.confidenceNotes,
+            businessSnapshot: blueprint.businessSnapshot as BusinessSnapshot,
             strengths: blueprint.strengths as GrowthBlueprintData["strengths"],
             weaknesses: blueprint.weaknesses as GrowthBlueprintData["weaknesses"],
             biggestBottleneck: blueprint.biggestBottleneck as GrowthBlueprintData["biggestBottleneck"],
@@ -53,6 +54,7 @@ export default async function BlueprintHistoryVersionPage({
             idealCustomerProfile:
               blueprint.idealCustomerProfile as GrowthBlueprintData["idealCustomerProfile"],
             roadmap: blueprint.roadmap as GrowthBlueprintData["roadmap"],
+            websiteAnalysis: blueprint.websiteAnalysis as WebsiteAnalysis | null,
             scoreCategories: blueprint.scoreCategories as GrowthBlueprintData["scoreCategories"],
           }}
         />
