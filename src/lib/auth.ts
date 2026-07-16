@@ -61,6 +61,15 @@ export const auth = betterAuth({
       }
     : undefined,
 
+  // docs/outrun/11 "Encrypted Credential Storage" / docs/outrun/15
+  // "Encrypt: Tokens, Credentials" / Article XII — Account.accessToken,
+  // refreshToken, and idToken would otherwise sit in Postgres as plain
+  // text. AES-256-GCM, keyed off BETTER_AUTH_SECRET; Better Auth
+  // transparently decrypts on read (account info, token refresh).
+  account: {
+    encryptOAuthTokens: true,
+  },
+
   plugins: [
     // docs/outrun/03 "AUTHENTICATION — Magic Link". Reuses the same
     // sendEmail() seam as password reset/verification; a fresh account

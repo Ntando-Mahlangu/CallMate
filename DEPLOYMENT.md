@@ -41,7 +41,7 @@ inline there. Summary of what's required vs. optional:
 | Variable | Required? | Notes |
 |---|---|---|
 | `DATABASE_URL` | Yes | Production Postgres connection string |
-| `BETTER_AUTH_SECRET` | Yes | Generate a **fresh** one per environment: `openssl rand -base64 32`. Never reuse the dev secret. |
+| `BETTER_AUTH_SECRET` | Yes | Generate a **fresh** one per environment: `openssl rand -base64 32`. Never reuse the dev secret. Also encrypts stored OAuth tokens (see §9l) — rotate carefully. |
 | `BETTER_AUTH_URL` | Yes | Your production URL, e.g. `https://app.yourdomain.com` |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Optional | Enables "Continue with Google"; hidden until set |
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` | Optional | Enables "Continue with Microsoft"; hidden until the client ID/secret are set |
@@ -550,6 +550,23 @@ deliberately left unbuilt rather than faked; "content ideas" and
 items in the same feed. "Nothing is launched without user approval" is
 enforced structurally — this feed only ever renders read-only
 recommendations with a link to the real page where a human acts on it.
+
+## 9l. OAuth token encryption at rest
+
+docs/outrun/11 "Encrypted Credential Storage" / docs/outrun/15 "Encrypt:
+Tokens, Credentials". Google/Microsoft sign-in stores each provider's
+`accessToken`, `refreshToken`, and `idToken` on the `Account` row — until
+now, in plain text. `src/lib/auth.ts` sets Better Auth's own
+`account.encryptOAuthTokens: true`, which AES-256-GCM-encrypts those
+three columns before every write and transparently decrypts them on the
+read paths that actually use them (token refresh, account info), keyed
+off `BETTER_AUTH_SECRET`. No app code reads these columns directly via
+Prisma (confirmed by grep), so nothing outside Better Auth's own account
+routes needed to change. One consequence worth knowing before rotating
+`BETTER_AUTH_SECRET` in production: do it via Better Auth's multi-version
+secret support (`keys`/`currentVersion`), not a bare swap — a bare swap
+strands every already-encrypted OAuth token, forcing every OAuth-linked
+user to re-link their provider.
 
 ## 10. Rate limiting
 
