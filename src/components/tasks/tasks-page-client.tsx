@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { ImpactBadge } from "@/components/ui/badge";
+import type { CoachFeedbackData } from "@/lib/ceo-agent/coach-schema";
 
 const IMPACTS: TaskImpact[] = ["High", "Medium", "Low"];
 
@@ -174,25 +175,45 @@ export function TasksPageClient({ initialTasks }: { initialTasks: Task[] }) {
             Completed &amp; dismissed
           </h2>
           <ul className="space-y-3">
-            {done.map((task) => (
-              <li
-                key={task.id}
-                className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3 text-sm last:border-0 last:pb-0"
-              >
-                <span
-                  className={
-                    task.status === "COMPLETED"
-                      ? "text-[var(--color-text-primary)]"
-                      : "text-[var(--color-text-muted)] line-through"
-                  }
+            {done.map((task) => {
+              const coachFeedback = task.coachFeedback as CoachFeedbackData | null;
+              return (
+                <li
+                  key={task.id}
+                  className="border-b border-[var(--color-border)] pb-3 text-sm last:border-0 last:pb-0"
                 >
-                  {task.title}
-                </span>
-                <span className="text-xs text-[var(--color-text-muted)]">
-                  {task.status === "COMPLETED" ? "Completed" : "Dismissed"}
-                </span>
-              </li>
-            ))}
+                  <div className="flex items-center justify-between gap-4">
+                    <span
+                      className={
+                        task.status === "COMPLETED"
+                          ? "text-[var(--color-text-primary)]"
+                          : "text-[var(--color-text-muted)] line-through"
+                      }
+                    >
+                      {task.title}
+                    </span>
+                    <span className="text-xs text-[var(--color-text-muted)]">
+                      {task.status === "COMPLETED" ? "Completed" : "Dismissed"}
+                    </span>
+                  </div>
+                  {coachFeedback && (
+                    <div className="mt-2 rounded-[var(--radius-md)] border border-[var(--color-accent)]/30 bg-[var(--color-bg-secondary)] p-3">
+                      <p className="text-xs font-medium text-[var(--color-accent-text)]">AI Coach</p>
+                      <p className="mt-1 text-[var(--color-text-primary)]">{coachFeedback.celebration}</p>
+                      <p className="mt-1 text-[var(--color-text-secondary)]">
+                        {coachFeedback.whyItMattered}
+                      </p>
+                      <p className="mt-1 text-[var(--color-text-secondary)]">
+                        <span className="font-medium text-[var(--color-text-primary)]">
+                          Recommended next step:{" "}
+                        </span>
+                        {coachFeedback.recommendedNextStep}
+                      </p>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </Card>
       )}

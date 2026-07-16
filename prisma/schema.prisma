@@ -918,6 +918,12 @@ model Task {
   sourceBlueprintVersion Int?
   completionNotes        String?
 
+  // docs/outrun/10 "AI COACH" — generated once, right when the task is
+  // marked COMPLETED (src/lib/ceo-agent/coach.ts), never regenerated on
+  // every page load. Null whenever the AI call itself failed (e.g. no
+  // provider configured) — completing the task must never depend on it.
+  coachFeedback Json?
+
   createdAt   DateTime  @default(now())
   completedAt DateTime?
 

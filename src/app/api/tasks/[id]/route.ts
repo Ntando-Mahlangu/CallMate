@@ -5,6 +5,7 @@ import { getCurrentOrganization } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { captureError } from "@/lib/observability";
 import { logEvent, EventType } from "@/lib/memory/log-event";
+import { generateCoachFeedback } from "@/lib/ceo-agent/coach";
 import { parseJsonBody } from "@/lib/validate-request";
 
 const GENERIC_ERROR = "We couldn't update that task right now. Please try again in a moment.";
@@ -36,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   try {
-    const task = await prisma.task.update({
+    let task = await prisma.task.update({
       where: { id },
       data: {
         status,
@@ -58,6 +59,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           EventType.TASK_COMPLETED,
           `Completed task "${existing.title}".${notes ? ` ${notes}` : ""}`,
         );
+
+        // docs/outrun/10 "AI COACH" — celebrate, explain why it mattered,
+        // recommend the next action. Best-effort: generateCoachFeedback
+        // never throws, so a missing/failed AI provider never blocks the
+        // completion itself, just leaves coachFeedback null.
+        const feedback = await generateCoachFeedback(organization.id, {
+          title: task.title,
+          description: task.description,
+          completionNotes: task.completionNotes,
+        });
+        if (feedback) {
+          task = await prisma.task.update({ where: { id }, data: { coachFeedback: feedback } });
+        }
       } else if (status === "DISMISSED") {
         await logEvent(
           organization.id,
