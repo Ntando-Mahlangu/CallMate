@@ -648,6 +648,34 @@ reserves the seat the moment it's sent, not just once accepted.
 The Billing page now shows "Team Seats" (used / limit, or "Unlimited")
 next to the existing Usage card.
 
+## 9p. Full account/workspace data export
+
+Article XVIII "Users own their data. Users can export it." paired with
+the real deletion flow added earlier (§9j) — deletion existed, export
+didn't. Settings → Team → "Export Your Data" (Owner/Admin only, same
+scope as `canManageTeam`, since a full export covers every member's
+data at once) downloads a single JSON file
+(`src/lib/export/account-export.ts`'s `buildAccountExport()`) covering
+everything the workspace owns: Business Profile, every Growth Blueprint
+version, prospects (with contacts and outreach messages), campaigns,
+tasks, goals, lead lists, SEO analyses and generated content, the
+growth timeline (Business Brain events), and AI chat history. Rate
+limited the same as every other export
+(`RATE_LIMITS.EXPORT`) and logs a `DATA_EXPORTED` audit event.
+
+Deliberately excluded: `Account` rows (OAuth tokens, password hashes —
+pure auth infrastructure, not "business data," and exporting them would
+be a security regression) and `ApiKey.keyHash` (key metadata is
+included, the secret itself never is — matches the "shown once, never
+persisted in cloud text" principle §9n already established for keys
+themselves). Generated synchronously and streamed directly in the
+response, matching every other export in this app (prospect CSV/PDF,
+Growth Blueprint exports) rather than a background job — this codebase
+has no blob/file storage layer to hand a job's result to yet (doc 12
+calls that out as a still-unbuilt piece), and per-tier usage limits keep
+a typical export small enough that synchronous generation doesn't risk
+timing out.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
