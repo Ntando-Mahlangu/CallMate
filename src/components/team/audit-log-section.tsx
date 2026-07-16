@@ -19,6 +19,7 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   DATA_EXPORTED: "Data exported",
   LOGIN: "Signed in",
   LOGIN_FAILED: "Failed sign-in",
+  WORKSPACE_DELETED: "Workspace deleted",
 };
 
 function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string {
@@ -40,6 +41,8 @@ function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string
       return `${actor} signed in`;
     case "LOGIN_FAILED":
       return `Failed sign-in attempt for ${actor}`;
+    case "WORKSPACE_DELETED":
+      return `${actor} deleted this workspace`;
   }
 }
 

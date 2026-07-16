@@ -21,3 +21,11 @@ export function canManageCampaigns(role: MembershipRole): boolean {
 export function canManageBilling(role: MembershipRole): boolean {
   return TEAM_MANAGERS.includes(role);
 }
+
+// docs/outrun/14 "PERMISSIONS" — Owner: everything; Admin's own list
+// ("Manage Workspace, Billing, Users, Campaigns") stops short of
+// destroying the workspace itself. Owner-only, unlike every other
+// TEAM_MANAGERS check above.
+export function canDeleteOrganization(role: MembershipRole): boolean {
+  return role === "OWNER";
+}

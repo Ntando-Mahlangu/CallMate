@@ -821,6 +821,7 @@ enum AuditAction {
   DATA_EXPORTED
   LOGIN
   LOGIN_FAILED
+  WORKSPACE_DELETED
 }
 
 model AuditLog {

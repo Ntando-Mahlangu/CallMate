@@ -4,6 +4,7 @@ import { getCurrentOrganization, getMembershipFor } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 import { TeamPageClient } from "@/components/team/team-page-client";
 import { AuditLogSection } from "@/components/team/audit-log-section";
+import { DangerZoneSection } from "@/components/team/danger-zone-section";
 
 const AUDIT_LOG_LIMIT = 50;
 
@@ -49,6 +50,7 @@ export default async function TeamSettingsPage() {
         invitations={invitations}
       />
       {canManage && <AuditLogSection entries={auditLogEntries} actorNames={actorNames} />}
+      {membership.role === "OWNER" && <DangerZoneSection organizationName={organization.name} />}
     </div>
   );
 }

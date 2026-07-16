@@ -10,9 +10,15 @@ import { orgProfileTag } from "@/lib/cache-tags";
 // membership so single-workspace users never need it set.
 export const ACTIVE_ORG_COOKIE = "outrun_active_org";
 
+// docs/outrun/12/15 "Soft Delete Support"/"Data deletion" — a soft-deleted
+// organization (src/lib/teams/delete-organization.ts) must never resolve
+// here, since this is the single function nearly every page/route calls
+// to get "the current organization." That makes this the one place a
+// deletion actually needs to take effect, rather than every tenant-scoped
+// query across the app needing its own deletedAt check.
 function fetchOrganizationWithProfile(organizationId: string) {
-  return prisma.organization.findUnique({
-    where: { id: organizationId },
+  return prisma.organization.findFirst({
+    where: { id: organizationId, deletedAt: null },
     include: { businessProfile: true },
   });
 }
@@ -66,13 +72,17 @@ export async function getActiveMembership(userId: string) {
   const active = activeOrgId
     ? memberships.find((m) => m.organizationId === activeOrgId)
     : undefined;
-  const membership = active ?? memberships[0];
-  if (!membership) return null;
+  // The preferred membership (active cookie, else oldest) might point at a
+  // workspace that's since been soft-deleted — fall through the rest of
+  // this user's memberships in order rather than treating them as
+  // workspace-less when a live one still exists.
+  const orderedCandidates = active ? [active, ...memberships.filter((m) => m !== active)] : memberships;
 
-  const organization = await getCachedOrganizationWithProfile(membership.organizationId);
-  if (!organization) return null;
-
-  return { ...membership, organization };
+  for (const membership of orderedCandidates) {
+    const organization = await getCachedOrganizationWithProfile(membership.organizationId);
+    if (organization) return { ...membership, organization };
+  }
+  return null;
 }
 
 export async function getCurrentOrganization(userId: string) {
@@ -81,11 +91,13 @@ export async function getCurrentOrganization(userId: string) {
 }
 
 export async function getUserMemberships(userId: string) {
-  return prisma.membership.findMany({
+  const memberships = await prisma.membership.findMany({
     where: { userId },
-    include: { organization: { select: { id: true, name: true } } },
+    include: { organization: { select: { id: true, name: true, deletedAt: true } } },
     orderBy: { createdAt: "asc" },
   });
+  // Never list a soft-deleted workspace in the switcher (src/components/team/workspace-switcher.tsx).
+  return memberships.filter((m) => !m.organization.deletedAt);
 }
 
 export async function getMembershipFor(userId: string, organizationId: string) {
