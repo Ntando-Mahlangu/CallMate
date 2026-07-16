@@ -46,6 +46,7 @@ const AUTHENTICATED_PAGES = [
   "/settings/team",
   "/settings/security",
   "/settings/brand-voice",
+  "/settings/api-keys",
   "/billing",
   "/ceo-agent",
   "/seo",

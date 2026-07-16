@@ -32,6 +32,13 @@ describe("isFeatureEnabled", () => {
     expect(isFeatureEnabled("STARTER", FEATURE_FLAGS.PROSPECTS_EXPORT, ORG_ID)).toBe(true);
   });
 
+  it("gates API access behind Growth and above, not Starter", () => {
+    expect(isFeatureEnabled("FREE", FEATURE_FLAGS.API_ACCESS, ORG_ID)).toBe(false);
+    expect(isFeatureEnabled("STARTER", FEATURE_FLAGS.API_ACCESS, ORG_ID)).toBe(false);
+    expect(isFeatureEnabled("GROWTH", FEATURE_FLAGS.API_ACCESS, ORG_ID)).toBe(true);
+    expect(isFeatureEnabled("UNLIMITED", FEATURE_FLAGS.API_ACCESS, ORG_ID)).toBe(true);
+  });
+
   it("leaves team workspaces open to every tier", () => {
     expect(isFeatureEnabled("FREE", FEATURE_FLAGS.TEAM_WORKSPACES, ORG_ID)).toBe(true);
     expect(isFeatureEnabled("STARTER", FEATURE_FLAGS.TEAM_WORKSPACES, ORG_ID)).toBe(true);

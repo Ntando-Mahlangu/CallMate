@@ -9,6 +9,7 @@ export const FEATURE_FLAGS = {
   GROWTH_BLUEPRINT_EXPORT: "growth_blueprint.export",
   TEAM_WORKSPACES: "team.workspaces",
   PROSPECTS_EXPORT: "prospects.export",
+  API_ACCESS: "api.access",
 } as const;
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
@@ -27,17 +28,20 @@ export type FlagConfig = {
   rolloutPercentage?: number;
 };
 
-// Only FREE and STARTER have a real Paddle price today (src/lib/billing/plans.ts)
-// — gating anything behind GROWTH/UNLIMITED would make it permanently
-// unreachable since no one can actually subscribe to those tiers yet.
-// TEAM_WORKSPACES is deliberately open to every tier (matching the same
-// call already made in src/lib/teams/invite.ts's doc comment) rather than
-// locked behind a plan nobody can buy.
+// Every paid tier now has a real Paddle price (src/lib/billing/plans.ts —
+// Growth/Unlimited read their price ID from an env var, same as Starter),
+// so gating behind GROWTH/UNLIMITED no longer makes a flag permanently
+// unreachable. TEAM_WORKSPACES is deliberately open to every tier (matching
+// the same call already made in src/lib/teams/invite.ts's doc comment)
+// rather than locked behind a plan nobody can buy. API_ACCESS matches
+// docs/outrun/14's own plan copy — "API Access (Limited)" is listed under
+// Growth, not Starter.
 const FLAG_CONFIG: Record<FeatureFlag, FlagConfig> = {
   [FEATURE_FLAGS.SEO_ENGINE]: { tiers: ["STARTER", "GROWTH", "UNLIMITED"] },
   [FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT]: { tiers: ["STARTER", "GROWTH", "UNLIMITED"] },
   [FEATURE_FLAGS.TEAM_WORKSPACES]: { tiers: ["FREE", "STARTER", "GROWTH", "UNLIMITED"] },
   [FEATURE_FLAGS.PROSPECTS_EXPORT]: { tiers: ["STARTER", "GROWTH", "UNLIMITED"] },
+  [FEATURE_FLAGS.API_ACCESS]: { tiers: ["GROWTH", "UNLIMITED"] },
 };
 
 /**

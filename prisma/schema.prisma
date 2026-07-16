@@ -192,6 +192,7 @@ model Organization {
   tasks            Task[]
   goals            Goal[]
   recommendationFeedback RecommendationFeedback[]
+  apiKeys          ApiKey[]
 
   @@map("organization")
 }
@@ -822,6 +823,31 @@ enum AuditAction {
   LOGIN
   LOGIN_FAILED
   WORKSPACE_DELETED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+}
+
+// docs/outrun/14 "API Access (Limited)" (Growth plan) / docs/outrun/11
+// "AUTHENTICATION — API Keys" / "Audit API access." The raw key is shown
+// to the user exactly once at creation and never persisted — only its
+// SHA-256 hash is stored, matching the same never-store-plaintext
+// principle Better Auth already applies to OAuth tokens (src/lib/auth.ts).
+model ApiKey {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name            String
+  keyPrefix       String // first chars of the raw key, shown in the UI so a user can tell keys apart without re-revealing the secret
+  keyHash         String    @unique
+  createdByUserId String
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([organizationId])
+  @@map("api_key")
 }
 
 model AuditLog {

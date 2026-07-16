@@ -51,6 +51,7 @@ export const PLANS: Record<
       "Priority AI processing",
       "Advanced recommendations",
       "Integrations",
+      "API Access (Limited)",
       "Priority support",
     ],
     paddlePriceId: process.env.NEXT_PUBLIC_PADDLE_GROWTH_PRICE_ID ?? null,

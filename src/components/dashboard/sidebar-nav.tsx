@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/settings/team", label: "Team" },
   { href: "/settings/brand-voice", label: "Brand Voice" },
   { href: "/settings/security", label: "Security" },
+  { href: "/settings/api-keys", label: "API Keys" },
   { href: "/billing", label: "Billing" },
 ];
 

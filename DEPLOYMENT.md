@@ -594,6 +594,42 @@ page only ever rendered a `CheckoutButton` for one hardcoded tier
 - `CheckoutButton`'s label is now parametrized by plan name instead of
   hardcoded "Upgrade to Starter".
 
+## 9n. API Access (Limited)
+
+docs/outrun/14 lists "API Access (Limited)" as a current Growth-plan
+feature (and Unlimited's own list already said "API access") — but no
+API-key model, issuance flow, or externally-callable authenticated
+endpoint existed anywhere. It was a checked box with nothing behind it
+(Article XIII "Honest Marketing"). Now real, minimal scope on purpose:
+
+- **Issuance**: Settings → API Keys (`/settings/api-keys`, Owner/Admin
+  only, `src/lib/teams/permissions.ts`'s `canManageApiKeys`). The raw key
+  (`ok_live_...`) is shown exactly once at creation and never persisted —
+  only its SHA-256 hash (`src/lib/api-keys/crypto.ts`), the same
+  never-store-plaintext principle Better Auth already applies to OAuth
+  tokens (§9l). Capped at 10 active keys per org.
+- **Gating**: a new `API_ACCESS` feature flag (`src/lib/billing/feature-flags.ts`)
+  restricted to Growth/Unlimited, matching doc 14's own plan copy. Checked
+  twice — once for issuance, and again on every request the key makes
+  (`resolveOrganizationForApiKey` in `src/lib/api-keys/service.ts`) — so a
+  key issued on Growth stops working the moment the org drops back to
+  Free/Starter, not just stops being issuable.
+- **The one real endpoint**: `GET /api/v1/public/prospects`
+  (`Authorization: Bearer <key>`), read-only, rate-limited
+  (`RATE_LIMITS.PUBLIC_API`, 60/min), returns only fields already visible
+  in the in-app Prospects list — no internal `research` JSON, no contact
+  PII beyond what a user could already see. `X-API-Version` is stamped on
+  it automatically by the same `/api/*` middleware (`src/proxy.ts`) every
+  other route gets.
+- **Audit**: key creation/revocation both log `API_KEY_CREATED`/
+  `API_KEY_REVOKED` audit events (doc 11 "Audit API access").
+- **Deliberately not built**: more resources, request signing beyond
+  Bearer-token TLS, per-key custom rate limits, and API documentation
+  beyond this section and the route's own header comment — none of those
+  are specified anywhere in the docs, and "API Access (Limited)" is
+  exactly that: limited. Add more read endpoints behind the same
+  `resolveOrganizationForApiKey` auth path as real need appears.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

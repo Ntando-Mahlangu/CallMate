@@ -45,6 +45,10 @@ export const RATE_LIMITS = {
   SEARCH: { limit: 20, windowSeconds: 60 },
   EXPORT: { limit: 10, windowSeconds: 60 },
   WEBHOOK: { limit: 30, windowSeconds: 60 },
+  // docs/outrun/14 "API Access (Limited)" — the limit is the point, not an
+  // afterthought, so it's tighter than the in-app SEARCH limit even though
+  // it serves similar data.
+  PUBLIC_API: { limit: 60, windowSeconds: 60 },
 } as const;
 
 /** Best-effort client IP for rate-limiting requests with no session yet (webhooks). */

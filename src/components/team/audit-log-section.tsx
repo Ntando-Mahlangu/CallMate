@@ -20,6 +20,8 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   LOGIN: "Signed in",
   LOGIN_FAILED: "Failed sign-in",
   WORKSPACE_DELETED: "Workspace deleted",
+  API_KEY_CREATED: "API key created",
+  API_KEY_REVOKED: "API key revoked",
 };
 
 function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string {
@@ -43,6 +45,10 @@ function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string
       return `Failed sign-in attempt for ${actor}`;
     case "WORKSPACE_DELETED":
       return `${actor} deleted this workspace`;
+    case "API_KEY_CREATED":
+      return `${actor} created API key "${meta.name ?? "unnamed"}"`;
+    case "API_KEY_REVOKED":
+      return `${actor} revoked API key "${meta.name ?? "unnamed"}"`;
   }
 }
 

@@ -22,6 +22,12 @@ export function canManageBilling(role: MembershipRole): boolean {
   return TEAM_MANAGERS.includes(role);
 }
 
+// Same Owner/Admin set — gates issuing/revoking API keys (docs/outrun/11
+// "Audit API access"), a credential-issuance action, not just viewing.
+export function canManageApiKeys(role: MembershipRole): boolean {
+  return TEAM_MANAGERS.includes(role);
+}
+
 // docs/outrun/14 "PERMISSIONS" — Owner: everything; Admin's own list
 // ("Manage Workspace, Billing, Users, Campaigns") stops short of
 // destroying the workspace itself. Owner-only, unlike every other
