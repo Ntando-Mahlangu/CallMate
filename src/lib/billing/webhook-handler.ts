@@ -7,6 +7,7 @@ import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
 import type { PaymentEvent, SubscriptionEvent } from "./provider";
 import { notifyBillingEvent } from "./notifications";
+import { planTierForPriceId } from "./plans";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
@@ -44,7 +45,26 @@ export async function handlePaymentEvent(event: PaymentEvent) {
       });
 
       const status = event.data.status;
-      const newPlanTier: PlanTier = ACTIVE_STATUSES.has(status) ? "STARTER" : "FREE";
+      let newPlanTier: PlanTier = "FREE";
+      if (ACTIVE_STATUSES.has(status)) {
+        const resolvedTier = planTierForPriceId(event.data.priceId);
+        if (resolvedTier) {
+          newPlanTier = resolvedTier;
+        } else {
+          // The subscription is active but its price ID doesn't match any
+          // configured plan (a Paddle price was deleted/changed, or a price
+          // ID env var is misconfigured) — fall back to Starter rather than
+          // silently leaving the org on Free, but capture it so the
+          // mismatch actually gets fixed.
+          newPlanTier = "STARTER";
+          captureError(
+            "billing.webhook.unresolved-price",
+            new Error(
+              `Active subscription ${event.data.externalSubscriptionId} has an unrecognized price ID: ${event.data.priceId ?? "none"}`,
+            ),
+          );
+        }
+      }
 
       await prisma.organization.update({
         where: { id: organizationId },

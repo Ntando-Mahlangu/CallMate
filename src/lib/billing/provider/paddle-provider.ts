@@ -41,6 +41,7 @@ export class PaddlePaymentProvider implements PaymentProvider {
       customerId: string;
       status: NormalizedSubscriptionStatus;
       customData?: Record<string, unknown> | null;
+      items?: Array<{ price?: { id?: string } | null }>;
     };
     const fromCustomData = data.customData?.organizationId;
 
@@ -51,6 +52,7 @@ export class PaddlePaymentProvider implements PaymentProvider {
         externalCustomerId: data.customerId,
         externalSubscriptionId: data.id,
         status: data.status,
+        priceId: data.items?.[0]?.price?.id ?? null,
       },
     };
   }

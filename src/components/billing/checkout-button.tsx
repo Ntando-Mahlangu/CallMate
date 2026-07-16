@@ -31,9 +31,11 @@ function getPaddle() {
 export function CheckoutButton({
   priceId,
   organizationId,
+  planName,
 }: {
   priceId: string;
   organizationId: string;
+  planName: string;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +72,7 @@ export function CheckoutButton({
         onChange={(e) => setDiscountCode(e.target.value)}
       />
       <Button onClick={handleClick} disabled={isLoading}>
-        {isLoading ? "Loading…" : "Upgrade to Starter"}
+        {isLoading ? "Loading…" : `Upgrade to ${planName}`}
       </Button>
     </div>
   );

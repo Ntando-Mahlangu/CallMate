@@ -1,15 +1,12 @@
 import type { PlanTier } from "@prisma/client";
 
-// docs/outrun/14 — only Free and Starter have a real Paddle price today;
-// every organization is created on Free and Starter is the only paid tier
-// actually purchasable from src/app/(app)/billing/page.tsx (it only renders
-// a CheckoutButton for HIGHLIGHTED_TIER). Growth and Unlimited are
-// described here — and shown on the marketing pricing table — with a
-// `paddlePriceId: null` because docs/outrun/02 requires all four tiers to
-// be presented, but neither can be checked out yet: the billing page
-// already renders no action for a tier with no price ID, so adding them
-// here doesn't create a broken buy button, just an honest "not sold yet"
-// plan card.
+// docs/outrun/14 — every paid tier's Paddle price ID comes from an env var
+// (set once the matching product exists in Paddle's Catalog); the billing
+// page (src/app/(app)/billing/page.tsx) renders a real CheckoutButton for
+// ANY tier whose paddlePriceId resolves, not just one hardcoded tier — so
+// wiring up Growth/Unlimited in production is only ever an env-var change,
+// never a code change. A tier left unconfigured still renders an honest
+// "not sold yet" card instead of a broken buy button.
 export const PLANS: Record<
   PlanTier,
   {
@@ -56,7 +53,7 @@ export const PLANS: Record<
       "Integrations",
       "Priority support",
     ],
-    paddlePriceId: null,
+    paddlePriceId: process.env.NEXT_PUBLIC_PADDLE_GROWTH_PRICE_ID ?? null,
   },
   UNLIMITED: {
     name: "Unlimited",
@@ -72,7 +69,7 @@ export const PLANS: Record<
       "API access",
       "Dedicated onboarding",
     ],
-    paddlePriceId: null,
+    paddlePriceId: process.env.NEXT_PUBLIC_PADDLE_UNLIMITED_PRICE_ID ?? null,
   },
 };
 
@@ -89,7 +86,14 @@ export function isPaidPlan(tier: PlanTier): boolean {
   return tier !== "FREE";
 }
 
-// The tier whose card gets the accent border / primary CTA on pricing
-// pages — centralized so adding a tier above Starter doesn't require
-// re-deciding this in three components.
-export const HIGHLIGHTED_TIER: keyof typeof PLANS = "STARTER";
+// The ONLY place that maps a Paddle price ID back to a PlanTier — used by
+// the webhook handler so a subscription's actual purchased price decides
+// the tier (never hardcoded), and stays correct automatically as soon as a
+// tier's price ID env var is set.
+export function planTierForPriceId(priceId: string | null): PlanTier | null {
+  if (!priceId) return null;
+  const entry = (Object.entries(PLANS) as [PlanTier, (typeof PLANS)[PlanTier]][]).find(
+    ([, plan]) => plan.paddlePriceId === priceId,
+  );
+  return entry?.[0] ?? null;
+}

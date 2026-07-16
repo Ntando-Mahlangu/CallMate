@@ -5,7 +5,7 @@ import { canManageBilling } from "@/lib/teams/permissions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { PLANS, planLabel, isPaidPlan, HIGHLIGHTED_TIER } from "@/lib/billing/plans";
+import { PLANS, planLabel, isPaidPlan } from "@/lib/billing/plans";
 import { getUsageSummary } from "@/lib/billing/usage";
 import { getRefundRequestsForOrg } from "@/lib/billing/refunds";
 import { CheckoutButton } from "@/components/billing/checkout-button";
@@ -30,10 +30,7 @@ export default async function BillingPage() {
   const membership = await getMembershipFor(session.user.id, organization.id);
 
   const isSubscribed = isPaidPlan(organization.planTier);
-  const starterPriceId = PLANS.STARTER.paddlePriceId;
-  const checkoutConfigured = Boolean(
-    starterPriceId && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
-  );
+  const clientTokenConfigured = Boolean(process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN);
   const usage = await getUsageSummary(organization.id, organization.planTier);
   const refundRequests = isSubscribed ? await getRefundRequestsForOrg(organization.id) : [];
 
@@ -117,17 +114,18 @@ export default async function BillingPage() {
               <div className="mt-6">
                 {isCurrent ? (
                   <Badge tone="accent">Current plan</Badge>
-                ) : tier === HIGHLIGHTED_TIER ? (
-                  checkoutConfigured ? (
-                    <CheckoutButton
-                      priceId={starterPriceId!}
-                      organizationId={organization.id}
-                    />
-                  ) : (
-                    <p className="text-xs text-[var(--color-text-muted)]">
-                      Upgrades open here once billing is configured.
-                    </p>
-                  )
+                ) : plan.paddlePriceId && clientTokenConfigured ? (
+                  <CheckoutButton
+                    priceId={plan.paddlePriceId}
+                    organizationId={organization.id}
+                    planName={plan.name}
+                  />
+                ) : tier !== "FREE" ? (
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {plan.paddlePriceId
+                      ? "Upgrades open here once billing is configured."
+                      : "Not sold yet — coming soon."}
+                  </p>
                 ) : null}
               </div>
             </Card>

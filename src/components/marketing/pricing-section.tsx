@@ -6,10 +6,9 @@ import { cn } from "@/lib/cn";
 import { PLANS } from "@/lib/billing/plans";
 
 // docs/outrun/02 puts "Most Popular" on Growth and a display badge on
-// Unlimited — a purely cosmetic marketing distinction. It's separate from
-// src/lib/billing/plans.ts's HIGHLIGHTED_TIER, which governs which tier
-// actually gets a checkout button on the Billing page (still Starter —
-// Growth/Unlimited have no Paddle price yet).
+// Unlimited — a purely cosmetic marketing distinction, independent of
+// which tiers actually have a configured Paddle price (Billing page
+// renders a real checkout button for any tier whose price ID resolves).
 const MARKETING_BADGE: Partial<Record<keyof typeof PLANS, string>> = {
   GROWTH: "Most Popular",
   UNLIMITED: "Best for businesses serious about growth",

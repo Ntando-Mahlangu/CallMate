@@ -29,6 +29,8 @@ export type SubscriptionEvent = {
   externalCustomerId: string;
   externalSubscriptionId: string;
   status: NormalizedSubscriptionStatus;
+  /** The subscribed price's ID (first line item) — null if the event carries no items. Maps back to a PlanTier via src/lib/billing/plans.ts's planTierForPriceId. */
+  priceId: string | null;
 };
 
 // A discriminated union so a future non-subscription event (e.g. a

@@ -52,6 +52,7 @@ inline there. Summary of what's required vs. optional:
 | `NEXT_PUBLIC_PADDLE_ENVIRONMENT` | Yes | `sandbox` while testing, `production` when live |
 | `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | Yes | Paddle → Developer Tools → Authentication → Client-side tokens |
 | `NEXT_PUBLIC_PADDLE_STARTER_PRICE_ID` | Yes | The Price ID for the Starter product you create in Paddle's Catalog |
+| `NEXT_PUBLIC_PADDLE_GROWTH_PRICE_ID` / `NEXT_PUBLIC_PADDLE_UNLIMITED_PRICE_ID` | Optional | Same as above for the Growth/Unlimited products. Each is independent — set one, both, or neither; an unset tier just shows "not sold yet" instead of a buy button (see §9m) |
 
 ## 4. Paddle webhook
 
@@ -567,6 +568,31 @@ routes needed to change. One consequence worth knowing before rotating
 secret support (`keys`/`currentVersion`), not a bare swap — a bare swap
 strands every already-encrypted OAuth token, forcing every OAuth-linked
 user to re-link their provider.
+
+## 9m. Growth and Unlimited plans are purchasable
+
+docs/outrun/14: only Starter had a real checkout path — `src/lib/billing/plans.ts`
+hardcoded `paddlePriceId: null` for Growth and Unlimited, and the Billing
+page only ever rendered a `CheckoutButton` for one hardcoded tier
+(`HIGHLIGHTED_TIER`). Fixed structurally, not just with new env vars:
+
+- `plans.ts` reads each paid tier's price ID from its own env var
+  (`NEXT_PUBLIC_PADDLE_{STARTER,GROWTH,UNLIMITED}_PRICE_ID`); the Billing
+  page (`src/app/(app)/billing/page.tsx`) now renders a real
+  `CheckoutButton` for **any** tier whose price ID resolves, so wiring up
+  Growth/Unlimited in production is only ever an env-var change.
+- The webhook handler (`src/lib/billing/webhook-handler.ts`) previously
+  hardcoded every active subscription to `"STARTER"` regardless of what was
+  actually purchased — a real bug that would have silently mis-tiered any
+  Growth/Unlimited buyer even after the checkout button existed. It now
+  resolves the purchased tier from the subscription's actual Paddle price
+  ID (`planTierForPriceId()` in `plans.ts`), falling back to Starter with a
+  captured error only if an active subscription's price ID doesn't match
+  any configured tier (a deleted/changed Paddle price, or a misconfigured
+  env var) — so a real mismatch surfaces instead of silently under- or
+  over-granting access.
+- `CheckoutButton`'s label is now parametrized by plan name instead of
+  hardcoded "Upgrade to Starter".
 
 ## 10. Rate limiting
 
