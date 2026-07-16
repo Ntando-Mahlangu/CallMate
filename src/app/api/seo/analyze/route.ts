@@ -25,7 +25,7 @@ export async function POST() {
   if (!organization) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
-  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.SEO_ENGINE)) {
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.SEO_ENGINE, organization.id)) {
     return NextResponse.json(
       { error: "The SEO Engine is available on the Starter plan and above. Upgrade to unlock it." },
       { status: 403 },

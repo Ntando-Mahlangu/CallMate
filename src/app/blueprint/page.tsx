@@ -70,7 +70,11 @@ export default async function BlueprintPage() {
         <div className="print:hidden">
           <BlueprintActions
             hasHistory={versionCount > 1}
-            canExport={isFeatureEnabled(organization.planTier, FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT)}
+            canExport={isFeatureEnabled(
+              organization.planTier,
+              FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT,
+              organization.id,
+            )}
             initialShareEnabled={organization.blueprintShareEnabled}
             initialShareToken={organization.blueprintShareToken}
           />

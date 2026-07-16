@@ -18,7 +18,7 @@ export default async function SeoPage() {
   if (!organization) redirect("/sign-in");
   if (!organization.businessProfile) redirect("/onboarding");
 
-  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.SEO_ENGINE)) {
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.SEO_ENGINE, organization.id)) {
     return (
       <Card className="animate-fade-in">
         <h1 className="text-xl font-medium text-[var(--color-text-primary)]">

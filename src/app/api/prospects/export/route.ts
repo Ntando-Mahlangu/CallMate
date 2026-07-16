@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
 
-  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.PROSPECTS_EXPORT)) {
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.PROSPECTS_EXPORT, organization.id)) {
     return NextResponse.json(
       { error: "Exporting prospects is available on the Starter plan and above." },
       { status: 403 },

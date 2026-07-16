@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   if (!organization) {
     return NextResponse.json({ error: "No workspace found." }, { status: 404 });
   }
-  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT)) {
+  if (!isFeatureEnabled(organization.planTier, FEATURE_FLAGS.GROWTH_BLUEPRINT_EXPORT, organization.id)) {
     return NextResponse.json(
       { error: "Exporting your Growth Blueprint is available on the Starter plan and above." },
       { status: 403 },
