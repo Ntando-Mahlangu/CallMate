@@ -107,9 +107,15 @@ export function buildBlueprintPdfDocument(organizationName: string, blueprint: G
           <Text style={styles.itemBody}>Company size: {icp.companySize}</Text>
           <Text style={styles.itemBody}>Decision maker: {icp.decisionMaker}</Text>
           <Text style={styles.itemBody}>Location: {icp.location}</Text>
-          <Text style={styles.itemBody}>Pain points: {icp.painPoints.join(", ")}</Text>
-          <Text style={styles.itemBody}>Likely goals: {icp.likelyGoals.join(", ")}</Text>
-          <Text style={styles.itemBody}>Buying triggers: {icp.buyingTriggers.join(", ")}</Text>
+          <Text style={styles.itemBody}>
+            Pain points: {icp.painPoints.map((p) => `${p.text} (${p.basis})`).join(", ")}
+          </Text>
+          <Text style={styles.itemBody}>
+            Likely goals: {icp.likelyGoals.map((g) => `${g.text} (${g.basis})`).join(", ")}
+          </Text>
+          <Text style={styles.itemBody}>
+            Buying triggers: {icp.buyingTriggers.map((t) => `${t.text} (${t.basis})`).join(", ")}
+          </Text>
         </Section>
 
         <Section title="Growth Roadmap">

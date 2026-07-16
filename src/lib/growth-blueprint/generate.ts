@@ -23,6 +23,11 @@ Rules you must follow (non-negotiable):
 - Clearly separate observed facts from AI inference. If information is
   missing or thin, say so in confidenceNotes and lower overallConfidence
   accordingly rather than papering over the gap.
+- For idealCustomerProfile's painPoints, likelyGoals, and buyingTriggers:
+  mark each one "stated" only if the business owner said it directly (in
+  the ideal customer description or elsewhere in the onboarding answers),
+  and "inferred" if you're extrapolating from what they said. Most items
+  here will honestly be "inferred" — that's expected, not a failure.
 - The executive summary must stay under 200 words, plain English, no
   buzzwords, and cover: what the business does, its current position, its
   biggest opportunity, its biggest challenge, and the recommended focus.

@@ -208,9 +208,14 @@ export function BlueprintView({
             <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
               Pain points
             </p>
-            <ul className="mt-1 space-y-1 text-sm text-[var(--color-text-secondary)]">
+            <ul className="mt-1 space-y-1.5">
               {icp.painPoints.map((p) => (
-                <li key={p}>{p}</li>
+                <li key={p.text} className="flex items-start gap-2 text-sm">
+                  <Badge tone={p.basis === "stated" ? "high" : "low"} className="mt-0.5 shrink-0">
+                    {p.basis}
+                  </Badge>
+                  <span className="text-[var(--color-text-secondary)]">{p.text}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -218,9 +223,14 @@ export function BlueprintView({
             <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
               Likely goals
             </p>
-            <ul className="mt-1 space-y-1 text-sm text-[var(--color-text-secondary)]">
+            <ul className="mt-1 space-y-1.5">
               {icp.likelyGoals.map((g) => (
-                <li key={g}>{g}</li>
+                <li key={g.text} className="flex items-start gap-2 text-sm">
+                  <Badge tone={g.basis === "stated" ? "high" : "low"} className="mt-0.5 shrink-0">
+                    {g.basis}
+                  </Badge>
+                  <span className="text-[var(--color-text-secondary)]">{g.text}</span>
+                </li>
               ))}
             </ul>
           </div>
@@ -228,9 +238,14 @@ export function BlueprintView({
             <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
               Buying triggers
             </p>
-            <ul className="mt-1 space-y-1 text-sm text-[var(--color-text-secondary)]">
+            <ul className="mt-1 space-y-1.5">
               {icp.buyingTriggers.map((t) => (
-                <li key={t}>{t}</li>
+                <li key={t.text} className="flex items-start gap-2 text-sm">
+                  <Badge tone={t.basis === "stated" ? "high" : "low"} className="mt-0.5 shrink-0">
+                    {t.basis}
+                  </Badge>
+                  <span className="text-[var(--color-text-secondary)]">{t.text}</span>
+                </li>
               ))}
             </ul>
           </div>

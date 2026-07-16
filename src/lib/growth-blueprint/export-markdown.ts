@@ -67,9 +67,9 @@ export function blueprintToMarkdown(organizationName: string, blueprint: GrowthB
     `- Company size: ${icp.companySize}`,
     `- Decision maker: ${icp.decisionMaker}`,
     `- Location: ${icp.location}`,
-    `- Pain points: ${icp.painPoints.join(", ")}`,
-    `- Likely goals: ${icp.likelyGoals.join(", ")}`,
-    `- Buying triggers: ${icp.buyingTriggers.join(", ")}`,
+    `- Pain points: ${icp.painPoints.map((p) => `${p.text} (${p.basis})`).join(", ")}`,
+    `- Likely goals: ${icp.likelyGoals.map((g) => `${g.text} (${g.basis})`).join(", ")}`,
+    `- Buying triggers: ${icp.buyingTriggers.map((t) => `${t.text} (${t.basis})`).join(", ")}`,
     "",
   );
 

@@ -63,15 +63,31 @@ const growthStrategySchema = z.object({
   impact,
 });
 
+// docs/outrun/16 Article IV/VIII, CLAUDE.md non-negotiable — every AI output
+// must separate observed facts from inference. The ICP is this Blueprint's
+// most speculative section (it's predicting who a customer WILL be, not
+// analyzing something that already exists), so each claim carries its own
+// basis rather than leaving the whole profile's epistemic status to the
+// single top-level confidenceNotes/overallConfidence fields. "stated"
+// mirrors something the business owner actually said in onboarding;
+// "inferred" is the AI extrapolating beyond that — matching the same
+// stated-vs-derived split used for prospect research
+// (src/lib/prospects/research-schema.ts's "observed"/"assumption").
+const icpClaimBasis = z.enum(["stated", "inferred"]);
+const icpClaimSchema = z.object({
+  text: z.string(),
+  basis: icpClaimBasis,
+});
+
 const idealCustomerProfileSchema = z.object({
   industry: z.string(),
   companySize: z.string(),
   decisionMaker: z.string(),
   location: z.string(),
   revenueRange: z.string().nullable(),
-  painPoints: z.array(z.string()),
-  likelyGoals: z.array(z.string()),
-  buyingTriggers: z.array(z.string()),
+  painPoints: z.array(icpClaimSchema),
+  likelyGoals: z.array(icpClaimSchema),
+  buyingTriggers: z.array(icpClaimSchema),
   whyTheyWouldChooseThisBusiness: z.string(),
 });
 
@@ -244,9 +260,44 @@ export const growthBlueprintJsonSchema = {
         decisionMaker: { type: "string" },
         location: { type: "string" },
         revenueRange: { type: ["string", "null"] },
-        painPoints: { type: "array", items: { type: "string" } },
-        likelyGoals: { type: "array", items: { type: "string" } },
-        buyingTriggers: { type: "array", items: { type: "string" } },
+        painPoints: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              basis: {
+                type: "string",
+                enum: ["stated", "inferred"],
+                description:
+                  "'stated' if the business owner said this directly in onboarding, 'inferred' if the AI derived it beyond what was actually said",
+              },
+            },
+            required: ["text", "basis"],
+          },
+        },
+        likelyGoals: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              basis: { type: "string", enum: ["stated", "inferred"] },
+            },
+            required: ["text", "basis"],
+          },
+        },
+        buyingTriggers: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              text: { type: "string" },
+              basis: { type: "string", enum: ["stated", "inferred"] },
+            },
+            required: ["text", "basis"],
+          },
+        },
         whyTheyWouldChooseThisBusiness: { type: "string" },
       },
       required: [
