@@ -146,12 +146,29 @@ export async function runJob(jobId: string): Promise<void> {
 
 const STUCK_JOB_MINUTES = 10;
 
+// docs/outrun/15 "MONITORING" — "Track: ... Queue Length ... Alert when
+// thresholds are exceeded." This app has no dedicated metrics/alerting
+// service (see DEPLOYMENT.md's Monitoring section for what's delegated to
+// the host vs. what's actually checked in code); this is the one queue in
+// the system, so its depth is the one metric worth a real threshold check.
+// 20 simultaneously PENDING/RUNNING jobs is well above what a single-tenant
+// background-job volume (Blueprint/SEO/campaign generation) should ever
+// reach under normal use — that many almost always means jobs are piling
+// up faster than they're processed (e.g. the AI provider is down and
+// causing repeated failures) rather than genuine legitimate load.
+export const QUEUE_DEPTH_ALERT_THRESHOLD = 20;
+
+export function shouldAlertForQueueDepth(depth: number): boolean {
+  return depth >= QUEUE_DEPTH_ALERT_THRESHOLD;
+}
+
 /**
  * Entry point for the scheduled sweep (src/app/api/cron/job-queue) —
  * catches jobs that never got picked up by `after()` (e.g. the
  * serverless instance that enqueued them was recycled before the
  * post-response callback ran) and jobs stuck in RUNNING past a
- * reasonable ceiling (the invocation running them died mid-flight).
+ * reasonable ceiling (the invocation running them died mid-flight). Also
+ * reports current queue depth so the cron route can alert on it.
  */
 export async function sweepStuckJobs() {
   const cutoff = new Date(Date.now() - STUCK_JOB_MINUTES * 60 * 1000);
@@ -170,5 +187,9 @@ export async function sweepStuckJobs() {
     await runJob(job.id);
   }
 
-  return { swept: stuck.length };
+  const queueDepth = await prisma.job.count({
+    where: { status: { in: ["PENDING", "RUNNING"] } },
+  });
+
+  return { swept: stuck.length, queueDepth, queueDepthAlert: shouldAlertForQueueDepth(queueDepth) };
 }

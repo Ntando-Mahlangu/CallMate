@@ -28,6 +28,20 @@ export async function GET(request: NextRequest) {
       RATE_LIMITS.WEBHOOK.windowSeconds,
     );
     const result = await sweepStuckJobs();
+
+    // docs/outrun/15 "MONITORING" — "Alert when thresholds are exceeded."
+    // No dedicated alerting service exists, so this reuses the same
+    // error-tracking pipe every other failure already goes through
+    // (Sentry when configured, structured console log otherwise) rather
+    // than inventing a second notification channel for one metric.
+    if (result.queueDepthAlert) {
+      captureError(
+        "cron.job-queue.depth-alert",
+        new Error(`Job queue depth is ${result.queueDepth}, at or above the alert threshold.`),
+        { queueDepth: result.queueDepth },
+      );
+    }
+
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof RateLimitError) {

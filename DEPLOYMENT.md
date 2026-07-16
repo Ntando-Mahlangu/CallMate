@@ -567,11 +567,10 @@ the same `DATABASE_URL` already required for everything else.
 ## 11. Backups and disaster recovery
 
 docs/outrun/15 "BACKUPS" / "DISASTER RECOVERY". Outrun has exactly one
-piece of durable state: the Postgres database. There's no queue, no
-background worker, no separate cache to back up — every job in this app
-(Blueprint generation, outreach sends, the autonomous-send tick) runs
-synchronously inside a request, so the recovery story is really "how do
-we get Postgres back."
+piece of durable state: the Postgres database. There's no separate cache
+or datastore to back up — the background job queue (section 9b) is just
+rows in that same database, not a separate system — so the recovery
+story is really "how do we get Postgres back."
 
 **Backups.** Don't build a custom backup job — every provider listed in
 section 2 already does this better than a hand-rolled `pg_dump` cron:
@@ -629,10 +628,45 @@ not an estimate.
 - **Hosting/cloud outage** — covered by whatever multi-region/failover
   the host (Vercel/Railway/Fly/Render) provides; this app has no
   self-managed infrastructure to fail over.
+- **Queue/worker failure** — there's no separate worker process to fail
+  (section 9b): background jobs are rows in the same Postgres database,
+  so a database restore recovers them too. If jobs stop completing while
+  the database itself is healthy, that means the cron sweep
+  (`/api/cron/job-queue`, section 9b) isn't running or `CRON_SECRET` is
+  misconfigured — check the host's cron dashboard and the queue-depth
+  alert described in the Monitoring section below.
 
-There's no worker or queue in this build, so "Worker Failure" and "Queue
-Failure" from the spec don't apply yet — they'll need real runbooks once
-either exists.
+## 11a. Monitoring and alerting
+
+docs/outrun/15 "MONITORING" lists eight things to track (API latency,
+database performance, queue length, worker health, memory, CPU, storage,
+AI/integration availability) and says to alert when thresholds are
+exceeded. This app doesn't run its own metrics/alerting service — most of
+that list is already a dashboard your host and database provider give you
+for free, and building a second one would just be a worse, unmaintained
+copy of it:
+
+| Signal | Where it's actually monitored |
+|---|---|
+| API latency, request volume, CPU, memory | Vercel/Railway/Fly/Render's own project dashboard — every host in section 1 shows this out of the box |
+| Worker health | There's no separate worker process (section 9b) — background jobs run inside the same serverless function invocations as everything else via `after()`, so a function's own invocation/error logs on the host dashboard above are the worker health signal |
+| Database performance, storage, connections | Neon/Supabase/Railway/RDS's own dashboard (section 2) — these already alert on storage limits and connection exhaustion by default on most plans |
+| AI provider availability (Anthropic) | [status.anthropic.com](https://status.anthropic.com) — every AI-backed route already fails closed with a friendly error (`UserFacingError`) rather than hanging, so an outage degrades gracefully without paging anyone |
+| Integration health (Paddle, Resend, Google Places) | Each provider's own status page; same fail-closed behavior as above |
+| Unhandled exceptions, failed jobs, API failures | `captureError()` (section 8) — structured logs always, plus Sentry when `SENTRY_DSN` is set |
+
+**What is checked in code, not delegated:** queue length. It's the one
+metric on the doc's list that's specific to this app rather than generic
+infrastructure, so `sweepStuckJobs()` (`src/lib/jobs/queue.ts`) counts
+every `PENDING`/`RUNNING` job on each 10-minute cron run
+(`/api/cron/job-queue`, section 9b) and calls `shouldAlertForQueueDepth()`
+against a threshold (currently 20 — see the comment on
+`QUEUE_DEPTH_ALERT_THRESHOLD` for why). When it's crossed, the route calls
+`captureError()` with the current depth, going through the exact same
+Sentry/log pipeline as every other error — there's no second alerting
+channel to configure. If you have `SENTRY_DSN` set, set up a Sentry alert
+rule on the `cron.job-queue.depth-alert` scope so it actually pages
+someone instead of just sitting in the issue list.
 
 ## 12. Incident response
 
