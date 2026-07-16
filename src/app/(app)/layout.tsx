@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/session";
 import { getCurrentOrganization, getUserMemberships } from "@/lib/org";
+import { prisma } from "@/lib/prisma";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { WorkspaceSwitcher } from "@/components/team/workspace-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { GlobalSearch } from "@/components/dashboard/global-search";
+import { GlobalChatWidget } from "@/components/ceo-agent/global-chat-widget";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +22,14 @@ export default async function DashboardLayout({
     getCurrentOrganization(session.user.id),
     getUserMemberships(session.user.id),
   ]);
+
+  const chatHistory = organization
+    ? await prisma.chatMessage.findMany({
+        where: { organizationId: organization.id },
+        orderBy: { createdAt: "asc" },
+        select: { role: true, content: true },
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
@@ -36,6 +46,7 @@ export default async function DashboardLayout({
             />
           )}
           {organization && <NotificationBell />}
+          {organization && <GlobalChatWidget initialMessages={chatHistory} />}
           <span className="text-sm text-[var(--color-text-secondary)]">
             {session.user.name}
           </span>
