@@ -98,3 +98,18 @@ export function planTierForPriceId(priceId: string | null): PlanTier | null {
   );
   return entry?.[0] ?? null;
 }
+
+// docs/outrun/14 "FREE PLAN" ("One User") and "STARTER PLAN" ("Single
+// User") are explicit about a 1-seat cap; Growth's own feature list adds
+// "Team Collaboration"/"Shared Workspace" with no numeric cap given, and
+// Unlimited is explicitly "Unlimited Users" — so Growth and Unlimited are
+// left uncapped (null) here rather than inventing a number the docs don't
+// specify. A seat = one active membership OR one pending invitation
+// (src/lib/teams/invite.ts counts both, since a pending invite reserves a
+// seat the moment it's sent).
+export const SEAT_LIMITS: Record<PlanTier, number | null> = {
+  FREE: 1,
+  STARTER: 1,
+  GROWTH: null,
+  UNLIMITED: null,
+};

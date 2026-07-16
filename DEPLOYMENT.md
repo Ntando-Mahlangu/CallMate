@@ -630,6 +630,24 @@ endpoint existed anywhere. It was a checked box with nothing behind it
   exactly that: limited. Add more read endpoints behind the same
   `resolveOrganizationForApiKey` auth path as real need appears.
 
+## 9o. Team seat limits
+
+docs/outrun/14's Free and Starter plans are explicit ("One User" /
+"Single User"); anyone could invite unlimited members on either tier
+until now, and the Billing Dashboard was also missing the "Team Seats"
+display doc 14 requires. `src/lib/billing/plans.ts`'s `SEAT_LIMITS`
+caps Free and Starter at 1 seat each; Growth and Unlimited are left
+uncapped (`null`) rather than inventing a number the docs don't give —
+Growth's own feature list only says "Team Collaboration"/"Shared
+Workspace" with no numeric limit, and Unlimited is explicitly "Unlimited
+Users". A seat is one active membership OR one pending invitation
+(`getSeatUsage()` in `src/lib/teams/invite.ts`) — a pending invite
+reserves the seat the moment it's sent, not just once accepted.
+`createInvitation` re-checks the limit server-side on every call
+(Article XII), independent of anything the invite form itself disables.
+The Billing page now shows "Team Seats" (used / limit, or "Unlimited")
+next to the existing Usage card.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

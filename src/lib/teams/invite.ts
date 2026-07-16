@@ -1,10 +1,11 @@
-import type { MembershipRole } from "@prisma/client";
+import type { MembershipRole, PlanTier } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 import { sendEmail } from "@/lib/email";
 import { logEvent, EventType } from "@/lib/memory/log-event";
 import { logAuditEvent, AuditAction } from "@/lib/audit/log-audit-event";
 import { createNotification, NotificationType } from "@/lib/notifications/create-notification";
+import { SEAT_LIMITS, planLabel } from "@/lib/billing/plans";
 import { canManageTeam } from "./permissions";
 
 const INVITATION_TTL_DAYS = 7;
@@ -16,6 +17,17 @@ function assertCanManageTeam(role: MembershipRole) {
   if (!canManageTeam(role)) {
     throw new UserFacingError("Only workspace owners and admins can manage the team.");
   }
+}
+
+// docs/outrun/14 "BILLING DASHBOARD — Team Seats". A seat is claimed by an
+// active membership OR a pending invitation — the latter counts too,
+// since it reserves a spot the moment it's sent, before anyone accepts.
+export async function getSeatUsage(organizationId: string, planTier: PlanTier) {
+  const [memberCount, pendingInviteCount] = await Promise.all([
+    prisma.membership.count({ where: { organizationId } }),
+    prisma.invitation.count({ where: { organizationId, status: "PENDING" } }),
+  ]);
+  return { used: memberCount + pendingInviteCount, limit: SEAT_LIMITS[planTier] };
 }
 
 export async function createInvitation(
@@ -51,6 +63,16 @@ export async function createInvitation(
     throw new UserFacingError(
       "There's already a pending invitation for this email. Resend it instead.",
     );
+  }
+
+  const seatLimit = SEAT_LIMITS[organization.planTier];
+  if (seatLimit != null) {
+    const { used } = await getSeatUsage(organizationId, organization.planTier);
+    if (used >= seatLimit) {
+      throw new UserFacingError(
+        `The ${planLabel(organization.planTier)} plan includes ${seatLimit} seat${seatLimit === 1 ? "" : "s"}. Upgrade to Growth to add more team members.`,
+      );
+    }
   }
 
   const invitation = await prisma.invitation.create({

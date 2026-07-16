@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { PLANS, planLabel, isPaidPlan } from "@/lib/billing/plans";
 import { getUsageSummary } from "@/lib/billing/usage";
+import { getSeatUsage } from "@/lib/teams/invite";
 import { getRefundRequestsForOrg } from "@/lib/billing/refunds";
 import { CheckoutButton } from "@/components/billing/checkout-button";
 import { ManageBillingButton } from "@/components/billing/manage-billing-button";
@@ -32,6 +33,7 @@ export default async function BillingPage() {
   const isSubscribed = isPaidPlan(organization.planTier);
   const clientTokenConfigured = Boolean(process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN);
   const usage = await getUsageSummary(organization.id, organization.planTier);
+  const seats = await getSeatUsage(organization.id, organization.planTier);
   const refundRequests = isSubscribed ? await getRefundRequestsForOrg(organization.id) : [];
 
   return (
@@ -67,6 +69,21 @@ export default async function BillingPage() {
             <ManageBillingButton />
           </div>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+          Team Seats
+        </h2>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-sm">
+            <span className="text-[var(--color-text-secondary)]">Members and pending invites</span>
+            <span className="tabular-nums text-[var(--color-text-muted)]">
+              {seats.used} {seats.limit != null ? `/ ${seats.limit}` : "· Unlimited"}
+            </span>
+          </div>
+          {seats.limit != null && <ProgressBar value={(seats.used / seats.limit) * 100} />}
+        </div>
       </Card>
 
       <Card>
