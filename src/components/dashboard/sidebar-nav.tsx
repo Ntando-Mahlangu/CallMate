@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/settings/brand-voice", label: "Brand Voice" },
   { href: "/settings/security", label: "Security" },
   { href: "/settings/api-keys", label: "API Keys" },
+  { href: "/settings/webhooks", label: "Webhooks" },
   { href: "/billing", label: "Billing" },
 ];
 

@@ -22,6 +22,8 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   WORKSPACE_DELETED: "Workspace deleted",
   API_KEY_CREATED: "API key created",
   API_KEY_REVOKED: "API key revoked",
+  WEBHOOK_ENDPOINT_CREATED: "Webhook added",
+  WEBHOOK_ENDPOINT_DELETED: "Webhook removed",
 };
 
 function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string {
@@ -49,6 +51,10 @@ function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string
       return `${actor} created API key "${meta.name ?? "unnamed"}"`;
     case "API_KEY_REVOKED":
       return `${actor} revoked API key "${meta.name ?? "unnamed"}"`;
+    case "WEBHOOK_ENDPOINT_CREATED":
+      return `${actor} added a webhook for ${meta.url ?? "an endpoint"}`;
+    case "WEBHOOK_ENDPOINT_DELETED":
+      return `${actor} removed the webhook for ${meta.url ?? "an endpoint"}`;
   }
 }
 

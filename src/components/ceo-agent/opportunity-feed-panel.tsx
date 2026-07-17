@@ -7,7 +7,7 @@ import {
   sortOpportunities,
   type OpportunityFeedItem,
   type OpportunitySort,
-} from "@/lib/ceo-agent/opportunity-feed";
+} from "@/lib/ceo-agent/opportunity-sort";
 
 const SORT_OPTIONS: { value: OpportunitySort; label: string }[] = [
   { value: "roi", label: "Highest ROI" },

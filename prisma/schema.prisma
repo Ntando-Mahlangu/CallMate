@@ -193,6 +193,7 @@ model Organization {
   goals            Goal[]
   recommendationFeedback RecommendationFeedback[]
   apiKeys          ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
 
   @@map("organization")
 }
@@ -825,6 +826,8 @@ enum AuditAction {
   WORKSPACE_DELETED
   API_KEY_CREATED
   API_KEY_REVOKED
+  WEBHOOK_ENDPOINT_CREATED
+  WEBHOOK_ENDPOINT_DELETED
 }
 
 // docs/outrun/14 "API Access (Limited)" (Growth plan) / docs/outrun/11
@@ -848,6 +851,65 @@ model ApiKey {
 
   @@index([organizationId])
   @@map("api_key")
+}
+
+// docs/outrun/11 "WEBHOOK SYSTEM — Outgoing webhooks, Retry logic,
+// Signature verification, Dead-letter queue for failures." Delivers
+// every event already logged via src/lib/memory/log-event.ts's
+// logEvent() (docs/outrun/11 "EVENT SYSTEM") to a customer's own URL —
+// same three-piece provider shape discipline as AI/payment/lead-data
+// providers, just with the "vendor" being whatever URL the customer
+// supplies (a Zapier "Webhooks" trigger, their own server, etc.).
+model WebhookEndpoint {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  url String
+
+  // AES-256-GCM ciphertext (src/lib/webhooks/crypto.ts), keyed off
+  // BETTER_AUTH_SECRET — never stored in plaintext (docs/outrun/15
+  // "Encrypt: Tokens, Credentials"). Unlike an ApiKey's keyHash, this
+  // must be reversible: Outrun needs the raw secret at delivery time to
+  // HMAC-sign each payload so the receiving end can verify authenticity.
+  secretEncrypted String
+
+  enabled Boolean @default(true)
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([organizationId])
+  @@map("webhook_endpoint")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  DEAD_LETTER
+}
+
+model WebhookDelivery {
+  id                String          @id @default(uuid())
+  webhookEndpointId String
+  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  eventType String
+  payload   Json
+
+  status        WebhookDeliveryStatus @default(PENDING)
+  attempts      Int                   @default(0)
+  lastError     String?
+  nextAttemptAt DateTime              @default(now())
+  deliveredAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookEndpointId])
+  @@index([status, nextAttemptAt])
+  @@map("webhook_delivery")
 }
 
 model AuditLog {

@@ -705,6 +705,49 @@ and a factory function — not a change to `Company`/`Contact` or any
 other core model, and not a single interface spanning unrelated
 categories.
 
+## 9r. Outgoing webhook delivery
+
+docs/outrun/11 "WEBHOOK SYSTEM — Outgoing webhooks, Retry logic,
+Signature verification, Logging, Dead-letter queue for failures" /
+"EVENT SYSTEM — Every major action generates an event... these events
+should power future automation." Settings → Webhooks (Owner/Admin only,
+`canManageWebhooks`) lets a customer register their own URL (a Zapier
+"Webhooks" trigger, their own server, etc.) and receive a signed POST
+for every event Outrun already logs — Campaign Created, Growth
+Blueprint Updated, Task Completed, and every other `EventType`.
+
+Wired at a single entry point: `src/lib/memory/log-event.ts`'s
+`logEvent()` (already called at every meaningful business action) now
+also calls `dispatchEvent()` (`src/lib/webhooks/dispatch.ts`), so every
+current and future event type reaches registered webhooks automatically
+— nothing to wire up at each of `logEvent`'s call sites individually.
+
+`dispatchEvent()` only ever creates a `PENDING` `WebhookDelivery` row —
+it deliberately never attempts the actual HTTP call inline. `logEvent()`
+runs mid-request from dozens of places across this app; awaiting a
+customer's own (possibly slow or down) endpoint there would let one
+unrelated webhook target's slowness slow down Outrun's own request
+handling (doc 11 "Asynchronous where possible"). A scheduler hitting
+`GET /api/cron/webhooks` every 5 minutes (`vercel.json` /
+`.github/workflows/webhook-sweep.yml`, same `CRON_SECRET` pattern as the
+other crons) is the only thing that ever calls `attemptDelivery()` —
+tighter than the job queue's 10-minute sweep (§9b) since this is the
+actual delivery mechanism, not just a safety net for missed jobs.
+
+Each attempt HMAC-SHA256-signs the raw JSON body with the endpoint's own
+secret (shown once at creation, AES-256-GCM-encrypted at rest via
+`src/lib/webhooks/crypto.ts`, keyed off `BETTER_AUTH_SECRET` the same
+way §9l's OAuth token encryption is) and sends it as `X-Outrun-Signature`
+so the receiving end can verify authenticity. Failures retry with
+exponential backoff (2 minutes, doubling, up to 6 attempts) before the
+delivery is marked `DEAD_LETTER` and logged via `captureError` — the
+same error-tracking pipe every other failure in this app already goes
+through, not a second notification channel. The target URL is validated
+against the same SSRF guard as the website crawler (`src/lib/security/ssrf.ts`)
+both at registration and again at every delivery attempt, since a URL
+that resolved publicly when registered could later resolve to a private
+address via DNS rebinding.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,

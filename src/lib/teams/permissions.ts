@@ -28,6 +28,13 @@ export function canManageApiKeys(role: MembershipRole): boolean {
   return TEAM_MANAGERS.includes(role);
 }
 
+// Same Owner/Admin set — gates registering/removing webhook endpoints
+// (docs/outrun/11 "WEBHOOK SYSTEM"), another credential-issuance action
+// (each endpoint gets its own signing secret), same bar as API keys.
+export function canManageWebhooks(role: MembershipRole): boolean {
+  return TEAM_MANAGERS.includes(role);
+}
+
 // docs/outrun/14 "PERMISSIONS" — Owner: everything; Admin's own list
 // ("Manage Workspace, Billing, Users, Campaigns") stops short of
 // destroying the workspace itself. Owner-only, unlike every other

@@ -1,0 +1,151 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
+import { formatDate } from "@/lib/i18n/format";
+
+type WebhookEndpointRow = {
+  id: string;
+  url: string;
+  enabled: boolean;
+  createdAt: string;
+};
+
+// docs/outrun/11 "WEBHOOK SYSTEM" — lets a customer receive every
+// business event Outrun logs (Campaign Created, Growth Blueprint
+// Updated, ...) at their own URL, e.g. Zapier's "Webhooks" trigger.
+export function WebhooksSection({
+  canManage,
+  initialEndpoints,
+}: {
+  canManage: boolean;
+  initialEndpoints: WebhookEndpointRow[];
+}) {
+  const router = useRouter();
+  const [endpoints, setEndpoints] = useState(initialEndpoints);
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsCreating(true);
+
+    const res = await fetch("/api/team/webhooks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    const body = await res.json();
+    setIsCreating(false);
+
+    if (!res.ok) {
+      setError(body.error ?? "We couldn't add that webhook.");
+      return;
+    }
+
+    setRevealedSecret(body.endpoint.rawSecret);
+    setEndpoints((prev) => [
+      { id: body.endpoint.id, url: body.endpoint.url, enabled: true, createdAt: body.endpoint.createdAt },
+      ...prev,
+    ]);
+    setUrl("");
+    router.refresh();
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    const res = await fetch(`/api/team/webhooks/${id}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (res.ok) {
+      setEndpoints((prev) => prev.filter((e) => e.id !== id));
+      router.refresh();
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="mb-1 text-lg font-medium text-[var(--color-text-primary)]">Webhooks</h2>
+      <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+        Send a signed HTTP POST to your own URL whenever something happens in Outrun —
+        a campaign finishes, a Growth Blueprint updates, a goal is completed. Verify each
+        request with the{" "}
+        <code className="rounded bg-[var(--color-bg-secondary)] px-1 py-0.5 text-xs">
+          X-Outrun-Signature
+        </code>{" "}
+        header (HMAC-SHA256 of the raw body, using the secret shown once below).
+      </p>
+
+      {revealedSecret && (
+        <div className="mb-4 space-y-2 rounded-[var(--radius-md)] border border-[var(--color-accent)]/40 bg-[var(--color-bg-secondary)] p-3">
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">
+            Copy this signing secret now — it won&apos;t be shown again.
+          </p>
+          <code className="block break-all rounded bg-[var(--color-bg-primary)] p-2 text-xs">
+            {revealedSecret}
+          </code>
+          <Button type="button" onClick={() => setRevealedSecret(null)}>
+            I&apos;ve saved it
+          </Button>
+        </div>
+      )}
+
+      {canManage && !revealedSecret && (
+        <form onSubmit={handleCreate} className="mb-6 flex items-end gap-3">
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="webhook-url">Endpoint URL</Label>
+            <Input
+              id="webhook-url"
+              type="url"
+              placeholder="https://hooks.zapier.com/..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </div>
+          <Button type="submit" disabled={isCreating || !url.trim()}>
+            {isCreating ? "Adding…" : "Add endpoint"}
+          </Button>
+        </form>
+      )}
+      <FormError message={error} />
+
+      {endpoints.length === 0 ? (
+        <p className="text-sm text-[var(--color-text-muted)]">No webhook endpoints yet.</p>
+      ) : (
+        <ul className="space-y-3">
+          {endpoints.map((endpoint) => (
+            <li
+              key={endpoint.id}
+              className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3 text-sm last:border-0 last:pb-0"
+            >
+              <div>
+                <p className="break-all text-[var(--color-text-primary)]">{endpoint.url}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Added {formatDate(new Date(endpoint.createdAt))}
+                </p>
+              </div>
+              {canManage && (
+                <Button
+                  type="button"
+                  onClick={() => handleRemove(endpoint.id)}
+                  disabled={removingId === endpoint.id}
+                  className="border border-[var(--color-error)] bg-transparent text-[var(--color-error-text)] hover:bg-[var(--color-error)]/10"
+                >
+                  {removingId === endpoint.id ? "Removing…" : "Remove"}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
