@@ -2,10 +2,16 @@ import { UsageEventType, type PlanTier } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
 
-// docs/outrun/14 — Free/Starter allotments. Growth/Unlimited aren't sold yet
-// (no Paddle price exists for them), so they're intentionally left
-// unlimited rather than gated on numbers nobody has agreed to.
-const LIMITS: Partial<Record<PlanTier, Record<UsageEventType, number>>> = {
+// docs/outrun/14 plan allotments. Growth and Unlimited are now real,
+// purchasable tiers (see plans.ts) — Growth's page gives one concrete
+// number ("1000 Company Searches") and calls everything else on it
+// unlimited ("Unlimited AI Reports", "Unlimited Campaigns"), so only
+// COMPANY_SEARCH gets a real cap here; the rest are intentionally
+// absent from GROWTH's record, same as an absent PlanTier entirely,
+// which checkAndRecordUsage/getUsageSummary already treat as no limit.
+// Unlimited has no entry at all — "Unlimited Everything" per its own
+// plan page, not just AI generation types.
+const LIMITS: Partial<Record<PlanTier, Partial<Record<UsageEventType, number>>>> = {
   FREE: {
     [UsageEventType.COMPANY_SEARCH]: 10,
     [UsageEventType.COMPANY_RESEARCH]: 10,
@@ -19,6 +25,9 @@ const LIMITS: Partial<Record<PlanTier, Record<UsageEventType, number>>> = {
     [UsageEventType.OUTREACH_GENERATION]: 500,
     [UsageEventType.BLUEPRINT_GENERATION]: 1_000_000, // "unlimited" in practice
     [UsageEventType.CALL_SCRIPT_GENERATION]: 500,
+  },
+  GROWTH: {
+    [UsageEventType.COMPANY_SEARCH]: 1000,
   },
 };
 

@@ -73,3 +73,39 @@ describe("checkAndRecordUsage (integration)", () => {
     expect(searchEntry?.limit).toBe(10);
   });
 });
+
+describe("Growth plan limits (integration)", () => {
+  let growthOrgId: string;
+
+  beforeEach(async () => {
+    const org = await prisma.organization.create({
+      data: { name: "Growth Usage Test Org", planTier: "GROWTH" },
+    });
+    growthOrgId = org.id;
+  });
+
+  afterEach(async () => {
+    await prisma.organization.delete({ where: { id: growthOrgId } });
+  });
+
+  it("caps Company Searches at 1000, per docs/outrun/14's Growth plan page", async () => {
+    const summary = await getUsageSummary(growthOrgId, "GROWTH");
+    const searchEntry = summary.find((s) => s.type === UsageEventType.COMPANY_SEARCH);
+    expect(searchEntry?.limit).toBe(1000);
+  });
+
+  it("leaves AI generation types uncapped on Growth", async () => {
+    const summary = await getUsageSummary(growthOrgId, "GROWTH");
+    for (const type of [
+      UsageEventType.COMPANY_RESEARCH,
+      UsageEventType.OUTREACH_GENERATION,
+      UsageEventType.BLUEPRINT_GENERATION,
+      UsageEventType.CALL_SCRIPT_GENERATION,
+    ]) {
+      expect(summary.find((s) => s.type === type)?.limit).toBeNull();
+    }
+    await expect(
+      checkAndRecordUsage(growthOrgId, UsageEventType.OUTREACH_GENERATION),
+    ).resolves.toBeUndefined();
+  });
+});
