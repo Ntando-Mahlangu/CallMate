@@ -676,6 +676,35 @@ calls that out as a still-unbuilt piece), and per-tier usage limits keep
 a typical export small enough that synchronous generation doesn't risk
 timing out.
 
+## 9q. Provider-interface convention for future CRM/Calendar/Analytics integrations
+
+docs/outrun/11 "ARCHITECTURE PRINCIPLES" — "Every provider should
+implement a common interface... no integration should require major
+changes to the application architecture." Three categories already
+follow this: AI (`src/lib/ai/`), payments (`src/lib/billing/provider/`,
+documented in §4), and lead data (`src/lib/leads/`) — in each, business
+logic imports a provider-agnostic interface and a `get*Provider()`
+factory, never a vendor SDK directly, so swapping or adding a vendor is
+one new class, not a sweep across call sites.
+
+CRM, Calendar, and Analytics (doc 11's remaining "Future integrations"
+categories) don't exist in this codebase yet — no HubSpot/Salesforce
+sync, no Google Calendar booking, no GA/GSC ingestion. Deliberately not
+writing an interface for any of them ahead of a real implementation:
+each category's actual shape only becomes clear once there's a first
+concrete vendor to abstract over (contact/deal sync for CRM looks
+nothing like a calendar's availability/booking calls, which looks
+nothing like analytics' read-only metrics pull — forcing one shared
+interface across all three now would be exactly the kind of
+speculative, no-real-caller abstraction this codebase's own principles
+warn against). When the first CRM (or Calendar, or Analytics)
+integration is actually built, give that category its own interface
+following the same three-piece shape as the existing ones: a
+provider-agnostic type/interface file, one concrete class per vendor,
+and a factory function — not a change to `Company`/`Contact` or any
+other core model, and not a single interface spanning unrelated
+categories.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
