@@ -25,6 +25,7 @@ export async function buildAccountExport(organizationId: string) {
     events,
     chatMessages,
     apiKeys,
+    webhookEndpoints,
   ] = await Promise.all([
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
@@ -69,6 +70,10 @@ export async function buildAccountExport(organizationId: string) {
       where: { organizationId },
       select: { id: true, name: true, keyPrefix: true, createdAt: true, lastUsedAt: true, revokedAt: true },
     }),
+    prisma.webhookEndpoint.findMany({
+      where: { organizationId },
+      select: { id: true, url: true, enabled: true, createdAt: true },
+    }),
   ]);
 
   return {
@@ -87,5 +92,6 @@ export async function buildAccountExport(organizationId: string) {
     growthTimeline: events,
     aiChatHistory: chatMessages,
     apiKeys,
+    webhookEndpoints,
   };
 }

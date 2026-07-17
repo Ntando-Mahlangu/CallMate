@@ -71,6 +71,21 @@ describe("buildAccountExport (integration)", () => {
     expect(result.apiKeys[0]).not.toHaveProperty("keyHash");
   });
 
+  it("includes webhook endpoint metadata but never the encrypted secret", async () => {
+    await prisma.webhookEndpoint.create({
+      data: {
+        organizationId,
+        url: "https://example.com/hooks",
+        secretEncrypted: "some-encrypted-secret-value",
+        createdByUserId: "user-1",
+      },
+    });
+    const result = await buildAccountExport(organizationId);
+    expect(result.webhookEndpoints).toHaveLength(1);
+    expect(result.webhookEndpoints[0]?.url).toBe("https://example.com/hooks");
+    expect(result.webhookEndpoints[0]).not.toHaveProperty("secretEncrypted");
+  });
+
   it("includes a top-level exportedAt timestamp", async () => {
     const result = await buildAccountExport(organizationId);
     expect(typeof result.exportedAt).toBe("string");
