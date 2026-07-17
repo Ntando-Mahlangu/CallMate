@@ -27,8 +27,22 @@ function bodyFor(notification: BillingNotification, organizationName: string): s
       return `Your ${planLabel(notification.planTier)} plan for ${organizationName} is now active. Thanks for growing with Outrun.`;
     case "payment_failed":
       return `We couldn't process your latest payment for ${organizationName}. Please update your payment method from the Billing page to avoid losing access.`;
+    // docs/outrun/14 "CANCELLATION" — don't guilt them, ask what could
+    // be improved, offer export, explain what happens next, allow
+    // reactivation, leave a positive final impression. Paddle's hosted
+    // portal handles the cancel action itself (nothing to inject a
+    // survey into there), so this email is where Outrun actually gets
+    // to do all six — "reply to this email" is the honest version of
+    // "ask for feedback" since there's no ticketing system behind an
+    // in-app form to route it to.
     case "canceled":
-      return `Your subscription for ${organizationName} has been canceled and the workspace has moved to the Free plan. If there's anything we could have done better, we'd genuinely like to hear it — just reply to this email.`;
+      return `Your subscription for ${organizationName} has been canceled — no hard feelings, and the workspace is now on the Free plan.
+
+What happens next: nothing is deleted. Your data stays exactly as it is, you keep Free-plan access, and paid features simply pause. You can export everything — Growth Blueprints, prospects, campaigns, and more — any time from Settings > Team > Export Your Data.
+
+Whenever you're ready, reactivating takes one click: just pick a plan again from the Billing page.
+
+If there's anything we could have done better, we'd genuinely like to hear it — just reply to this email. Thanks for giving Outrun a try.`;
     case "paused":
       return `Your subscription for ${organizationName} is currently paused.`;
     case "plan_changed":
