@@ -125,4 +125,19 @@ describe("webhook dispatch (integration)", () => {
     const delivery = await prisma.webhookDelivery.findFirstOrThrow({ where: { webhookEndpointId: endpoint.id } });
     expect(delivery.status).toBe("PENDING");
   });
+
+  it("never delivers to an endpoint whose organization was soft-deleted after the endpoint was registered", async () => {
+    const endpoint = await registerWebhookEndpoint(organizationId, "user-1", "OWNER", "https://example.com/hooks");
+    await dispatchEvent(organizationId, "CAMPAIGN_CREATED", {});
+    await prisma.organization.update({ where: { id: organizationId }, data: { deletedAt: new Date() } });
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const result = await sweepPendingDeliveries();
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(result.attempted).toBe(0);
+    const delivery = await prisma.webhookDelivery.findFirstOrThrow({ where: { webhookEndpointId: endpoint.id } });
+    expect(delivery.status).toBe("PENDING");
+    expect(delivery.attempts).toBe(0);
+  });
 });

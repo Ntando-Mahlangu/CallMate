@@ -176,7 +176,10 @@ export async function generateStrategicReview(organizationId: string, period: Re
  */
 export async function runStrategicReviewTick() {
   const organizations = await prisma.organization.findMany({
-    where: { businessProfile: { isNot: null } },
+    // deletedAt: null — this cron has no session and queries Organization
+    // directly, so without this a deleted workspace would keep burning
+    // real AI generation cost producing reviews nobody can see.
+    where: { businessProfile: { isNot: null }, deletedAt: null },
     select: { id: true },
   });
 

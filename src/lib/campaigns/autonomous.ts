@@ -170,7 +170,13 @@ export async function runAutonomousSendForCampaign(campaign: Campaign) {
  */
 export async function runAutonomousSendTick() {
   const campaigns = await prisma.campaign.findMany({
-    where: { autonomousSendEnabled: true, status: "READY" },
+    // organization: { deletedAt: null } — a deleted workspace's own
+    // interactive routes already disappear (src/lib/org.ts), but this
+    // cron has no session and reaches straight into Campaign, so it's
+    // the one place that needs its own explicit check: without it, a
+    // deleted workspace would keep sending real outreach emails to
+    // prospects indefinitely.
+    where: { autonomousSendEnabled: true, status: "READY", organization: { deletedAt: null } },
   });
 
   const results = {

@@ -138,7 +138,14 @@ export async function dispatchEvent(
  */
 export async function sweepPendingDeliveries() {
   const due = await prisma.webhookDelivery.findMany({
-    where: { status: "PENDING", nextAttemptAt: { lte: new Date() } },
+    where: {
+      status: "PENDING",
+      nextAttemptAt: { lte: new Date() },
+      // webhookEndpoint.organization.deletedAt: null — this cron has no
+      // session and queries WebhookDelivery directly, so without this a
+      // deleted workspace's endpoints would keep being retried forever.
+      webhookEndpoint: { organization: { deletedAt: null } },
+    },
     take: SWEEP_BATCH_SIZE,
   });
 
