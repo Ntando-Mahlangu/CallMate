@@ -31,6 +31,8 @@ export type SubscriptionEvent = {
   status: NormalizedSubscriptionStatus;
   /** The subscribed price's ID (first line item) — null if the event carries no items. Maps back to a PlanTier via src/lib/billing/plans.ts's planTierForPriceId. */
   priceId: string | null;
+  /** Start of the subscription's current billing cycle, when the provider includes it — null if the event carries no billing-period data. Anchors the "resets every billing period" usage caps (src/lib/billing/usage.ts) rather than a rolling/lifetime window. */
+  currentPeriodStart: Date | null;
 };
 
 // A discriminated union so a future non-subscription event (e.g. a

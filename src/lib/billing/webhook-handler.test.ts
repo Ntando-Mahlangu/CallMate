@@ -29,7 +29,7 @@ describe("handlePaymentEvent (integration)", () => {
     vi.unstubAllEnvs();
   });
 
-  function subscriptionEvent(status: string, priceId: string | null) {
+  function subscriptionEvent(status: string, priceId: string | null, currentPeriodStart: Date | null = null) {
     return {
       kind: "subscription" as const,
       data: {
@@ -38,6 +38,7 @@ describe("handlePaymentEvent (integration)", () => {
         externalSubscriptionId: "sub_1",
         status: status as never,
         priceId,
+        currentPeriodStart,
       },
     };
   }

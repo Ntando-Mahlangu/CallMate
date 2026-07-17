@@ -31,6 +31,27 @@ const LIMITS: Partial<Record<PlanTier, Partial<Record<UsageEventType, number>>>>
   },
 };
 
+// FREE's cap is intentionally lifetime — it's the "unlock more with
+// Starter" hook (docs/outrun/03), not a monthly allotment, since a Free
+// workspace has no billing period to reset on. STARTER/GROWTH are real
+// recurring subscriptions and doc 14's Billing Dashboard explicitly
+// shows "Monthly Usage" alongside "Renewal Date" — those caps need to
+// reset every period, or a customer who exhausts them once stays locked
+// out for the life of the subscription despite paying every month.
+const PERIODIC_TIERS: PlanTier[] = ["STARTER", "GROWTH"];
+
+/** Start of the window a usage count should be scoped to — null means lifetime (FREE, and UNLIMITED which has no caps at all). */
+function periodStartFor(
+  planTier: PlanTier,
+  organization: { currentPeriodStart: Date | null; createdAt: Date },
+): Date | null {
+  if (!PERIODIC_TIERS.includes(planTier)) return null;
+  // currentPeriodStart is set from Paddle's own currentBillingPeriod on
+  // every subscription webhook (including renewals) — falls back to
+  // createdAt only for the brief window before that first webhook lands.
+  return organization.currentPeriodStart ?? organization.createdAt;
+}
+
 const UPGRADE_MESSAGE: Record<UsageEventType, string> = {
   [UsageEventType.COMPANY_SEARCH]:
     "Great start — you've used all your Free searches. Upgrade to Starter to keep finding qualified companies.",
@@ -53,13 +74,14 @@ const UPGRADE_MESSAGE: Record<UsageEventType, string> = {
 export async function checkAndRecordUsage(organizationId: string, type: UsageEventType) {
   const organization = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
-    select: { planTier: true },
+    select: { planTier: true, currentPeriodStart: true, createdAt: true },
   });
 
   const limit = LIMITS[organization.planTier]?.[type];
   if (limit != null) {
+    const periodStart = periodStartFor(organization.planTier, organization);
     const used = await prisma.usageEvent.count({
-      where: { organizationId, type },
+      where: { organizationId, type, ...(periodStart ? { createdAt: { gte: periodStart } } : {}) },
     });
     if (used >= limit) {
       throw new UserFacingError(UPGRADE_MESSAGE[type]);
@@ -70,10 +92,18 @@ export async function checkAndRecordUsage(organizationId: string, type: UsageEve
 }
 
 export async function getUsageSummary(organizationId: string, planTier: PlanTier) {
+  const organization = await prisma.organization.findUniqueOrThrow({
+    where: { id: organizationId },
+    select: { currentPeriodStart: true, createdAt: true },
+  });
+  const periodStart = periodStartFor(planTier, organization);
+
   const types = Object.values(UsageEventType);
   const counts = await Promise.all(
     types.map((type) =>
-      prisma.usageEvent.count({ where: { organizationId, type } }),
+      prisma.usageEvent.count({
+        where: { organizationId, type, ...(periodStart ? { createdAt: { gte: periodStart } } : {}) },
+      }),
     ),
   );
 

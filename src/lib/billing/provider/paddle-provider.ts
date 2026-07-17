@@ -42,6 +42,7 @@ export class PaddlePaymentProvider implements PaymentProvider {
       status: NormalizedSubscriptionStatus;
       customData?: Record<string, unknown> | null;
       items?: Array<{ price?: { id?: string } | null }>;
+      currentBillingPeriod?: { startsAt: string } | null;
     };
     const fromCustomData = data.customData?.organizationId;
 
@@ -53,6 +54,9 @@ export class PaddlePaymentProvider implements PaymentProvider {
         externalSubscriptionId: data.id,
         status: data.status,
         priceId: data.items?.[0]?.price?.id ?? null,
+        currentPeriodStart: data.currentBillingPeriod?.startsAt
+          ? new Date(data.currentBillingPeriod.startsAt)
+          : null,
       },
     };
   }

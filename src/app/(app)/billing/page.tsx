@@ -87,9 +87,14 @@ export default async function BillingPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
+        <h2 className="mb-1 text-lg font-medium text-[var(--color-text-primary)]">
           Usage
         </h2>
+        <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+          {organization.planTier === "FREE"
+            ? "Free plan allotments are one-time — upgrade for a monthly allowance that renews."
+            : "Resets at the start of each billing period."}
+        </p>
         <div className="space-y-4">
           {usage.map(({ type, used, limit }) => (
             <div key={type}>

@@ -166,6 +166,14 @@ model Organization {
   paddleCustomerId     String?
   paddleSubscriptionId String?
   subscriptionStatus   String?
+  // docs/outrun/14 "BILLING DASHBOARD — Monthly Usage, Renewal Date."
+  // Anchors the current billing cycle for paid-tier usage caps
+  // (src/lib/billing/usage.ts) so they reset every period instead of
+  // counting lifetime. Set from Paddle's own currentBillingPeriod on
+  // every subscription webhook; null for FREE orgs (whose usage caps
+  // are intentionally lifetime, not periodic — see usage.ts) and for
+  // paid orgs until their first webhook lands.
+  currentPeriodStart DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

@@ -73,6 +73,12 @@ export async function handlePaymentEvent(event: PaymentEvent) {
           paddleSubscriptionId: event.data.externalSubscriptionId,
           subscriptionStatus: status,
           planTier: newPlanTier,
+          // Only overwrite when Paddle actually sent one — never clobber a
+          // previously-known period start with null on an event that
+          // happens not to carry it.
+          ...(event.data.currentPeriodStart
+            ? { currentPeriodStart: event.data.currentPeriodStart }
+            : {}),
         },
       });
       revalidateTag(orgProfileTag(organizationId), "max");
