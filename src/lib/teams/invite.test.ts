@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
-import { createInvitation, getSeatUsage } from "./invite";
+import { createInvitation, acceptInvitation, getSeatUsage } from "./invite";
 
 describe("team seat limits (integration)", () => {
   let organizationId: string;
@@ -69,5 +69,54 @@ describe("team seat limits (integration)", () => {
     await expect(
       createInvitation(organizationId, ownerUserId, "OWNER", "unlimited-invitee@example.com", "MEMBER"),
     ).resolves.toBeDefined();
+  });
+});
+
+describe("acceptInvitation and soft-deleted workspaces (integration)", () => {
+  let organizationId: string;
+  let ownerUserId: string;
+  let inviteeUserId: string;
+
+  afterEach(async () => {
+    await prisma.invitation.deleteMany({ where: { organizationId } });
+    await prisma.membership.deleteMany({ where: { organizationId } });
+    await prisma.organization.deleteMany({ where: { id: organizationId } });
+    await prisma.user.deleteMany({ where: { id: { in: [ownerUserId, inviteeUserId] } } });
+  });
+
+  it("rejects accepting an invitation to a workspace that was since soft-deleted", async () => {
+    const owner = await prisma.user.create({
+      data: { name: "Invite Owner", email: `invite-owner-${Date.now()}@example.com` },
+    });
+    ownerUserId = owner.id;
+    const org = await prisma.organization.create({
+      data: {
+        name: "Accept Invite Test Org",
+        planTier: "GROWTH", // no seat cap — this test isn't about seat limits
+        memberships: { create: { userId: owner.id, role: "OWNER" } },
+      },
+    });
+    organizationId = org.id;
+
+    const invitee = await prisma.user.create({
+      data: { name: "Invitee", email: `invitee-${Date.now()}@example.com` },
+    });
+    inviteeUserId = invitee.id;
+
+    const invitation = await createInvitation(organizationId, ownerUserId, "OWNER", invitee.email, "MEMBER");
+
+    // deleteOrganization itself never cancels outstanding invitations
+    // (that's a separate, pre-existing gap) — simulating the resulting
+    // state directly rather than depending on that unrelated flow.
+    await prisma.organization.update({ where: { id: organizationId }, data: { deletedAt: new Date() } });
+
+    await expect(
+      acceptInvitation(invitation.token, { id: invitee.id, email: invitee.email }),
+    ).rejects.toThrow("This workspace no longer exists.");
+
+    const membership = await prisma.membership.findUnique({
+      where: { userId_organizationId: { userId: invitee.id, organizationId } },
+    });
+    expect(membership).toBeNull();
   });
 });

@@ -171,6 +171,18 @@ export async function acceptInvitation(token: string, user: { id: string; email:
     );
   }
 
+  // deleteOrganization (src/lib/teams/delete-organization.ts) doesn't
+  // cancel outstanding invitations — without this check, accepting one
+  // after the workspace was deleted would create a live Membership
+  // pointing at a dead org instead of a clear rejection.
+  const organization = await prisma.organization.findFirst({
+    where: { id: invitation.organizationId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!organization) {
+    throw new UserFacingError("This workspace no longer exists.");
+  }
+
   const existingMembership = await prisma.membership.findUnique({
     where: { userId_organizationId: { userId: user.id, organizationId: invitation.organizationId } },
   });
