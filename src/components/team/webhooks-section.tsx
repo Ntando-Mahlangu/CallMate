@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { FormError } from "@/components/ui/form-error";
 import { formatDate } from "@/lib/i18n/format";
 
@@ -33,6 +34,7 @@ export function WebhooksSection({
   const [isCreating, setIsCreating] = useState(false);
   const [revealedSecret, setRevealedSecret] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -67,6 +69,20 @@ export function WebhooksSection({
     setRemovingId(null);
     if (res.ok) {
       setEndpoints((prev) => prev.filter((e) => e.id !== id));
+      router.refresh();
+    }
+  }
+
+  async function handleToggle(id: string, nextEnabled: boolean) {
+    setTogglingId(id);
+    const res = await fetch(`/api/team/webhooks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: nextEnabled }),
+    });
+    setTogglingId(null);
+    if (res.ok) {
+      setEndpoints((prev) => prev.map((e) => (e.id === id ? { ...e, enabled: nextEnabled } : e)));
       router.refresh();
     }
   }
@@ -127,20 +143,36 @@ export function WebhooksSection({
               className="flex items-center justify-between gap-4 border-b border-[var(--color-border)] pb-3 text-sm last:border-0 last:pb-0"
             >
               <div>
-                <p className="break-all text-[var(--color-text-primary)]">{endpoint.url}</p>
+                <p className="break-all text-[var(--color-text-primary)]">
+                  {endpoint.url} {!endpoint.enabled && <Badge tone="medium">Paused</Badge>}
+                </p>
                 <p className="text-xs text-[var(--color-text-muted)]">
                   Added {formatDate(new Date(endpoint.createdAt))}
                 </p>
               </div>
               {canManage && (
-                <Button
-                  type="button"
-                  onClick={() => handleRemove(endpoint.id)}
-                  disabled={removingId === endpoint.id}
-                  className="border border-[var(--color-error)] bg-transparent text-[var(--color-error-text)] hover:bg-[var(--color-error)]/10"
-                >
-                  {removingId === endpoint.id ? "Removing…" : "Remove"}
-                </Button>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleToggle(endpoint.id, !endpoint.enabled)}
+                    disabled={togglingId === endpoint.id}
+                    className="border border-[var(--color-border)] bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                  >
+                    {togglingId === endpoint.id
+                      ? "Updating…"
+                      : endpoint.enabled
+                        ? "Pause"
+                        : "Re-enable"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleRemove(endpoint.id)}
+                    disabled={removingId === endpoint.id}
+                    className="border border-[var(--color-error)] bg-transparent text-[var(--color-error-text)] hover:bg-[var(--color-error)]/10"
+                  >
+                    {removingId === endpoint.id ? "Removing…" : "Remove"}
+                  </Button>
+                </div>
               )}
             </li>
           ))}

@@ -24,6 +24,8 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   API_KEY_REVOKED: "API key revoked",
   WEBHOOK_ENDPOINT_CREATED: "Webhook added",
   WEBHOOK_ENDPOINT_DELETED: "Webhook removed",
+  WEBHOOK_ENDPOINT_ENABLED: "Webhook re-enabled",
+  WEBHOOK_ENDPOINT_DISABLED: "Webhook paused",
 };
 
 function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string {
@@ -55,6 +57,10 @@ function describe(entry: AuditLogEntry, actorNames: Map<string, string>): string
       return `${actor} added a webhook for ${meta.url ?? "an endpoint"}`;
     case "WEBHOOK_ENDPOINT_DELETED":
       return `${actor} removed the webhook for ${meta.url ?? "an endpoint"}`;
+    case "WEBHOOK_ENDPOINT_ENABLED":
+      return `${actor} re-enabled the webhook for ${meta.url ?? "an endpoint"}`;
+    case "WEBHOOK_ENDPOINT_DISABLED":
+      return `${actor} paused the webhook for ${meta.url ?? "an endpoint"}`;
   }
 }
 

@@ -58,6 +58,47 @@ export async function listWebhookEndpoints(organizationId: string) {
   });
 }
 
+/**
+ * Pauses or re-enables an endpoint without touching its signing secret —
+ * a customer whose receiving endpoint is temporarily down (maintenance,
+ * a deploy) can stop deliveries without losing/regenerating the secret
+ * the way deleting-and-recreating would force them to.
+ */
+export async function setWebhookEndpointEnabled(
+  organizationId: string,
+  endpointId: string,
+  actingUserId: string,
+  actingRole: MembershipRole,
+  enabled: boolean,
+) {
+  if (!canManageWebhooks(actingRole)) {
+    throw new UserFacingError("Only workspace owners and admins can manage webhooks.");
+  }
+
+  const endpoint = await prisma.webhookEndpoint.findFirst({
+    where: { id: endpointId, organizationId },
+  });
+  if (!endpoint) {
+    throw new UserFacingError("That webhook endpoint could not be found.");
+  }
+  if (endpoint.enabled === enabled) {
+    return endpoint;
+  }
+
+  const updated = await prisma.webhookEndpoint.update({
+    where: { id: endpointId },
+    data: { enabled },
+  });
+
+  await logAuditEvent(
+    organizationId,
+    enabled ? AuditAction.WEBHOOK_ENDPOINT_ENABLED : AuditAction.WEBHOOK_ENDPOINT_DISABLED,
+    { actorUserId: actingUserId, metadata: { url: endpoint.url } },
+  );
+
+  return updated;
+}
+
 export async function deleteWebhookEndpoint(
   organizationId: string,
   endpointId: string,

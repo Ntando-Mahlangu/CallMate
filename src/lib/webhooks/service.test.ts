@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { UserFacingError } from "@/lib/errors";
-import { registerWebhookEndpoint, listWebhookEndpoints, deleteWebhookEndpoint } from "./service";
+import {
+  registerWebhookEndpoint,
+  listWebhookEndpoints,
+  deleteWebhookEndpoint,
+  setWebhookEndpointEnabled,
+} from "./service";
 
 describe("webhooks service (integration)", () => {
   let organizationId: string;
@@ -89,6 +94,38 @@ describe("webhooks service (integration)", () => {
       const created = await registerWebhookEndpoint(otherOrg.id, "user-1", "OWNER", "https://example.com/hooks");
       await expect(
         deleteWebhookEndpoint(organizationId, created.id, "user-1", "OWNER"),
+      ).rejects.toThrow("That webhook endpoint could not be found.");
+    } finally {
+      await prisma.organization.delete({ where: { id: otherOrg.id } });
+    }
+  });
+
+  it("pauses an endpoint without touching its secret, then re-enables it", async () => {
+    const created = await registerWebhookEndpoint(organizationId, "user-1", "OWNER", "https://example.com/hooks");
+    const before = await prisma.webhookEndpoint.findUniqueOrThrow({ where: { id: created.id } });
+
+    const disabled = await setWebhookEndpointEnabled(organizationId, created.id, "user-1", "OWNER", false);
+    expect(disabled.enabled).toBe(false);
+    expect(disabled.secretEncrypted).toBe(before.secretEncrypted);
+
+    const reenabled = await setWebhookEndpointEnabled(organizationId, created.id, "user-1", "OWNER", true);
+    expect(reenabled.enabled).toBe(true);
+    expect(reenabled.secretEncrypted).toBe(before.secretEncrypted);
+  });
+
+  it("rejects toggling from a non-owner/admin role", async () => {
+    const created = await registerWebhookEndpoint(organizationId, "user-1", "OWNER", "https://example.com/hooks");
+    await expect(
+      setWebhookEndpointEnabled(organizationId, created.id, "user-2", "MEMBER", false),
+    ).rejects.toThrow(UserFacingError);
+  });
+
+  it("rejects toggling an endpoint that doesn't belong to the organization", async () => {
+    const otherOrg = await prisma.organization.create({ data: { name: "Other Org (toggle)" } });
+    try {
+      const created = await registerWebhookEndpoint(otherOrg.id, "user-1", "OWNER", "https://example.com/hooks");
+      await expect(
+        setWebhookEndpointEnabled(organizationId, created.id, "user-1", "OWNER", false),
       ).rejects.toThrow("That webhook endpoint could not be found.");
     } finally {
       await prisma.organization.delete({ where: { id: otherOrg.id } });

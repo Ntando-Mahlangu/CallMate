@@ -836,6 +836,8 @@ enum AuditAction {
   API_KEY_REVOKED
   WEBHOOK_ENDPOINT_CREATED
   WEBHOOK_ENDPOINT_DELETED
+  WEBHOOK_ENDPOINT_ENABLED
+  WEBHOOK_ENDPOINT_DISABLED
 }
 
 // docs/outrun/14 "API Access (Limited)" (Growth plan) / docs/outrun/11
