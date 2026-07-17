@@ -748,6 +748,25 @@ both at registration and again at every delivery attempt, since a URL
 that resolved publicly when registered could later resolve to a private
 address via DNS rebinding.
 
+## 9s. Configurable/custom permissions — deliberately not built in V1
+
+docs/outrun/14 "PERMISSIONS" — "Permissions should be configurable for
+enterprise customers" — sits directly under the fixed five-role table
+(Owner/Admin/Manager/Member/Viewer, `src/lib/teams/permissions.ts`).
+That line reads like a V1 gap, but the same document's own "ENTERPRISE"
+section lists "Custom Roles" explicitly under **Future Enterprise
+features** ("Do not build in V1" is stated outright for Agency Mode
+right above it, and the same future-scope framing applies here) —
+alongside SSO, SCIM, and Private AI Models, none of which exist either.
+There is also no "Enterprise" plan tier in this codebase to gate custom
+roles behind (`src/lib/billing/plans.ts` has Free/Starter/Growth/
+Unlimited only). Building configurable-role infrastructure now would
+mean inventing both a tier and a permissions model with zero real
+customer to validate the shape against — exactly the kind of
+speculative abstraction this codebase's own principles (and the
+provider-interface decision in §9q) argue against. Revisit once an
+Enterprise tier is real.
+
 ## 10. Rate limiting
 
 docs/outrun/15 "RATE LIMITING". Authentication (sign-in, sign-up,
