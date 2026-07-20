@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 
 const PAINS = [
   "Finding leads takes too long.",
@@ -10,19 +11,23 @@ const PAINS = [
 export function PainSection() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-20">
-      <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-        Growing a business shouldn&apos;t feel like guesswork.
-      </h2>
-      <div className="mt-12 grid gap-4 sm:grid-cols-2">
+      <Reveal>
+        <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Growing a business shouldn&apos;t feel like guesswork.
+        </h2>
+      </Reveal>
+      <RevealGroup className="mt-12 grid gap-4 sm:grid-cols-2" stagger={0.1}>
         {PAINS.map((pain) => (
-          <Card key={pain} className="text-[var(--color-text-secondary)]">
-            {pain}
-          </Card>
+          <RevealItem key={pain}>
+            <Card className="text-[var(--color-text-secondary)]">{pain}</Card>
+          </RevealItem>
         ))}
-      </div>
-      <p className="mt-8 text-center text-lg text-[var(--color-text-primary)]">
-        Outrun changes that.
-      </p>
+      </RevealGroup>
+      <Reveal delay={0.15}>
+        <p className="mt-8 text-center text-lg text-[var(--color-text-primary)]">
+          Outrun changes that.
+        </p>
+      </Reveal>
     </section>
   );
 }

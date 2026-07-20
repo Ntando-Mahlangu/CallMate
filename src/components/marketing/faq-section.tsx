@@ -1,3 +1,5 @@
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
+
 const FAQS = [
   {
     q: "What makes Outrun different?",
@@ -24,17 +26,19 @@ const FAQS = [
 export function FaqSection() {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-20">
-      <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-        Questions
-      </h2>
-      <div className="mt-10 space-y-8">
+      <Reveal>
+        <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Questions
+        </h2>
+      </Reveal>
+      <RevealGroup className="mt-10 space-y-8" stagger={0.08}>
         {FAQS.map((faq) => (
-          <div key={faq.q}>
+          <RevealItem key={faq.q}>
             <h3 className="text-base font-medium text-[var(--color-text-primary)]">{faq.q}</h3>
             <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">{faq.a}</p>
-          </div>
+          </RevealItem>
         ))}
-      </div>
+      </RevealGroup>
     </section>
   );
 }

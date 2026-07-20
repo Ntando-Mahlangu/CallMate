@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
+import { Reveal } from "@/components/motion/reveal";
 
 // docs/outrun/02 "WOW SECTION" — a fixed, clearly-labeled example scenario
 // (the same input/output the spec itself specifies), not a live AI call:
@@ -41,18 +42,25 @@ export function WowDemo() {
 
   return (
     <section id="wow-demo" className="mx-auto max-w-3xl px-6 py-20">
-      <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
-        Example
-      </p>
-      <h2 className="mt-2 text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-        Watch Outrun think.
-      </h2>
-      <p className="mx-auto mt-4 max-w-lg text-center text-[var(--color-text-secondary)]">
-        A real business owner describes what they do. Here&apos;s the kind of
-        Growth Blueprint Outrun prepares in return.
-      </p>
+      <Reveal>
+        <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
+          Example
+        </p>
+        <h2 className="mt-2 text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Watch Outrun think.
+        </h2>
+        <p className="mx-auto mt-4 max-w-lg text-center text-[var(--color-text-secondary)]">
+          A real business owner describes what they do. Here&apos;s the kind of
+          Growth Blueprint Outrun prepares in return.
+        </p>
+      </Reveal>
 
-      <Card className="mt-10">
+      <Card
+        className={cn(
+          "mt-10 transition-shadow duration-700",
+          phase === "result" && "shadow-[var(--shadow-glow)]",
+        )}
+      >
         <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 font-mono text-sm text-[var(--color-text-primary)]">
           {typed}
           {phase === "typing" && <span className="animate-pulse">|</span>}

@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Reveal, RevealGroup, RevealItem } from "@/components/motion/reveal";
 
 const FEATURES = [
   {
@@ -30,19 +31,23 @@ const FEATURES = [
 export function FeaturesSection() {
   return (
     <section id="features" className="mx-auto max-w-5xl px-6 py-20">
-      <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-        Everything Outrun Does For You
-      </h2>
-      <div className="mt-12 grid gap-6 sm:grid-cols-2">
+      <Reveal>
+        <h2 className="text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
+          Everything Outrun Does For You
+        </h2>
+      </Reveal>
+      <RevealGroup className="mt-12 grid gap-6 sm:grid-cols-2" stagger={0.08}>
         {FEATURES.map((feature) => (
-          <Card key={feature.title} className="p-8">
-            <h3 className="text-lg font-medium text-[var(--color-text-primary)]">
-              {feature.title}
-            </h3>
-            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{feature.body}</p>
-          </Card>
+          <RevealItem key={feature.title}>
+            <Card interactive className="h-full p-8">
+              <h3 className="text-lg font-medium text-[var(--color-text-primary)]">
+                {feature.title}
+              </h3>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">{feature.body}</p>
+            </Card>
+          </RevealItem>
         ))}
-      </div>
+      </RevealGroup>
     </section>
   );
 }
