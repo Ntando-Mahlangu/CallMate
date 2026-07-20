@@ -51,7 +51,7 @@ export function PricingSection() {
                   "mt-6 w-full",
                 )}
               >
-                Start Free
+                {tier === "FREE" ? "Start Free" : "Get Started"}
               </Link>
             </Card>
           );
