@@ -8,6 +8,7 @@ import { WorkspaceSwitcher } from "@/components/team/workspace-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { GlobalSearch } from "@/components/dashboard/global-search";
 import { GlobalChatWidget } from "@/components/ceo-agent/global-chat-widget";
+import { Logo } from "@/components/brand/logo";
 
 export default async function DashboardLayout({
   children,
@@ -34,9 +35,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)]">
       <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] px-6">
-        <span className="text-lg font-medium tracking-tight text-[var(--color-text-primary)]">
-          Outrun
-        </span>
+        <Logo />
         <div className="flex items-center gap-4">
           {organization && <GlobalSearch />}
           {organization && memberships.length > 1 && (

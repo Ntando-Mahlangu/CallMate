@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { Logo } from "@/components/brand/logo";
 
 export function MarketingNav() {
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-bg-primary)]/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <span className="text-lg font-medium tracking-tight text-[var(--color-text-primary)]">
-          Outrun
-        </span>
+        <Logo />
 
         <nav className="hidden items-center gap-8 text-sm text-[var(--color-text-secondary)] sm:flex">
           <a href="#features" className="hover:text-[var(--color-text-primary)]">

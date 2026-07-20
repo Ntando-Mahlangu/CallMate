@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function LegalPage({
   title,
@@ -12,8 +13,13 @@ export function LegalPage({
   return (
     <main className="bg-[var(--color-bg-primary)]">
       <div className="mx-auto max-w-2xl px-6 py-16">
-        <Link href="/" className="text-sm text-[var(--color-accent-text)] hover:underline">
-          ← Outrun
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-accent-text)] hover:underline"
+        >
+          <span aria-hidden>←</span>
+          <Image src="/logo-mark.png" alt="" width={16} height={16} />
+          Outrun
         </Link>
 
         <div className="mt-8 mb-8 rounded-[var(--radius-md)] border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 px-4 py-3 text-sm text-[var(--color-warning)]">
