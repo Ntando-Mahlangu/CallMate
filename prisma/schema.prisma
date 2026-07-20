@@ -1,0 +1,1135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Better Auth core models ────────────────────────────────────────────────
+// Shape matches what @better-auth/cli generate produces for the Prisma
+// adapter (email/password + Google OAuth + session management).
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  emailVerified    Boolean  @default(false)
+  image            String?
+  twoFactorEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Membership[]
+  twoFactors  TwoFactor[]
+
+  @@map("user")
+}
+
+// Shape matches better-auth's twoFactor plugin (docs/outrun/15 "AUTHENTICATION
+// SECURITY — Optional MFA"). One row per user; re-enrolling replaces it
+// rather than accumulating rows, since a user has exactly one TOTP secret.
+model TwoFactor {
+  id                      String    @id @default(uuid())
+  secret                  String
+  backupCodes             String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id         String @id @default(uuid())
+  accountId  String
+  providerId String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+// Better Auth's own rate limiter storage (docs/outrun/15 "RATE LIMITING" —
+// Authentication). Database-backed rather than the in-memory default so
+// limits hold across serverless instances/restarts, not just a single
+// process. Shape matches what Better Auth's rate-limiter reads/writes
+// directly — see src/lib/auth.ts `rateLimit: { storage: "database" }`.
+model RateLimit {
+  id          String  @id @default(uuid())
+  key         String?
+  count       Int?
+  lastRequest BigInt?
+
+  @@map("rate_limit")
+}
+
+// ── Outrun domain models ───────────────────────────────────────────────────
+// docs/outrun/12-database-architecture-scalability.md,
+// docs/outrun/14-billing-subscriptions-teams-enterprise.md
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  GROWTH
+  UNLIMITED
+}
+
+enum GrowthStage {
+  IDEA
+  STARTUP
+  GROWING
+  ESTABLISHED
+  AGENCY
+  ENTERPRISE
+}
+
+// One Organization per business workspace. Fields populated by Business
+// Discovery onboarding (docs/outrun/03) are nullable here because they are
+// captured in a later build phase, not because they're optional in the
+// finished product.
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  website     String?
+  industry    String?
+  country     String?
+  growthStage GrowthStage?
+  brandVoice  String?
+  planTier    PlanTier     @default(FREE)
+
+  growthScore Int? // 0-100, set once a Growth Blueprint exists
+
+  // Growth Blueprint sharing (docs/outrun/05 "EXPORTS" — Shareable Link).
+  // Opt-in, off by default; the public page always shows the *latest*
+  // version so the link doesn't go stale as the Blueprint improves.
+  blueprintShareEnabled Boolean @default(false)
+  blueprintShareToken   String? @unique
+
+  // Billing (docs/outrun/14). Set only by verified Paddle webhooks
+  // (src/app/api/billing/webhook/route.ts) — never by the client, so plan
+  // access can't be forged from the frontend (Article XII).
+  paddleCustomerId     String?
+  paddleSubscriptionId String?
+  subscriptionStatus   String?
+  // docs/outrun/14 "BILLING DASHBOARD — Monthly Usage, Renewal Date."
+  // Anchors the current billing cycle for paid-tier usage caps
+  // (src/lib/billing/usage.ts) so they reset every period instead of
+  // counting lifetime. Set from Paddle's own currentBillingPeriod on
+  // every subscription webhook; null for FREE orgs (whose usage caps
+  // are intentionally lifetime, not periodic — see usage.ts) and for
+  // paid orgs until their first webhook lands.
+  currentPeriodStart DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  memberships      Membership[]
+  businessProfile  BusinessProfile?
+  growthBlueprints GrowthBlueprint[]
+  companies        Company[]
+  usageEvents      UsageEvent[]
+  campaigns        Campaign[]
+  events           Event[]
+  chatMessages     ChatMessage[]
+  seoAnalyses      SeoAnalysis[]
+  seoContentPieces SeoContentPiece[]
+  invitations      Invitation[]
+  leadLists        LeadList[]
+  refundRequests   RefundRequest[]
+  strategicReviews StrategicReview[]
+  campaignTemplates CampaignTemplate[]
+  jobs             Job[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  tasks            Task[]
+  goals            Goal[]
+  recommendationFeedback RecommendationFeedback[]
+  apiKeys          ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
+
+  @@map("organization")
+}
+
+enum JobType {
+  BLUEPRINT_GENERATION
+  SEO_ANALYSIS
+  CAMPAIGN_GENERATION
+  SECOND_WOW_GENERATION
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// docs/outrun/11-13 "BACKGROUND JOBS" — a Postgres-backed queue rather
+// than a Redis/BullMQ setup, matching every other cross-cutting concern
+// in this app (rate limiting, cron ticks). The route that enqueues a job
+// kicks off its execution via Next's `after()` so the HTTP response
+// returns immediately with a jobId, and the actual AI work runs after
+// the response is sent instead of holding the request open for however
+// long generation takes — the client polls /api/jobs/[id] for status.
+model Job {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type   JobType
+  status JobStatus @default(PENDING)
+
+  payload      Json
+  resultId     String?
+  errorMessage String?
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([organizationId, type, createdAt])
+  @@map("job")
+}
+
+enum UsageEventType {
+  COMPANY_SEARCH
+  COMPANY_RESEARCH
+  OUTREACH_GENERATION
+  BLUEPRINT_GENERATION
+  CALL_SCRIPT_GENERATION
+}
+
+// One row per billable action taken (docs/outrun/14 "USAGE METERS"). Counted
+// lifetime-per-workspace against src/lib/billing/usage.ts limits — Free plan
+// allotments don't renew monthly, matching the "unlock more with Starter"
+// framing in docs/outrun/03, not a "resets next month" model.
+model UsageEvent {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           UsageEventType
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, type, createdAt])
+  @@map("usage_event")
+}
+
+// Captured by the Business Discovery onboarding conversation
+// (docs/outrun/03). One per Organization; the AI Growth Blueprint reads
+// entirely from this plus website analysis — never invents facts beyond it.
+model BusinessProfile {
+  id String @id @default(uuid())
+
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  description         String
+  idealCustomer       String
+  sellingLocations    String[]
+  acquisitionChannels String[]
+  growthChallenge     String
+  avgCustomerValue    Int?
+  mainGoal            String
+  competitors         String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_profile")
+}
+
+// One row per generated/regenerated Blueprint — versioned, never overwritten
+// (docs/outrun/05 "VERSION HISTORY"). Structured sub-sections are stored as
+// JSON because their shape is validated by the Zod schema in
+// src/lib/growth-blueprint/schema.ts at generation time, not by Postgres.
+model GrowthBlueprint {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  version        Int
+
+  growthScore          Int
+  executiveSummary     String
+  businessSnapshot     Json
+  strengths            Json
+  weaknesses           Json
+  biggestBottleneck    Json
+  opportunities        Json
+  growthStrategy       Json
+  idealCustomerProfile Json
+  roadmap              Json
+  // docs/outrun/05 "WEBSITE ANALYSIS (IF AVAILABLE)" — null whenever no
+  // website was crawled, never a fabricated placeholder.
+  websiteAnalysis      Json?
+  scoreCategories      Json
+  confidenceNotes      String
+
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, version])
+  @@map("growth_blueprint")
+}
+
+// A prospect surfaced by lead search (docs/outrun/06). `source`/`sourceId`
+// identify which provider and which of its records this came from, so the
+// same real-world business is never duplicated within a workspace
+// ("DUPLICATE DETECTION"). fitScore/confidenceScore are set immediately at
+// search time by a cheap heuristic (src/lib/prospects/scoring.ts); `research`
+// is filled in later, only on demand, by an AI call — expensive analysis is
+// never run on results the user hasn't asked about.
+model Company {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  source   String
+  sourceId String
+
+  name             String
+  category         String?
+  website          String?
+  phone            String?
+  contactEmail     String?
+  formattedAddress String?
+  rating           Float?
+  reviewCount      Int?
+
+  fitScore          Int?
+  fitReason         String?
+  confidenceScore   Int?
+  confidenceReason  String?
+  research          Json?
+
+  // Cached cold-call script (docs/outrun/07 "COLD CALL SCRIPT") generated
+  // from this company's research profile. Cached per-company rather than
+  // per-message since a call script isn't tied to any one campaign send.
+  callScript Json?
+
+  isSaved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  outreachMessages OutreachMessage[]
+  leadListEntries  LeadListCompany[]
+  contacts         Contact[]
+
+  @@unique([organizationId, source, sourceId])
+  @@map("company")
+}
+
+// docs/outrun/06 "LEAD LISTS" — named lists a user organizes saved
+// companies into (e.g. "Hot Prospects", "Q3 Campaign"), layered on top of
+// the simple isSaved toggle rather than replacing it. A company can
+// belong to any number of lists regardless of its isSaved state.
+model LeadList {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies LeadListCompany[]
+
+  @@unique([organizationId, name])
+  @@map("lead_list")
+}
+
+model LeadListCompany {
+  id String @id @default(uuid())
+
+  leadListId String
+  leadList   LeadList @relation(fields: [leadListId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([leadListId, companyId])
+  @@index([companyId])
+  @@map("lead_list_company")
+}
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+// docs/outrun/14 "REFUNDS" — a request queue, not a self-serve refund
+// button. Actually moving money is a real, hard-to-reverse financial
+// action, so this only records the request, reason, and an audit trail;
+// approving it happens out-of-band (Paddle dashboard / support review),
+// matching the doc's own "Allow support review" requirement.
+model RefundRequest {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  requestedByUserId String
+  requestedByName   String
+  reason            String
+
+  status         RefundRequestStatus @default(PENDING)
+  resolutionNote String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@map("refund_request")
+}
+
+enum SendStatus {
+  NOT_SENT
+  SENT
+  FAILED
+}
+
+// One generated email per company (docs/outrun/07). Standalone messages
+// (generated from a single company's research profile) have no campaign;
+// batch-generated messages from a Campaign are linked via campaignId.
+model OutreachMessage {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  subject          String
+  body             String
+  openingRationale String
+
+  // docs/outrun/07 "LINKEDIN MESSAGE" — a shorter (<=500 char) draft
+  // generated alongside the email. Text only: there's no LinkedIn API
+  // integration in this app, so it's copied out manually, never sent
+  // automatically (same "standalone draft" pattern as SeoContentPiece).
+  linkedinMessage String?
+
+  // A/B testing (docs/outrun/07 "A/B TESTING"): set only when a campaign
+  // generates more than one opening/CTA angle. There's no inbound-email
+  // integration to detect opens/replies automatically, so gotReply is a
+  // manual, user-reported signal — never inferred or fabricated.
+  variantLabel String?
+  gotReply     Boolean @default(false)
+
+  sendStatus SendStatus @default(NOT_SENT)
+  sentAt     DateTime?
+
+  // Follow-up sequences (docs/outrun/07 "FOLLOW-UP SEQUENCES") — Day
+  // 3/7/14 messages generated off a message that's already been sent.
+  // sequenceStep is 0 for an original message, 1/2/3 for its follow-ups
+  // in order. scheduledFor gates sending (see sendOutreachMessage): a
+  // follow-up can't go out before its date, or at all once the parent
+  // message's gotReply is true.
+  followUpToId String?
+  followUpTo   OutreachMessage?  @relation("MessageFollowUps", fields: [followUpToId], references: [id], onDelete: Cascade)
+  followUps    OutreachMessage[] @relation("MessageFollowUps")
+  sequenceStep Int               @default(0)
+  scheduledFor DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([campaignId])
+  @@map("outreach_message")
+}
+
+enum CampaignStatus {
+  DRAFT
+  READY
+  PAUSED
+  COMPLETED
+}
+
+// Batches outreach generation across a chosen audience (docs/outrun/07
+// Campaign Builder). A campaign reaching READY means messages are
+// generated and reviewed; sending (src/lib/outreach/send.ts) is a
+// separate, explicit action per message via the shared sendEmail() seam.
+model Campaign {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  objective String
+  status    CampaignStatus @default(DRAFT)
+
+  strategyRationale  String?
+  strategyConfidence String?
+  // docs/outrun/07 STEP 3 "AI CAMPAIGN STRATEGY" — Recommended Channel,
+  // Expected Strengths, Potential Weaknesses, alongside the existing
+  // rationale/confidence. Generated once at the Strategy Review step and
+  // persisted so the campaign detail page can show the same explanation
+  // later rather than re-deriving it.
+  strategyChannel    String?
+  strategyStrengths  Json?
+  strategyWeaknesses Json?
+
+  // docs/outrun/07 STEP 2 "SELECT AUDIENCE" — which audience source tab
+  // (Saved List name, Custom Filters, Manual Selection, AI Recommended)
+  // this campaign's companyIds came from. Display-only, for the Campaign
+  // Preview; never re-derives membership from it.
+  audienceSource String?
+
+  // Autonomous Growth Mode (docs/outrun/07), scoped deliberately narrow:
+  // only auto-sends messages already generated within this reviewed,
+  // launched campaign — never generates or launches a campaign on its
+  // own. Owner/Admin-gated, opt-in, user-configurable daily cap.
+  // lastAutonomousSendAt is surfaced in the UI so the owner can tell
+  // whether a scheduled job is actually running this, rather than
+  // assuming it is just because the toggle is on.
+  autonomousSendEnabled   Boolean   @default(false)
+  autonomousDailyLimit    Int       @default(10)
+  autonomousSendEnabledAt DateTime?
+  lastAutonomousSendAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages OutreachMessage[]
+
+  @@index([organizationId])
+  @@map("campaign")
+}
+
+enum CampaignTemplateCategory {
+  COLD_OUTREACH
+  REFERRAL_REQUESTS
+  PARTNERSHIPS
+  WEBSITE_AUDITS
+  CONSULTATION_OFFERS
+  PRODUCT_LAUNCHES
+}
+
+// docs/outrun/07 "CAMPAIGN LIBRARY" — a reusable starting point (name,
+// category, objective, A/B setting), not a snapshot of generated
+// messages, since outreach content is always written fresh from a
+// specific audience's research. "Templates should remain editable" —
+// every field can be changed after creation.
+model CampaignTemplate {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name      String
+  category  CampaignTemplateCategory
+  objective String
+  abTest    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("campaign_template")
+}
+
+// Joins a User to an Organization with a role (docs/outrun/14 permissions).
+model Membership {
+  id   String         @id @default(uuid())
+  role MembershipRole @default(OWNER)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("membership")
+}
+
+enum EventType {
+  BLUEPRINT_GENERATED
+  COMPANY_SEARCHED
+  COMPANY_RESEARCHED
+  OUTREACH_GENERATED
+  OUTREACH_SENT
+  FOLLOW_UP_SEQUENCE_GENERATED
+  CALL_SCRIPT_GENERATED
+  LEAD_LIST_CREATED
+  REFUND_REQUESTED
+  TASK_COMPLETED
+  TASK_DISMISSED
+  RECOMMENDATION_RATED
+  CAMPAIGN_CREATED
+  CAMPAIGN_TEMPLATE_SAVED
+  PATTERN_IDENTIFIED
+  SEO_ANALYZED
+  SEO_CONTENT_GENERATED
+  TEAM_MEMBER_INVITED
+  TEAM_MEMBER_JOINED
+  WHATIF_SIMULATED
+  DECISION_REQUESTED
+  AUTONOMOUS_SEND_RUN
+  AUTONOMOUS_SEND_PAUSED
+  STRATEGIC_REVIEW_GENERATED
+  GOAL_CREATED
+  GOAL_ACHIEVED
+}
+
+enum ReviewPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+// docs/outrun/10 "STRATEGIC REVIEWS" — generated automatically on a
+// rolling cadence per period (src/app/api/cron/strategic-reviews) and
+// on-demand from the UI. Every section is grounded in the real events,
+// campaigns, and Blueprint score change within [periodStart, periodEnd]
+// — never a fabricated summary of a period nothing happened in.
+model StrategicReview {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  period      ReviewPeriod
+  periodStart DateTime
+  periodEnd   DateTime
+
+  achievements          Json
+  missedOpportunities   Json
+  risks                 Json
+  keyLearnings          Json
+  recommendedPriorities Json
+  nextGrowthStrategy    String
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@map("strategic_review")
+}
+
+// The Business Brain's growth timeline (docs/outrun/08 "GROWTH MEMORY" /
+// "BUSINESS TIMELINE") — a plain event log, not a knowledge graph. Every
+// meaningful action across the app writes one row here via
+// src/lib/memory/log-event.ts, giving a single searchable history without
+// a heavier memory architecture this stage doesn't need yet.
+model Event {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type    EventType
+  summary String
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("event")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+// One row per turn in "Ask the CEO" (docs/outrun/10). Kept simple —
+// a single ongoing conversation per organization, not multiple named
+// threads; the last N turns plus the Business Brain context
+// (src/lib/memory/context.ts) is what gets sent to the model each time.
+model ChatMessage {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  role    ChatRole
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("chat_message")
+}
+
+// One row per crawl+analysis run (docs/outrun/09), versioned like the
+// Growth Blueprint. Only stores what was actually observed in the crawled
+// HTML plus AI-derived scores/recommendations from it — no Core Web
+// Vitals, backlinks, or rank data, since none of those integrations exist.
+model SeoAnalysis {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  version        Int
+
+  healthScore        Int
+  executiveSummary   String
+  categories         Json
+  quickWins          Json
+  keywordSuggestions Json
+  contentIdeas       Json
+  // docs/outrun/09 "LOCAL SEO" — null when the business doesn't serve a
+  // specific local area. Shape: { verifiedFindings: string[],
+  // locationPageRecommendations, localKeywordRecommendations,
+  // googleBusinessProfileTips, reviewStrategyTips: string[] }.
+  localSeo           Json?
+
+  createdAt DateTime @default(now())
+
+  @@unique([organizationId, version])
+  @@map("seo_analysis")
+}
+
+// One generated content draft (docs/outrun/09 "AI CONTENT GENERATOR") —
+// a standalone draft the user copies out to their own CMS; Outrun never
+// publishes anything on their behalf (Article XVIII, user control).
+model SeoContentPiece {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  targetKeyword   String
+  title           String
+  metaDescription String
+  body            String
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@map("seo_content_piece")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+// Team invitations (docs/outrun/14 "TEAM WORKSPACES" / "INVITATIONS"). Team
+// seats aren't gated by plan tier: Growth/Unlimited (the plans the spec
+// scopes "Team Collaboration" to) have no Paddle price yet, so — matching
+// the same call already made for usage limits in src/lib/billing/usage.ts —
+// this ships unlimited to every plan rather than locked behind a plan
+// nobody can buy.
+model Invitation {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  email  String
+  role   MembershipRole @default(MEMBER)
+  token  String         @unique
+  status InvitationStatus @default(PENDING)
+
+  invitedByUserId String
+  expiresAt       DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("invitation")
+}
+
+// Fixed-window rate limiting for Outrun's own routes (docs/outrun/15
+// "RATE LIMITING" — AI Endpoints, Search, Exports, Webhook Endpoints).
+// Separate from Better Auth's own RateLimit table since it's owned by
+// this app, not Better Auth internals. See src/lib/rate-limit.ts.
+model AppRateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+  @@map("app_rate_limit_bucket")
+}
+
+// docs/outrun/12 "AUDIT LOG" — "Record: Logins, Role Changes, Billing
+// Changes, Workspace Invites, Data Exports, Integration Changes, Security
+// Events. Never allow silent administrative actions." Deliberately a
+// separate model from Event/EventType (the Business Brain's growth
+// timeline in src/lib/memory/log-event.ts) — that log tracks growth
+// activity for the AI to reason about; this one tracks who-did-what for
+// security/accountability, and is never fed into an AI prompt.
+enum AuditAction {
+  ROLE_CHANGED
+  MEMBER_REMOVED
+  MEMBER_INVITED
+  BILLING_CHANGED
+  DATA_EXPORTED
+  LOGIN
+  LOGIN_FAILED
+  WORKSPACE_DELETED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  WEBHOOK_ENDPOINT_CREATED
+  WEBHOOK_ENDPOINT_DELETED
+  WEBHOOK_ENDPOINT_ENABLED
+  WEBHOOK_ENDPOINT_DISABLED
+}
+
+// docs/outrun/14 "API Access (Limited)" (Growth plan) / docs/outrun/11
+// "AUTHENTICATION — API Keys" / "Audit API access." The raw key is shown
+// to the user exactly once at creation and never persisted — only its
+// SHA-256 hash is stored, matching the same never-store-plaintext
+// principle Better Auth already applies to OAuth tokens (src/lib/auth.ts).
+model ApiKey {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name            String
+  keyPrefix       String // first chars of the raw key, shown in the UI so a user can tell keys apart without re-revealing the secret
+  keyHash         String    @unique
+  createdByUserId String
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([organizationId])
+  @@map("api_key")
+}
+
+// docs/outrun/11 "WEBHOOK SYSTEM — Outgoing webhooks, Retry logic,
+// Signature verification, Dead-letter queue for failures." Delivers
+// every event already logged via src/lib/memory/log-event.ts's
+// logEvent() (docs/outrun/11 "EVENT SYSTEM") to a customer's own URL —
+// same three-piece provider shape discipline as AI/payment/lead-data
+// providers, just with the "vendor" being whatever URL the customer
+// supplies (a Zapier "Webhooks" trigger, their own server, etc.).
+model WebhookEndpoint {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  url String
+
+  // AES-256-GCM ciphertext (src/lib/webhooks/crypto.ts), keyed off
+  // BETTER_AUTH_SECRET — never stored in plaintext (docs/outrun/15
+  // "Encrypt: Tokens, Credentials"). Unlike an ApiKey's keyHash, this
+  // must be reversible: Outrun needs the raw secret at delivery time to
+  // HMAC-sign each payload so the receiving end can verify authenticity.
+  secretEncrypted String
+
+  enabled Boolean @default(true)
+
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([organizationId])
+  @@map("webhook_endpoint")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  DEAD_LETTER
+}
+
+model WebhookDelivery {
+  id                String          @id @default(uuid())
+  webhookEndpointId String
+  webhookEndpoint   WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  eventType String
+  payload   Json
+
+  status        WebhookDeliveryStatus @default(PENDING)
+  attempts      Int                   @default(0)
+  lastError     String?
+  nextAttemptAt DateTime              @default(now())
+  deliveredAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([webhookEndpointId])
+  @@index([status, nextAttemptAt])
+  @@map("webhook_delivery")
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  // Null for system-initiated actions (e.g. a Paddle webhook changing plan
+  // tier) — there's no acting user to attribute it to.
+  actorUserId String?
+
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("audit_log")
+}
+
+// docs/outrun/04 "NOTIFICATIONS" — "Campaign finished. Reply received.
+// Growth Review ready. New opportunity discovered." / "Never notify users
+// for trivial events." Org-scoped (not per-user) since Outrun workspaces
+// are small teams where everyone should see the same growth-relevant
+// events; a per-recipient read receipt would be overkill for V1's scope.
+enum NotificationType {
+  BLUEPRINT_READY
+  CAMPAIGN_FINISHED
+  SEO_ANALYSIS_READY
+  STRATEGIC_REVIEW_READY
+  BILLING_EVENT
+  TEAM_MEMBER_JOINED
+  AUTONOMOUS_SEND_PAUSED
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type  NotificationType
+  title String
+  body  String
+  link  String?
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("notification")
+}
+
+// docs/outrun/12 "TASK MODEL" — "Every recommendation becomes an optional
+// task." / docs/outrun/10 "AI COACH" — "After every completed task:
+// celebrate progress... recommend the next action." Generated automatically
+// from a new Growth Blueprint's roadmap (src/lib/growth-blueprint/generate.ts)
+// so recommendations become durable and completable, not just the single
+// ephemeral "Today's Mission" derived at render time
+// (src/lib/dashboard/mission.ts, kept as-is — it answers "what's the one
+// next thing", this answers "what's the whole list and what's done").
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  DISMISSED
+}
+
+enum TaskImpact {
+  High
+  Medium
+  Low
+}
+
+model Task {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  impact      TaskImpact
+  effort      String?
+  status      TaskStatus @default(PENDING)
+
+  ownerUserId String?
+  dueDate     DateTime?
+
+  // Which Blueprint version this was generated from, if any — null for a
+  // manually-added task.
+  sourceBlueprintVersion Int?
+  completionNotes        String?
+
+  // docs/outrun/10 "AI COACH" — generated once, right when the task is
+  // marked COMPLETED (src/lib/ceo-agent/coach.ts), never regenerated on
+  // every page load. Null whenever the AI call itself failed (e.g. no
+  // provider configured) — completing the task must never depend on it.
+  coachFeedback Json?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([organizationId, status, createdAt])
+  @@map("task")
+}
+
+// docs/outrun/08 "FEEDBACK LOOP" — "Allow users to rate recommendations.
+// Helpful / Not Helpful / Completed / Dismissed. Use feedback to refine
+// future suggestions." One row per Opportunity Feed item the user has
+// rated (itemId matches OpportunityFeedItem.id — see
+// src/lib/ceo-agent/opportunity-feed.ts); itemTitle is a snapshot so a
+// rating still makes sense in later reports even after the source item
+// (e.g. a specific Blueprint version's opportunity list) is gone.
+// Completed/dismissed *Tasks* already cover "Completed / Dismissed" for
+// roadmap-derived recommendations; this covers the feed items that never
+// become a Task (SEO quick wins, unactioned prospects, reply-rate trend).
+enum RecommendationRating {
+  HELPFUL
+  NOT_HELPFUL
+  DISMISSED
+}
+
+model RecommendationFeedback {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  itemId    String
+  itemTitle String
+  rating    RecommendationRating
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, itemId])
+  @@map("recommendation_feedback")
+}
+
+// docs/outrun/10 "GOAL MANAGEMENT" — "Users define goals... Every
+// recommendation should align with active goals." Supersedes
+// BusinessProfile.mainGoal (a single free-text field set once at
+// onboarding) with a real, trackable, multi-goal list that feeds into
+// Business Brain context (src/lib/memory/context.ts) for the CEO Agent
+// and future recommendation generation.
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+model Goal {
+  id String @id @default(uuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  title        String
+  targetMetric String?
+  targetValue  Float?
+  currentValue Float?
+  targetDate   DateTime?
+  status       GoalStatus @default(ACTIVE)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([organizationId, status])
+  @@map("goal")
+}
+
+// docs/outrun/12 "CONTACT MODEL" — a named person at a prospected Company,
+// distinct from Company.contactEmail (a generic inbox, not a person).
+enum ContactVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  BOUNCED
+}
+
+enum ContactRelationshipStatus {
+  NEW
+  CONTACTED
+  RESPONDED
+  QUALIFIED
+  CUSTOMER
+  LOST
+}
+
+model Contact {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name  String
+  role  String?
+  email String?
+  phone String?
+
+  verificationStatus ContactVerificationStatus @default(UNVERIFIED)
+  relationshipStatus ContactRelationshipStatus @default(NEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("contact")
+}

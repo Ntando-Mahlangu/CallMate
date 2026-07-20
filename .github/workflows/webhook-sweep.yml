@@ -1,0 +1,19 @@
+name: Webhook Delivery Sweep
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call webhook delivery sweep endpoint
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ] || [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "APP_URL and CRON_SECRET repo secrets are not set — skipping. See DEPLOYMENT.md."
+            exit 0
+          fi
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/webhooks" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

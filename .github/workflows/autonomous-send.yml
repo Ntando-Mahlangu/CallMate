@@ -1,0 +1,19 @@
+name: Autonomous Send Tick
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call autonomous-send endpoint
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ] || [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "APP_URL and CRON_SECRET repo secrets are not set — skipping. See DEPLOYMENT.md."
+            exit 0
+          fi
+          curl -sf -X GET "${{ secrets.APP_URL }}/api/cron/autonomous-send" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
