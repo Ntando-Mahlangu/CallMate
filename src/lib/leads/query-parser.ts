@@ -47,9 +47,9 @@ const parsedQueryJsonSchema = {
 //      tech stack, "weak SEO" beyond having no site at all) that gets
 //      surfaced to the user honestly instead of silently dropped or,
 //      worse, faked as a filter Outrun can't actually check.
-const SYSTEM_PROMPT = `You turn a plain-English prospecting request into a structured search for a business directory (Google Places).
+const SYSTEM_PROMPT = `You turn a plain-English prospecting request into a structured search for a business directory (e.g. Google Places or OpenStreetMap).
 
-Places can only search by business name/type/category and location text, and its results only carry: name, category, website (present or not), phone, address, star rating, review count. It has no data on funding, hiring activity, technology stack, revenue, employee count, or website quality beyond "has a site or doesn't."
+This directory can only search by business name/type/category and location text, and its results only ever carry: name, category, website (present or not), phone, address, and — depending on the active provider — star rating and review count (some providers, like OpenStreetMap, never return these). It has no data on funding, hiring activity, technology stack, revenue, employee count, or website quality beyond "has a site or doesn't."
 
 Rules:
 - placesQuery: a short, clean phrase combining the industry/business type and location — the part Places can actually search on. Drop qualifiers Places can't use.
