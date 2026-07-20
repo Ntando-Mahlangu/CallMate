@@ -2,7 +2,7 @@ import { LegalPage, LegalSection } from "@/components/legal/legal-page";
 
 export default function SecurityPage() {
   return (
-    <LegalPage title="Security" updated="[Insert launch date]">
+    <LegalPage title="Security" updated="July 20, 2026">
       <LegalSection title="Data isolation">
         <p>
           Every workspace is fully isolated. All data access is scoped to
@@ -37,7 +37,7 @@ export default function SecurityPage() {
       <LegalSection title="Reporting a vulnerability">
         <p>
           If you believe you&apos;ve found a security issue, please contact
-          us at [Insert security contact email] before disclosing it publicly.
+          us at outrunv1privacy@outlook.com before disclosing it publicly.
         </p>
       </LegalSection>
     </LegalPage>

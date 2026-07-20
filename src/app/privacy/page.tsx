@@ -2,7 +2,7 @@ import { LegalPage, LegalSection } from "@/components/legal/legal-page";
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" updated="[Insert launch date]">
+    <LegalPage title="Privacy Policy" updated="July 20, 2026">
       <LegalSection title="What we collect">
         <p>
           Account information you provide directly: your name, business email,
@@ -38,9 +38,14 @@ export default function PrivacyPage() {
           Anthropic processes your business information to generate your
           Growth Blueprint and prospect research.
         </p>
-        <p>Google (Places API) is used to search for prospect companies.</p>
+        <p>
+          OpenStreetMap is used to search for prospect companies by default
+          (no data is shared beyond the search terms themselves); Google
+          (Places API) is used instead if your workspace has that
+          integration configured.
+        </p>
         <p>Paddle processes payments and manages billing.</p>
-        <p>[Insert email provider] delivers transactional email.</p>
+        <p>Resend delivers transactional email.</p>
         <p>We do not share your data with anyone else.</p>
       </LegalSection>
 
@@ -48,12 +53,12 @@ export default function PrivacyPage() {
         <p>
           We retain your data for as long as your account is active. You can
           request export or deletion of your data at any time by contacting
-          us at [Insert contact email].
+          us at outrunv1privacy@outlook.com.
         </p>
       </LegalSection>
 
       <LegalSection title="Contact">
-        <p>Questions about this policy: [Insert contact email].</p>
+        <p>Questions about this policy: outrunv1privacy@outlook.com.</p>
       </LegalSection>
     </LegalPage>
   );

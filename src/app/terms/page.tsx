@@ -2,7 +2,7 @@ import { LegalPage, LegalSection } from "@/components/legal/legal-page";
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Service" updated="[Insert launch date]">
+    <LegalPage title="Terms of Service" updated="July 20, 2026">
       <LegalSection title="The service">
         <p>
           Outrun is an AI growth platform that analyzes your business,
@@ -61,11 +61,14 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection title="Governing law">
-        <p>[Insert governing jurisdiction].</p>
+        <p>
+          These Terms are governed by the laws of South Africa, without
+          regard to its conflict of law principles.
+        </p>
       </LegalSection>
 
       <LegalSection title="Contact">
-        <p>Questions about these terms: [Insert contact email].</p>
+        <p>Questions about these terms: outrunv1privacy@outlook.com.</p>
       </LegalSection>
     </LegalPage>
   );
