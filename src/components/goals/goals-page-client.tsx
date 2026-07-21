@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { SplitHeading } from "@/components/motion/split-heading";
+import { Magnetic } from "@/components/motion/magnetic";
 
 function progressPercent(goal: Goal): number | null {
   if (goal.targetValue == null || goal.currentValue == null || goal.targetValue === 0) return null;
@@ -70,9 +72,11 @@ export function GoalsPageClient({ initialGoals }: { initialGoals: Goal[] }) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-          Goals
-        </h1>
+        <SplitHeading
+          as="h1"
+          text="Goals"
+          className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+        />
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           The CEO Agent and Growth Blueprint read these to keep every recommendation aligned with
           what you&apos;re actually trying to achieve.
@@ -113,9 +117,11 @@ export function GoalsPageClient({ initialGoals }: { initialGoals: Goal[] }) {
               />
             </div>
           </div>
-          <Button type="submit" disabled={isAdding}>
-            {isAdding ? "Adding…" : "Add goal"}
-          </Button>
+          <Magnetic strength={0.15} className="inline-block">
+            <Button type="submit" disabled={isAdding}>
+              {isAdding ? "Adding…" : "Add goal"}
+            </Button>
+          </Magnetic>
         </form>
       </Card>
 

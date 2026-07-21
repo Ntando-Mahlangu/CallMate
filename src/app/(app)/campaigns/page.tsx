@@ -13,6 +13,8 @@ import { ImprovementLoopPanel } from "@/components/campaigns/improvement-loop-pa
 import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
 import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-panel";
 import { CampaignActions } from "@/components/campaigns/campaign-actions";
+import { SplitHeading } from "@/components/motion/split-heading";
+import { Magnetic } from "@/components/motion/magnetic";
 
 const STATUS_TONE = {
   DRAFT: "low",
@@ -56,9 +58,11 @@ export default async function CampaignsPage({
     <div className="animate-fade-in space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-            Campaigns
-          </h1>
+          <SplitHeading
+            as="h1"
+            text="Campaigns"
+            className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+          />
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Batch outreach across a chosen audience of researched prospects.
           </p>
@@ -70,9 +74,11 @@ export default async function CampaignsPage({
           >
             Campaign Library
           </Link>
-          <Link href="/campaigns/new" className={cn(buttonVariants())}>
-            Create Campaign
-          </Link>
+          <Magnetic strength={0.15}>
+            <Link href="/campaigns/new" className={cn(buttonVariants())}>
+              Create Campaign
+            </Link>
+          </Magnetic>
         </div>
       </div>
 

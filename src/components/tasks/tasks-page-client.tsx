@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { ImpactBadge } from "@/components/ui/badge";
 import type { CoachFeedbackData } from "@/lib/ceo-agent/coach-schema";
+import { SplitHeading } from "@/components/motion/split-heading";
+import { Magnetic } from "@/components/motion/magnetic";
 
 const IMPACTS: TaskImpact[] = ["High", "Medium", "Low"];
 
@@ -66,9 +68,11 @@ export function TasksPageClient({ initialTasks }: { initialTasks: Task[] }) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-          Growth Tasks
-        </h1>
+        <SplitHeading
+          as="h1"
+          text="Growth Tasks"
+          className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+        />
         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
           Every roadmap recommendation lives here as a completable task, alongside anything you add
           yourself.
@@ -106,9 +110,11 @@ export function TasksPageClient({ initialTasks }: { initialTasks: Task[] }) {
               ))}
             </Select>
           </div>
-          <Button type="submit" disabled={isAdding}>
-            {isAdding ? "Adding…" : "Add task"}
-          </Button>
+          <Magnetic strength={0.15} className="inline-block">
+            <Button type="submit" disabled={isAdding}>
+              {isAdding ? "Adding…" : "Add task"}
+            </Button>
+          </Magnetic>
         </form>
       </Card>
 

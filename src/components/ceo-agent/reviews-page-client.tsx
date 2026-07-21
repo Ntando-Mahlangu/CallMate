@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FormError } from "@/components/ui/form-error";
+import { SplitHeading } from "@/components/motion/split-heading";
 
 const PERIODS: { value: ReviewPeriod; label: string }[] = [
   { value: "WEEKLY", label: "Weekly" },
@@ -48,9 +49,11 @@ export function ReviewsPageClient({ initialReviews }: { initialReviews: Strategi
     <div className="animate-fade-in space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-            Strategic Reviews
-          </h1>
+          <SplitHeading
+            as="h1"
+            text="Strategic Reviews"
+            className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+          />
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Automatically generated weekly, monthly, and quarterly — achievements, missed
             opportunities, risks, key learnings, and what to prioritize next.

@@ -10,6 +10,7 @@ import { OpportunityFeedPanel } from "@/components/ceo-agent/opportunity-feed-pa
 import { DecisionPanel } from "@/components/ceo-agent/decision-panel";
 import { getRisksAndOpportunities } from "@/lib/ceo-agent/risks";
 import { getOpportunityFeed } from "@/lib/ceo-agent/opportunity-feed";
+import { SplitHeading } from "@/components/motion/split-heading";
 
 export default async function CeoAgentPage({
   searchParams,
@@ -37,9 +38,11 @@ export default async function CeoAgentPage({
     <div className="animate-fade-in space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-            Ask the CEO
-          </h1>
+          <SplitHeading
+            as="h1"
+            text="Ask the CEO"
+            className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+          />
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Grounded in everything Outrun knows about {organization.name}.
           </p>
