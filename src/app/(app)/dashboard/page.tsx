@@ -21,6 +21,10 @@ import { CampaignOverviewWidget } from "@/components/dashboard/campaign-overview
 import { RightSidebar } from "@/components/dashboard/right-sidebar";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { RevealGroup, RevealItem } from "@/components/motion/reveal";
+import { SplitHeading } from "@/components/motion/split-heading";
+import { Magnetic } from "@/components/motion/magnetic";
+import { CountUp } from "@/components/motion/count-up";
 import type { GrowthBlueprintData } from "@/lib/growth-blueprint/schema";
 
 function formatTrend(trend: number | null): string | null {
@@ -104,12 +108,14 @@ export default async function DashboardPage() {
     : null;
 
   return (
-    <div className="animate-fade-in flex gap-8">
-      <div className="min-w-0 flex-1 space-y-8">
-        <div>
-          <h1 className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]">
-            {greeting(today)}, {firstName}.
-          </h1>
+    <div className="flex gap-8">
+      <RevealGroup className="min-w-0 flex-1 space-y-8" stagger={0.1}>
+        <RevealItem>
+          <SplitHeading
+            as="h1"
+            text={`${greeting(today)}, ${firstName}.`}
+            className="text-2xl font-light tracking-tight text-[var(--color-text-primary)]"
+          />
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Here&apos;s what will help {organization.name} grow today · {today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
           </p>
@@ -119,9 +125,10 @@ export default async function DashboardPage() {
               taking action in Outrun.
             </p>
           )}
-        </div>
+        </RevealItem>
 
         {mission && (
+          <RevealItem>
           <Card className="border-[var(--color-accent)]/40">
             <p className="text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
               Today&apos;s Priority
@@ -160,7 +167,7 @@ export default async function DashboardPage() {
                     Business Health
                   </p>
                   <p className="text-sm text-[var(--color-text-primary)]">
-                    {health.overall}/100
+                    <CountUp value={health.overall} suffix="/100" />
                     {healthTrendLabel && (
                       <span className="ml-1 text-xs text-[var(--color-text-muted)]">
                         ({healthTrendLabel})
@@ -192,17 +199,20 @@ export default async function DashboardPage() {
             </div>
 
             <div className="mt-5">
-              <Link
-                href={getMissionActionHref(mission)}
-                className={cn(buttonVariants({ size: "lg" }))}
-              >
-                Start Today&apos;s Mission
-              </Link>
+              <Magnetic strength={0.15} className="inline-block">
+                <Link
+                  href={getMissionActionHref(mission)}
+                  className={cn(buttonVariants({ size: "lg" }))}
+                >
+                  Start Today&apos;s Mission
+                </Link>
+              </Magnetic>
             </div>
           </Card>
+          </RevealItem>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+        <RevealItem className="grid gap-6 lg:grid-cols-[auto_1fr]">
           <Card className="flex flex-col items-center justify-center">
             <ScoreGauge score={blueprint.growthScore} label="Growth Score" />
           </Card>
@@ -246,8 +256,9 @@ export default async function DashboardPage() {
               })}
             </div>
           </Card>
-        </div>
+        </RevealItem>
 
+        <RevealItem>
         <Card>
           <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
             Business Snapshot
@@ -302,7 +313,7 @@ export default async function DashboardPage() {
               {snapshot.pipelineValue ? (
                 <>
                   <p className="text-sm text-[var(--color-text-primary)]">
-                    ${snapshot.pipelineValue.estimate.toLocaleString()}
+                    <CountUp value={snapshot.pipelineValue.estimate} prefix="$" />
                   </p>
                   <p className="text-xs text-[var(--color-text-muted)]">
                     Estimate: {snapshot.pipelineValue.qualifiedCount} qualified lead
@@ -324,7 +335,9 @@ export default async function DashboardPage() {
             </div>
           </div>
         </Card>
+        </RevealItem>
 
+        <RevealItem>
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
@@ -354,9 +367,13 @@ export default async function DashboardPage() {
             ))}
           </ul>
         </Card>
+        </RevealItem>
 
-        <CampaignOverviewWidget overview={campaignOverview} />
+        <RevealItem>
+          <CampaignOverviewWidget overview={campaignOverview} />
+        </RevealItem>
 
+        <RevealItem>
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-medium text-[var(--color-text-primary)]">
@@ -388,7 +405,9 @@ export default async function DashboardPage() {
             </ul>
           )}
         </Card>
+        </RevealItem>
 
+        <RevealItem>
         <Card>
           <h2 className="mb-4 text-lg font-medium text-[var(--color-text-primary)]">
             Quick Actions
@@ -405,7 +424,8 @@ export default async function DashboardPage() {
             ))}
           </div>
         </Card>
-      </div>
+        </RevealItem>
+      </RevealGroup>
 
       <RightSidebar
         assistantTeaser={assistantTeaser}
