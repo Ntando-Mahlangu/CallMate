@@ -46,7 +46,7 @@ export function Hero() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
               <Magnetic>
                 <Link href="/sign-up" className={cn(buttonVariants({ size: "lg" }), "group relative overflow-hidden")}>
-                  <span className="relative z-10">Start Free</span>
+                  <span className="relative z-10">Start Now</span>
                   <span
                     aria-hidden
                     className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full"

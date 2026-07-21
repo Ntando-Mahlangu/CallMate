@@ -68,7 +68,7 @@ export function PricingSection() {
                       href="/sign-up"
                       className={cn(buttonVariants({ variant: badge ? "primary" : "secondary" }), "w-full")}
                     >
-                      {tier === "FREE" ? "Start Free" : "Get Started"}
+                      {tier === "FREE" ? "Start Now" : "Get Started"}
                     </Link>
                   </Magnetic>
                 </Card>

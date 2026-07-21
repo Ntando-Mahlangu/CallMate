@@ -32,7 +32,7 @@ export function MarketingNav() {
             Sign In
           </Link>
           <Link href="/sign-up" className={cn(buttonVariants({ size: "sm" }))}>
-            Start Free
+            Start Now
           </Link>
         </div>
       </div>

@@ -35,7 +35,7 @@ export function FinalCta() {
                   "shadow-[var(--shadow-glow)] transition-shadow duration-300 hover:shadow-[var(--shadow-glow-lg)]",
                 )}
               >
-                Start Free
+                Start Now
               </Link>
             </Magnetic>
           </div>
