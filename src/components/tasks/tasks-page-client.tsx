@@ -12,6 +12,7 @@ import { ImpactBadge } from "@/components/ui/badge";
 import type { CoachFeedbackData } from "@/lib/ceo-agent/coach-schema";
 import { SplitHeading } from "@/components/motion/split-heading";
 import { Magnetic } from "@/components/motion/magnetic";
+import { readJsonSafely } from "@/lib/fetch-json";
 
 const IMPACTS: TaskImpact[] = ["High", "Medium", "Low"];
 
@@ -32,36 +33,42 @@ export function TasksPageClient({ initialTasks }: { initialTasks: Task[] }) {
     setError(null);
     setIsAdding(true);
 
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, impact }),
-    });
-    const body = await res.json();
-    setIsAdding(false);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, impact }),
+      });
+      const body = await readJsonSafely(res);
+      if (!res.ok) throw new Error((body?.error as string) ?? "We couldn't add that task.");
 
-    if (!res.ok) {
-      setError(body.error ?? "We couldn't add that task.");
-      return;
+      setTasks((prev) => [body!.task as Task, ...prev]);
+      setTitle("");
+      setDescription("");
+      setImpact("Medium");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't add that task.");
+    } finally {
+      setIsAdding(false);
     }
-
-    setTasks((prev) => [body.task, ...prev]);
-    setTitle("");
-    setDescription("");
-    setImpact("Medium");
   }
 
   async function updateStatus(id: string, status: "COMPLETED" | "DISMISSED" | "PENDING") {
+    setError(null);
     setBusyId(id);
-    const res = await fetch(`/api/tasks/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    const body = await res.json();
-    setBusyId(null);
-    if (res.ok) {
-      setTasks((prev) => prev.map((t) => (t.id === id ? body.task : t)));
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const body = await readJsonSafely(res);
+      if (!res.ok) throw new Error((body?.error as string) ?? "We couldn't update that task.");
+      setTasks((prev) => prev.map((t) => (t.id === id ? (body!.task as Task) : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't update that task.");
+    } finally {
+      setBusyId(null);
     }
   }
 
