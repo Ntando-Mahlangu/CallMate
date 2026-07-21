@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
 import { Reveal } from "@/components/motion/reveal";
+import { ConcentricRings } from "@/components/motion/backgrounds";
+import { SplitHeading } from "@/components/motion/split-heading";
+import { CountUp } from "@/components/motion/count-up";
 
 // docs/outrun/02 "WOW SECTION" — a fixed, clearly-labeled example scenario
 // (the same input/output the spec itself specifies), not a live AI call:
@@ -41,111 +44,120 @@ export function WowDemo() {
   }
 
   return (
-    <section id="wow-demo" className="mx-auto max-w-3xl px-6 py-20">
-      <Reveal>
-        <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
-          Example
-        </p>
-        <h2 className="mt-2 text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-          Watch Outrun think.
-        </h2>
-        <p className="mx-auto mt-4 max-w-lg text-center text-[var(--color-text-secondary)]">
-          A real business owner describes what they do. Here&apos;s the kind of
-          Growth Blueprint Outrun prepares in return.
-        </p>
-      </Reveal>
-
-      <Card
-        className={cn(
-          "mt-10 transition-shadow duration-700",
-          phase === "result" && "shadow-[var(--shadow-glow)]",
-        )}
-      >
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 font-mono text-sm text-[var(--color-text-primary)]">
-          {typed}
-          {phase === "typing" && <span className="animate-pulse">|</span>}
-        </div>
-
-        {phase === "thinking" && (
-          <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-            Outrun is thinking…
+    <section id="wow-demo" className="relative overflow-hidden py-20">
+      <ConcentricRings />
+      <div className="relative z-10 mx-auto max-w-3xl px-6">
+        <Reveal>
+          <p className="text-center text-xs uppercase tracking-wide text-[var(--color-accent-text)]">
+            Example
           </p>
-        )}
+        </Reveal>
+        <SplitHeading
+          text="Watch Outrun think."
+          className="mt-2 text-center text-3xl font-light tracking-tight text-[var(--color-text-primary)]"
+        />
+        <Reveal delay={0.1}>
+          <p className="mx-auto mt-4 max-w-lg text-center text-[var(--color-text-secondary)]">
+            A real business owner describes what they do. Here&apos;s the kind of
+            Growth Blueprint Outrun prepares in return.
+          </p>
+        </Reveal>
 
-        {phase === "result" && (
-          <div className="mt-6 animate-fade-in space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Growth Score
-                </p>
-                <p className="text-2xl font-light text-[var(--color-text-primary)]">74</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Best Customer
-                </p>
-                <p className="text-lg text-[var(--color-text-primary)]">Accounting firms</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Biggest Opportunity
-                </p>
-                <p className="text-lg text-[var(--color-text-primary)]">Cold outbound</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Estimated Opportunity
-                </p>
-                <p className="text-lg text-[var(--color-text-primary)]">
-                  $240k ARR
-                  <span className="ml-1 text-xs text-[var(--color-text-muted)]">
-                    (estimate based on assumptions)
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-[var(--color-border)] pt-5">
-              <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
-                Top Strategy
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {["Email", "LinkedIn", "Referrals"].map((channel) => (
-                  <span
-                    key={channel}
-                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text-secondary)]"
-                  >
-                    {channel}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-5 text-sm">
-              <span className="text-[var(--color-text-secondary)]">
-                148 companies found · 129 verified emails
-              </span>
-              <span
-                className={cn(
-                  "rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-1.5 text-xs font-medium text-white",
-                  "shadow-[0_0_20px_var(--color-accent)]",
-                )}
-              >
-                Launch Ready
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={replay}
-              className="mx-auto block text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
-            >
-              Replay
-            </button>
+        <Card
+          className={cn(
+            "mt-10 transition-shadow duration-700",
+            phase === "result" && "shadow-[var(--shadow-glow)]",
+          )}
+        >
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 font-mono text-sm text-[var(--color-text-primary)]">
+            {typed}
+            {phase === "typing" && <span className="animate-pulse">|</span>}
           </div>
-        )}
-      </Card>
+
+          {phase === "thinking" && (
+            <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
+              Outrun is thinking…
+            </p>
+          )}
+
+          {phase === "result" && (
+            <div className="mt-6 animate-fade-in space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Growth Score
+                  </p>
+                  <p className="text-2xl font-light text-[var(--color-text-primary)]">
+                    <CountUp value={74} />
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Best Customer
+                  </p>
+                  <p className="text-lg text-[var(--color-text-primary)]">Accounting firms</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Biggest Opportunity
+                  </p>
+                  <p className="text-lg text-[var(--color-text-primary)]">Cold outbound</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Estimated Opportunity
+                  </p>
+                  <p className="text-lg text-[var(--color-text-primary)]">
+                    <CountUp value={240} prefix="$" suffix="k ARR" />
+                    <span className="ml-1 text-xs text-[var(--color-text-muted)]">
+                      (estimate based on assumptions)
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--color-border)] pt-5">
+                <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">
+                  Top Strategy
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {["Email", "LinkedIn", "Referrals"].map((channel) => (
+                    <span
+                      key={channel}
+                      className="rounded-[var(--radius-md)] border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text-secondary)]"
+                    >
+                      {channel}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-5 text-sm">
+                <span className="text-[var(--color-text-secondary)]">
+                  <CountUp value={148} suffix=" companies found" /> ·{" "}
+                  <CountUp value={129} suffix=" verified emails" />
+                </span>
+                <span
+                  className={cn(
+                    "rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-1.5 text-xs font-medium text-white",
+                    "shadow-[0_0_20px_var(--color-accent)]",
+                  )}
+                >
+                  Launch Ready
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={replay}
+                className="mx-auto block text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+              >
+                Replay
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
     </section>
   );
 }

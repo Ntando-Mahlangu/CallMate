@@ -1,23 +1,21 @@
 import { Reveal } from "@/components/motion/reveal";
-import { FloatingGeometry } from "@/components/motion/floating-geometry";
+import { LiquidMesh } from "@/components/motion/backgrounds";
+import { SplitHeading } from "@/components/motion/split-heading";
 
 export function ProductPhilosophy() {
   return (
-    <section className="mx-auto max-w-4xl px-6 py-20">
-      <div className="flex flex-col items-center gap-8 sm:flex-row sm:justify-center sm:gap-12">
-        <Reveal className="text-center sm:text-left">
-          <h2 className="text-3xl font-light tracking-tight text-[var(--color-text-primary)]">
-            Software should think.
-            <br />
-            Not make you think.
-          </h2>
-          <p className="mx-auto mt-4 max-w-md text-[var(--color-text-secondary)] sm:mx-0">
+    <section className="relative overflow-hidden py-20 text-center">
+      <LiquidMesh />
+      <div className="relative z-10 mx-auto max-w-2xl px-6">
+        <SplitHeading
+          text={"Software should think.\nNot make you think."}
+          className="text-3xl font-light tracking-tight text-[var(--color-text-primary)]"
+        />
+        <Reveal delay={0.1}>
+          <p className="mx-auto mt-4 max-w-md text-[var(--color-text-secondary)]">
             Outrun removes busy work so business owners can focus on making
             decisions.
           </p>
-        </Reveal>
-        <Reveal delay={0.15} className="shrink-0">
-          <FloatingGeometry size={130} duration={18} />
         </Reveal>
       </div>
     </section>
