@@ -55,16 +55,23 @@ export default async function ProspectDetailPage({
           {company.category ?? "Uncategorized"}
           {company.formattedAddress ? ` · ${company.formattedAddress}` : ""}
         </p>
-        {company.website && (
-          <a
-            href={company.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-[var(--color-accent-text)] hover:underline"
-          >
-            {company.website}
-          </a>
-        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {company.website && (
+            <a
+              href={company.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[var(--color-accent-text)] hover:underline"
+            >
+              {company.website}
+            </a>
+          )}
+          {company.phone && (
+            <a href={`tel:${company.phone}`} className="text-sm text-[var(--color-accent-text)] hover:underline">
+              {company.phone}
+            </a>
+          )}
+        </div>
         <div className="mt-3 flex gap-2">
           <ScoreBadge label="Fit" score={company.fitScore ?? 0} reason={company.fitReason} />
           <ScoreBadge
@@ -109,6 +116,7 @@ export default async function ProspectDetailPage({
         </h2>
         <CallScriptPanel
           companyId={company.id}
+          companyPhone={company.phone}
           hasResearch={Boolean(company.research)}
           initialCallScript={company.callScript as CallScriptData | null}
         />
